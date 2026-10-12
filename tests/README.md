@@ -1,7 +1,9 @@
 # Tests — Expense.io
 
 Harnais boîte noire : Playwright attaque l'application lancée en build de
-production. Spec : `docs/tests/specs/2026-10-12-strategie-tests-design.md`.
+production. Complété par des tests unitaires Vitest (`tests/unit/`) sur les
+règles internes que les optimisations vont toucher. Spec :
+`docs/tests/specs/2026-10-12-strategie-tests-design.md`.
 
 Ce qui est attendu à la fin de la migration, et comment le vérifier :
 `docs/tests/criteres-fin-de-migration.md`.
@@ -10,6 +12,7 @@ Ce qui est attendu à la fin de la migration, et comment le vérifier :
 
 ```bash
 make test          # tout (prépare Docker, migrations, seed, build)
+make test-unit     # unitaires Vitest : sans Docker ni build, quelques secondes
 make test-api      # contrat HTTP + défauts
 make test-e2e      # parcours UI
 make test-defects  # défauts techniques (rouge → vert)
@@ -27,7 +30,36 @@ Une fois l'environnement prêt : `npx playwright test <fichier> --no-deps`.
 |---|---|
 | `@parity` | comportement de la baseline, doit toujours passer |
 | `@defect` + `@SEC-xx` / `@ROB-xx` / `@BUG-xx` | défaut technique ; échec attendu tant que `fixed: false` dans `tests/defects/registry.ts` |
+| unitaire (hors Playwright) | `tests/unit/*.test.ts`, Vitest : doit toujours passer (voir « Tests unitaires ») |
 | perf (hors Playwright) | PERF-01, PERF-02 et non-régression : `tests/perf/`, objectifs dans `tests/perf/targets.json` |
+
+## Tests unitaires (Vitest)
+
+```bash
+npm run test:unit            # environ 115 tests, moins d'une seconde
+npm run test:unit:coverage   # + couverture (rapport HTML dans coverage/)
+```
+
+Fichiers `tests/unit/*.test.ts` (Playwright ne lit que les `*.spec.ts`).
+Aucun service requis : base, S3 et Tesseract sont simulés.
+
+| Fichier | Ce qui est figé | Optimisation surveillée |
+|---|---|---|
+| `ocr.test.ts` | règles d'extraction du montant et de la date (mots-clés, milliers, formats de date, priorités, dates impossibles), types de fichier, reprise après échec du moteur, requêtes simultanées | PERF-01 (worker réutilisé) |
+| `db.test.ts` | `withUserScope` : transaction, contexte utilisateur **local** à la transaction, connexion toujours rendue ; pool unique ; dates SQL en chaîne | requêtes regroupées, pool |
+| `storage.test.ts` | URL présignée (bucket, clé, 5 min), variables `S3_*`, client S3 réutilisé, erreurs propagées | adaptateurs de stockage |
+| `proxy.test.ts` | pages protégées → `/login` sans session | middleware |
+| `domain.test.ts`, `utils.test.ts` | règles du domaine (`src/domain/`, `src/utils/`, pas encore branchés) et `respondError` | nouveau domaine |
+
+Tesseract est simulé dans ses deux API (`createWorker` et `createScheduler`),
+pour que les tests survivent à la réutilisation du worker. Les tests
+« cas limites (comportement actuel figé) » décrivent des bizarreries actuelles :
+les changer est un changement de comportement, à valider comme un `@parity`.
+
+**Règle propre aux unitaires** : ils importent des modules internes. Si la
+migration déplace ou renomme un module, adapter le **chemin d'import** (et la
+simulation du moteur si l'API change) est autorisé ; modifier une assertion
+reste un changement de comportement à valider par la team Tests.
 
 ## Contrat d'API (OpenAPI)
 
@@ -43,9 +75,13 @@ générée par la nouvelle architecture) : `make api-diff NEW=<spec>` (oasdiff).
 
 ## OCR de référence
 
-`tests/fixtures/ocr/` contient des reçus fixes (générés par
-`tests/fixtures/generate-ocr-receipts.mjs`) et, dans `expected/`, la sortie de
-l'app d'origine pour chacun. `tests/api/ocr.spec.ts` exige la même sortie.
+`tests/fixtures/ocr/` contient 11 reçus fixes (générés par
+`tests/fixtures/generate-ocr-receipts.mjs`, qui n'écrit que les fichiers
+manquants sauf `--force`) et, dans `expected/`, la sortie de l'app d'origine
+pour chacun : montant et date, montant seul, date seule, milliers, année sur
+deux chiffres, montant sans centimes, PNG / JPEG / WebP.
+`tests/api/ocr.spec.ts` exige la même sortie ; `tests/api/ocr-concurrency.spec.ts`
+l'exige aussi en requêtes simultanées et enchaînées (garde-fou de PERF-01).
 Réenregistrer (`OCR_RECORD=1 npx playwright test tests/api/ocr.spec.ts --no-deps`)
 uniquement pour un changement voulu et validé par la team Tests.
 
@@ -82,6 +118,7 @@ attendu, tous les tests passent au sens propre.
 - `tests/fixtures/dataset.json` décrit les acteurs ; `scripts/seed-e2e.mjs` les crée (lancé par le globalSetup).
 - Chaque test crée ses notes via l'API avec une description unique.
 - Un test qui modifie la hiérarchie utilise un acteur qui lui est réservé (`reassign*`).
+- `loneMgrA` : manager sans rattaché (état vide de la page manager), à ne jamais rattacher.
 - Aucun SQL dans `tests/`.
 
 ## Règles

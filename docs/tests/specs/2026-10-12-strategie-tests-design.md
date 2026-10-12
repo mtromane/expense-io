@@ -77,7 +77,7 @@ Contrat à préserver, encodé en tests :
 
 ## 4. Non-objectifs
 
-- Tests unitaires sur le code actuel (destiné à être réécrit). Vitest n'interviendra que sur le nouveau domaine.
+- ~~Tests unitaires sur le code actuel (destiné à être réécrit).~~ **Révisé le 2026-10-12** : une couche Vitest (`tests/unit/`) couvre les règles internes que les optimisations vont toucher (extraction OCR pour PERF-01, portée transactionnelle et pool, stockage, gardes) et les règles du futur domaine. Elle ne remplace pas la boîte noire, qui reste l'autorité ; seul le chemin d'import peut suivre un module déplacé (voir `tests/README.md`).
 - Correction des défauts métier avant décision des professeurs.
 - Bonnes pratiques génériques hors contexte (rate limiting, révocation de session) : mentionnées dans l'audit, non testées.
 
@@ -141,7 +141,7 @@ Contrat à préserver, encodé en tests :
 |---|---|
 | API et UI boîte noire | Playwright Test (`request` + navigateur) |
 | Performance | k6 via l'image Docker `grafana/k6` |
-| Unitaire | Vitest, uniquement sur le nouveau domaine (après migration) |
+| Unitaire | Vitest (`tests/unit/`, simulations de pg, S3 et Tesseract) |
 
 ### 6.2 Environnement d'exécution
 
@@ -234,6 +234,10 @@ make test-report
 | OCR ✅ | Images de référence → `{amount, expenseDate}` comparés au golden ; PDF → `{}` ; champ non fichier → 400 | P1 |
 | CONTRAT ✅ | Chaque réponse validée contre `docs/api/openapi.yaml` (schémas stricts, codes documentés) ; `make api-diff` (oasdiff) pour comparer une spec générée | P1 |
 | GOLD | Réponses JSON normalisées comparées aux références enregistrées sur `baseline` | P1 |
+| OCR-CONC ✅ | Références OCR en requêtes simultanées (2 utilisateurs), enchaînées, et même nom de fichier pour deux contenus (garde-fou PERF-01) | P1 |
+| DATA ✅ | Montants, dates et descriptions restitués à l'identique ; même JSON pour une note sur tous les endpoints ; 8 créations simultanées (reçus intacts) ; aucune limite implicite (30 notes) | P1 |
+| FLOW ✅ | Tri RH ASC ; note tranchée retirée de la liste RH ; statuts mêlés côté employé ; statut inchangé après 409 ; pas d'auto-validation (manager) ; RH limitée aux managers racine ; manager rendu racine puis rattaché (notes créées après chaque changement, MET-07 non figé) | P1 |
+| SESSION ✅ | Contenu de `/api/auth/session` par rôle (sans mot de passe) ; anonyme `null` ; cookie HttpOnly / Lax ; déconnexion | P1 |
 
 ### 7.2 UI
 
@@ -247,6 +251,9 @@ make test-report
 | E2E-06 ✅ | « Voir le reçu » ouvre le reçu | P1 |
 | E2E-07 ✅ | « Pré-remplir depuis le reçu » remplit montant et date ; message si rien n'est reconnu | P1 |
 | E2E-08 | Gardes : anonyme → `/login` ; mauvais rôle → « Accès réservé » ; connecté sur `/` → `/expenses` | P0 |
+| E2E-09 ✅ | Navigation : accueil anonyme, liens connexion ↔ inscription, session après rechargement, pages protégées après déconnexion, liens actifs Manager / RH, gardes manager ↔ RH | P1 |
+| E2E-10 ✅ | Page employé : pluriel, total, milliers, ordre ; formulaire vidé ; erreur serveur affichée sans perte de saisie ; description non interprétée (XSS) ; OCR partiel (montant seul, date seule), PDF, pré-remplir puis soumettre ; validation serveur de l'inscription | P1 |
+| E2E-11 ✅ | Pages manager et RH : ligne formatée, compteur, « Voir le reçu », état vide, décision concurrente (`Already decided`), rejet RH, sélecteur de l'organigramme, désassignation, entreprise neuve | P1 |
 
 ### 7.3 Exploitation
 
@@ -258,7 +265,7 @@ make test-report
 | OPS-04 | Ports et variables de `.env.example` effectivement utilisés | P1 |
 | OPS-05 | `lint`, `typecheck`, `build` passent | P0 |
 
-**Volume estimé** : environ 230 tests (API ~170 dont matrice ~100, UI ~12, exploitation ~8, défauts ~22, métier ~18). **Réalisé au 2026-10-12** : 208 tests — parité 181 (API 151 dont contrat 8 et OCR 7, UI 24, exploitation 6), défauts 27 ; tests métier remplacés par de la documentation.
+**Volume estimé** : environ 230 tests (API ~170 dont matrice ~100, UI ~12, exploitation ~8, défauts ~22, métier ~18). **Réalisé au 2026-10-12** : 208 tests — parité 181 (API 151 dont contrat 8 et OCR 7, UI 24, exploitation 6), défauts 27 ; tests métier remplacés par de la documentation. **Lot P2 (branche `tests/p2-unitaires`)** : 280 tests Playwright — parité 253 (+72 : OCR 6 références, OCR-CONC 3, DATA 18, FLOW 8, SESSION 6, E2E 31), défauts 27 — et 115 tests unitaires Vitest.
 
 ---
 
@@ -414,7 +421,7 @@ Rapport HTML Playwright et traces en artefacts ; résumé du job avec compteurs,
 
 - **Audit** : défauts classés par sévérité (impact × exploitabilité), couverture 14/14 × 7, nombre de tests par famille, gains de perf avec bruit mesuré.
 - **Présentation** : schéma du harnais, tableau rouge → vert, perf avant/après + courbe, heatmap des autorisations.
-- **Questions** : fiche Q&R team Tests (pas d'unitaires sur l'ancien code, `test.fail()`, calibration A/A, RLS et superuser, UPDATE conditionnel, limites de la boîte noire).
+- **Questions** : fiche Q&R team Tests (unitaires limités aux règles internes que les optimisations touchent, `test.fail()`, calibration A/A, RLS et superuser, UPDATE conditionnel, limites de la boîte noire).
 - **Co-conception IA** : démonstration répétée (test rouge → dataset → implémentation assistée → CI verte).
 - **Qualité technique** : exécution complète verte sur le tag `soutenance`.
 

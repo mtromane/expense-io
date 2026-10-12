@@ -19,7 +19,8 @@ Cocher chaque ligne. Une seule case vide = migration non terminée.
 
 ### 2.1 Rien n'a été perdu (parité)
 
-- [ ] Les **181 tests `@parity`** passent : `npx playwright test --grep @parity`.
+- [ ] Les **253 tests `@parity`** passent : `npx playwright test --grep @parity`.
+- [ ] Les **115 tests unitaires** passent : `npm run test:unit` (règles OCR, transaction et contexte utilisateur, stockage, gardes, domaine).
 - [ ] Toutes les réponses de l'API sont conformes au contrat **`docs/api/openapi.yaml`** : c'est vérifié automatiquement sur chaque réponse obtenue par les tests (schémas stricts, codes HTTP documentés).
 - [ ] Aucun test `@parity` n'a été modifié, sauf changement de comportement **voulu**, justifié dans la PR et validé par la team Tests.
 - [ ] Le **contrat** ci-dessous est intact (il est vérifié par les tests, mais c'est lui qui compte) :
@@ -94,6 +95,7 @@ Vérification : `make test-perf` en local (environ 15 min), ou poser le label `p
 | Renommer un script npm, une cible make, une variable d'environnement ou changer un port | la CI des professeurs lance l'application avec ces noms : tout leur E2E tomberait |
 | Modifier un texte de l'interface | les E2E (les nôtres et probablement ceux des professeurs) cherchent les éléments par leur texte |
 | Modifier un test pour le faire passer | un test de parité rouge signale une régression, pas un test à « réparer » |
+| Modifier une assertion d'un test unitaire (`tests/unit/`) | même règle ; seul le chemin d'import peut suivre un module déplacé |
 | Modifier `docs/api/openapi.yaml` pour faire passer un test | c'est le contrat de l'app d'origine ; une réponse « hors contrat » est une régression |
 | Réenregistrer les références OCR (`OCR_RECORD=1`) | elles décrivent la sortie de l'app d'origine ; un écart est une régression de l'OCR |
 | Passer `fixed: true` sans corriger | le test redevient normal et la CI passe au rouge |
@@ -113,7 +115,8 @@ Vérification : `make test-perf` en local (environ 15 min), ou poser le label `p
 ### 4.2 Commandes
 
 ```bash
-make test           # tout : Docker, migrations, seed, build de prod, puis parité + défauts
+make test           # tout : Docker, migrations, seed, build de prod, puis unitaires + parité + défauts
+make test-unit      # unitaires Vitest seuls (quelques secondes, sans Docker)
 make test-api       # contrat HTTP + défauts
 make test-e2e       # parcours dans le navigateur
 make test-defects   # tableau rouge → vert des défauts

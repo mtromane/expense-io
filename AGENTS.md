@@ -12,11 +12,12 @@ Application Next.js 16 de notes de frais (PostgreSQL, S3 via LocalStack, OCR tes
 
 1. **Ne déclare jamais une tâche terminée sans avoir lancé les tests et lu le résultat :**
    ```bash
+   npm run test:unit                      # unitaires (secondes, sans Docker)
    npm run build && npx playwright test   # environnement déjà prêt
    make test                              # depuis zéro (Docker, migrations, seed, build)
    ```
    Les tests attaquent le build de production : relance `npm run build` après chaque modification du code.
-2. **Ne modifie jamais un fichier de `tests/`, `playwright.config.ts`, `scripts/seed-e2e.mjs` ou `.github/` pour faire passer un test.** Un test `@parity` rouge signale une régression : corrige le code applicatif. Ces fichiers appartiennent à la team Tests (`.github/CODEOWNERS`).
+2. **Ne modifie jamais un fichier de `tests/`, `playwright.config.ts`, `vitest.config.mts`, `scripts/seed-e2e.mjs` ou `.github/` pour faire passer un test.** Un test `@parity` ou unitaire rouge signale une régression : corrige le code applicatif. Seule exception : si tu déplaces ou renommes un module, tu peux adapter le **chemin d'import** d'un test de `tests/unit/` (jamais ses assertions). Ces fichiers appartiennent à la team Tests (`.github/CODEOWNERS`).
 3. **Ne change pas le contrat** :
    - routes API, codes HTTP, forme du JSON, messages d'erreur : tout est décrit dans `docs/api/openapi.yaml` et vérifié sur chaque réponse des tests (« Réponse hors contrat » = régression ; ne modifie jamais ce fichier pour faire passer un test) ;
    - sortie de la suggestion OCR sur les reçus de référence (`tests/fixtures/ocr/`) ;
@@ -39,6 +40,8 @@ Détail : `tests/README.md`.
 ## Commandes utiles
 
 ```bash
+npm run test:unit                                         # unitaires (Vitest)
+npx vitest tests/unit/ocr.test.ts                         # un fichier unitaire, en mode watch
 npx playwright test tests/api/manager.spec.ts --no-deps   # un fichier
 npx playwright test --grep @SEC-03                        # un défaut
 npx playwright test --grep @parity                        # toute la parité
