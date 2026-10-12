@@ -131,6 +131,8 @@ Important :
 
 Rapport détaillé avec traces des échecs : `make test-report`.
 
+**Pourquoi la CI est verte alors que des tests de défaut échouent ?** Tant qu'un défaut est `fixed: false`, son échec est attendu : c'est l'état « rouge » du cycle rouge → vert, enregistré au lieu de bloquer `main`. Quand le défaut est corrigé et déclaré `fixed: true`, le test devient un test normal et passe. À la fin de la migration, il n'y a plus aucun échec attendu. Détail et tableau des 4 situations : `tests/README.md`, section « Pourquoi la CI est verte alors que 21 tests échouent ».
+
 ### 4.4 Vérifier contre la baseline (optionnel, fait par la CI)
 
 ```bash
