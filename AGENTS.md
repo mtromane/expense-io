@@ -25,7 +25,7 @@ Application Next.js 16 de notes de frais (PostgreSQL, S3 via LocalStack, OCR tes
 4. **Défauts techniques** (`tests/defects/registry.ts`) : pour en corriger un, corrige l'application puis passe `fixed: true` sur son identifiant dans la même modification. Ne passe jamais `fixed: true` sans correction réelle.
 5. **Défauts métier MET-01 à MET-09** (`docs/tests/specs/2026-10-12-strategie-tests-design.md` §5.2) : ne les corrige pas, ils attendent une décision des professeurs.
 6. **Schéma `users` / `companies`** : si tu le modifies, adapte `scripts/seed-e2e.mjs` en accord avec la team Tests, sinon les tests ne peuvent plus créer leurs acteurs.
-7. **Performance** : aucune modification ne doit rendre l'application plus lente. Avant toute modification de l'OCR, des requêtes SQL ou des listes, lance `make test-perf` (comparaison avec la baseline) et lis `perf-results/latest.md`. Objectif PERF atteint → passe `fixed: true` dans `tests/perf/targets.json`.
+7. **Performance** : aucune modification ne doit rendre l'application plus lente. Avant toute modification de l'OCR, des requêtes SQL ou des listes, lance `make test-perf` (comparaison avec la baseline) et lis `perf-results/latest.md`. Objectif PERF atteint → passe `fixed: true` dans `tests/perf/targets.json`. Détail : `docs/perf/README.md`.
 
 ## Lire le résultat des tests
 

@@ -9,7 +9,7 @@
 
 ## 1. En une phrase
 
-La migration est terminée quand **`make test` est vert sur `main`, que tous les défauts techniques sont marqués corrigés dans `tests/defects/registry.ts`, et que la CI GitHub est verte**, sans qu'aucun test de parité n'ait été modifié pour y arriver.
+La migration est terminée quand **`make test` est vert sur `main`, que tous les défauts techniques sont marqués corrigés dans `tests/defects/registry.ts`, que les objectifs de `tests/perf/targets.json` sont atteints sans aucune régression de performance (`make test-perf`), et que la CI GitHub est verte**, sans qu'aucun test de parité n'ait été modifié pour y arriver.
 
 ---
 
@@ -114,7 +114,11 @@ make test-api       # contrat HTTP + défauts
 make test-e2e       # parcours dans le navigateur
 make test-defects   # tableau rouge → vert des défauts
 make test-report    # ouvre le rapport HTML du dernier run
+make test-perf      # performance : baseline contre version courante (environ 15 min, k6)
+make perf-aa        # performance : baseline contre elle-même (mesure du bruit)
 ```
+
+Perf : rapport dans `perf-results/latest.md`, lecture et seuils dans `docs/perf/README.md`. Sur GitHub, poser le label `perf` sur la PR.
 
 Une fois l'environnement prêt (après un premier `make test`) :
 
@@ -193,6 +197,7 @@ Points d'attention par défaut :
 - [ ] Tag `soutenance` posé sur `main` : la CI fait une exécution complète et produit les rapports.
 - [ ] Rapport Playwright de ce run archivé (artefact GitHub `playwright-report-*`).
 - [ ] Le tableau rouge → vert (`tests/defects/registry.ts`) et la liste des questions métier sont prêts pour les slides.
+- [ ] Comparaison de performance finale lancée (`make test-perf` ou label `perf` sur la dernière PR) : `perf-results/latest.md` archivé, PERF-01 et PERF-02 à `fixed: true`, aucune régression ; courbe de progression (`docs/perf/trend.md` sur la branche `perf-history`) prête pour les slides.
 - [ ] La démo de co-conception IA a été répétée : test E2E écrit d'abord (rouge) → implémentation assistée → CI verte.
 
 ---
@@ -207,5 +212,9 @@ Points d'attention par défaut :
 | `UntrustedHost` dans les logs | `AUTH_TRUST_HOST` absent en production | la config Playwright et la CI le fournissent ; en lancement manuel : `AUTH_TRUST_HOST=true npm run start` |
 | Tests verts mais changement non pris en compte | serveur ou build périmé | arrêter les serveurs sur 3000 / 3001, `npm run build`, relancer |
 | Un test de parité casse alors que le changement est voulu | changement de comportement | le justifier dans la PR et demander à la team Tests d'adapter le test |
+| `Le port 3100 est déjà occupé` (perf) | serveur d'une mesure interrompue | `lsof -tiTCP:3100 -sTCP:LISTEN \| xargs kill`, puis relancer |
+| Perf : `régression` sur un scénario | ralentissement réel, ou bruit sur une machine chargée | relancer `make test-perf` machine au repos ; si la régression persiste, c'est un vrai ralentissement à corriger |
+| Perf : scénario `instable` | trop de dispersion entre passages | relancer ; augmenter `PERF_RUNS` ou `PERF_DURATION` |
+| Perf : `seed-perf` échoue après une migration | schéma modifié, ou base accédée sans privilège (SEC-09) | adapter `scripts/seed-perf.mjs` avec la team Tests (il doit rester compatible avec la baseline) |
 
 Contact : team Tests, via la PR concernée.
