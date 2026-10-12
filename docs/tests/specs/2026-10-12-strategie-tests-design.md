@@ -354,7 +354,6 @@ Un test `test.fail()` qui passe fait échouer la CI : impossible d'oublier de ba
 ### 10.3 Protection de `main` et propriété
 
 - Checks obligatoires : `static`, `parity`, `defects`.
-- `CODEOWNERS` : `tests/`, `scripts/seed-*.mjs`, `tests/fixtures/dataset.json` → revue team Tests.
 - Modifier un test `@parity` = changer un comportement : justification obligatoire dans la PR.
 
 ### 10.4 Tests instables
@@ -423,7 +422,7 @@ Rapport HTML Playwright et traces en artefacts ; résumé du job avec compteurs,
 | Risque | Mitigation |
 |---|---|
 | Les E2E professeurs testent une chose non couverte | couverture exhaustive des endpoints et parcours ; contrat (b) figé |
-| Seed et dataset cassés par une évolution de schéma | couplage concentré dans `seed-*.mjs` ; CODEOWNERS ; même statut que `seed.mjs` |
+| Seed et dataset cassés par une évolution de schéma | couplage concentré dans `seed-*.mjs` ; même statut que `seed.mjs` |
 | CI des professeurs sans `AUTH_SECRET` après SEC-04 | variable présente dans `.env.example` ; à confirmer avec l'équipe archi |
 | Format de `receiptKey` modifié par SEC-06 | aucun test de parité n'impose le format séquentiel ; seed aligné |
 | Bruit des mesures de perf | A/A, alternance, médiane, statut « instable » |
