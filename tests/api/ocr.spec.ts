@@ -19,6 +19,12 @@ const FIXTURES: { file: string; mimeType: string }[] = [
   { file: 'ticket-date-texte.png', mimeType: 'image/png' },
   { file: 'ticket-iso.png', mimeType: 'image/png' },
   { file: 'ticket-vide.png', mimeType: 'image/png' },
+  { file: 'ticket-total.webp', mimeType: 'image/webp' },
+  { file: 'ticket-montant-seul.png', mimeType: 'image/png' },
+  { file: 'ticket-date-seule.png', mimeType: 'image/png' },
+  { file: 'ticket-milliers.png', mimeType: 'image/png' },
+  { file: 'ticket-annee-courte.png', mimeType: 'image/png' },
+  { file: 'ticket-sans-centimes.png', mimeType: 'image/png' },
 ]
 
 function ocrReceipt(file: string, mimeType: string): ReceiptFile {
