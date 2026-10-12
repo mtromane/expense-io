@@ -14,6 +14,7 @@ make test-api      # contrat HTTP + défauts
 make test-e2e      # parcours UI
 make test-defects  # défauts techniques (rouge → vert)
 make test-report   # rapport HTML
+make test-perf     # performance contre la baseline (voir « Performance »)
 ```
 
 Une fois l'environnement prêt : `npx playwright test <fichier> --no-deps`.
@@ -25,7 +26,8 @@ Une fois l'environnement prêt : `npx playwright test <fichier> --no-deps`.
 | Tag | Règle |
 |---|---|
 | `@parity` | comportement de la baseline, doit toujours passer |
-| `@defect` + `@SEC-xx` / `@ROB-xx` | défaut technique ; échec attendu tant que `fixed: false` dans `tests/defects/registry.ts` |
+| `@defect` + `@SEC-xx` / `@ROB-xx` / `@BUG-xx` | défaut technique ; échec attendu tant que `fixed: false` dans `tests/defects/registry.ts` |
+| perf (hors Playwright) | PERF-01, PERF-02 et non-régression : `tests/perf/`, objectifs dans `tests/perf/targets.json` |
 
 ## Pourquoi la CI est verte alors que des tests de défaut échouent
 

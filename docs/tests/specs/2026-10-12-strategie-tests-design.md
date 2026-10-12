@@ -304,6 +304,17 @@ Référence = la version `baseline` **remesurée à chaque fois**, jamais un chi
 
 **Livrable** : `docs/perf/rapport-final.md` (`baseline` contre version finale, gain par scénario relié à son ID d'audit, bruit mesuré, courbe).
 
+### 8.4 Écarts d'implémentation (plan `docs/tests/plans/2026-10-12-defauts-p1-perf.md`)
+
+Décisions prises à l'implémentation, mesurées et documentées dans `docs/perf/README.md` :
+
+- chauffe de 10 s (au lieu de 30 s) et P-MIX monté sur la durée du scénario (15 s par défaut, au lieu de 2 min), pour tenir dans le budget CI ; réglables (`PERF_WARMUP`, `PERF_DURATION`) ;
+- P-OCR : 5 utilisateurs simultanés, sans phase séquentielle ;
+- P-CREATE et P-OCR utilisent un compte dédié (`writer@c1.perf.test`), lu par aucun autre scénario, pour que les notes créées ne faussent pas les listes mesurées ;
+- P-LOGIN ne mesure pas le coût bcrypt de l'application (comptes de perf hachés en coût 4) : simple garde-fou ;
+- seuils : le bruit A/A atteint +22 % sur des latences de quelques ms ; une régression exige donc ratio > 1,10 **et** écart > 5 ms, ou ratio > 1,5, ou une séparation nette entre passages (cette dernière règle vaut aussi quand la mesure est instable) ;
+- pas de mesure CPU ; sorties `perf-results/latest.*` (l'historique `perf-history` porte le commit et la date) ; `docs/perf/rapport-final.md` sera produit en fin de migration.
+
 ## 9. Robustesse
 
 | ID | Méthode | Prio |
@@ -410,11 +421,11 @@ Rapport HTML Playwright et traces en artefacts ; résumé du job avec compteurs,
 
 | Lot | Contenu | Condition de sortie |
 |---|---|---|
-| L0 | Tag `baseline`, Playwright, `seed-e2e`, support (auth, acteurs, notes), commandes make | `make test` exécute un test vide en CI |
-| L1 (P0) | AUTHZ, AUTH, EMP, RCPT, MGR, HR, E2E-01/02/03/04/05/08, OPS-01/02/05, CI `static` + `parity` | vert sur `baseline` ; gate actif |
-| L2 (P0) | Défauts SEC-01 à 05, ROB-02, ROB-03 ; job `defects` ; `baseline-proof` | rouges sur `baseline`, CI verte (`test.fail`) |
-| L3 (P1) | OCR, GOLD, E2E-06/07, OPS-03/04, défauts P1, MET-01 à 09, `questions-metier.md` | idem |
-| L4 (P1) | Perf : `seed-perf`, scénarios k6, `compare.mjs`, A/A, job `perf`, historique | rapport A/B `baseline` contre `baseline` publié |
+| L0 ✅ | Tag `baseline`, Playwright, `seed-e2e`, support (auth, acteurs, notes), commandes make | `make test` exécute un test vide en CI |
+| L1 (P0) ✅ | AUTHZ, AUTH, EMP, RCPT, MGR, HR, E2E-01/02/03/04/05/08, OPS-01/02/05, CI `static` + `parity` | vert sur `baseline` ; gate actif |
+| L2 (P0) ✅ | Défauts SEC-01 à 05, ROB-02, ROB-03 ; job `defects` ; `baseline-proof` | rouges sur `baseline`, CI verte (`test.fail`) |
+| L3 (P1) — défauts P1 ✅, reste à faire | OCR, GOLD, E2E-06/07, OPS-03/04, ~~défauts P1~~, MET-01 à 09, `questions-metier.md` | idem |
+| L4 (P1) ✅ | Perf : `seed-perf`, scénarios k6, `compare.mjs`, A/A, job `perf`, historique | rapport A/B `baseline` contre `baseline` publié |
 | L5 | Documentation générée, `CLAUDE.md` / `AGENTS.md`, gabarit, ADR, fiche Q&R | docs à jour depuis la CI |
 | L6 (P2) | ROB-01b, FUZZ, SIGNUP, LEAK | — |
 
