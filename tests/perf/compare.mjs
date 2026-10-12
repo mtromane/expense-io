@@ -5,13 +5,15 @@
 //
 //   node tests/perf/compare.mjs          # baseline contre version courante
 //   node tests/perf/compare.mjs --aa     # baseline contre elle-même (bruit)
+//   node tests/perf/compare.mjs --evaluate perf-results/latest.json
+//                                        # réévalue un run existant (sans mesurer)
 //
 // Variables : PERF_RUNS (3), PERF_DURATION (15s), PERF_WARMUP (10),
 // PERF_SCENARIOS (liste), PERF_BASELINE_DIR (../expense-io-baseline),
 // PERF_SKIP_BUILD=1, PERF_REGRESSION_RATIO (1.10), PERF_MIN_DELTA_MS (5),
 // PERF_UNSTABLE_SPREAD (0.25).
 import { execFileSync, spawn } from 'node:child_process'
-import { copyFileSync, existsSync, mkdirSync, openSync, readFileSync, writeFileSync } from 'node:fs'
+import { copyFileSync, existsSync, mkdirSync, openSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import { setTimeout as sleep } from 'node:timers/promises'
 import { config as loadEnv } from 'dotenv'
@@ -20,7 +22,8 @@ import pg from 'pg'
 loadEnv({ quiet: true })
 
 const ROOT = process.cwd()
-const AA = process.argv.includes('--aa')
+const EVALUATE_FILE = process.argv.includes('--evaluate') ? process.argv[process.argv.indexOf('--evaluate') + 1] : null
+let AA = process.argv.includes('--aa') // relu depuis le fichier en mode --evaluate
 const BASELINE_SHA = '265924bc7274047989e708ab635c2854d376230f'
 const BASELINE_DIR = path.resolve(process.env.PERF_BASELINE_DIR ?? '../expense-io-baseline')
 const RUNS = Number(process.env.PERF_RUNS ?? 3)
@@ -31,12 +34,15 @@ const UNSTABLE_SPREAD = Number(process.env.PERF_UNSTABLE_SPREAD ?? 0.25)
 // Sur des latences de quelques ms, 1 ms d'écart dépasse déjà 10 % : une
 // régression exige aussi un écart absolu minimal.
 const MIN_DELTA_MS = Number(process.env.PERF_MIN_DELTA_MS ?? 5)
+// Au-delà de ce ratio (bien au-dessus du bruit A/A mesuré, 22 % au pire),
+// une régression est signalée même sous le plancher de quelques ms.
+const LARGE_RATIO = Number(process.env.PERF_LARGE_RATIO ?? 1.5)
 const SCENARIOS = (process.env.PERF_SCENARIOS ?? 'P-EMP,P-MGR,P-HR,P-USERS,P-CREATE,P-OCR,P-MIX,P-LOGIN').split(',')
 const PORT = 3100
 const OUT_DIR = path.join(ROOT, 'perf-results')
 const MAIN_DB_URL = process.env.DATABASE_URL
-if (!MAIN_DB_URL) throw new Error('DATABASE_URL manquant')
-const PERF_DB_URL = withDatabase(MAIN_DB_URL, 'expense_io_perf')
+if (!MAIN_DB_URL && !EVALUATE_FILE) throw new Error('DATABASE_URL manquant')
+const PERF_DB_URL = MAIN_DB_URL ? withDatabase(MAIN_DB_URL, 'expense_io_perf') : null
 const TARGETS = JSON.parse(readFileSync(path.join(ROOT, 'tests/perf/targets.json'), 'utf8'))
 
 function withDatabase(url, database) {
@@ -82,8 +88,31 @@ async function prepareDatabase(appDir) {
   run('node', ['scripts/seed-perf.mjs'], { cwd: ROOT, env: { ...process.env, PERF_DATABASE_URL: PERF_DB_URL } })
 }
 
+let currentChild = null
+for (const signal of ['SIGINT', 'SIGTERM']) {
+  process.on(signal, () => {
+    if (currentChild) stopApp(currentChild)
+    process.exit(130)
+  })
+}
+
+async function portInUse() {
+  try {
+    await fetch(`http://localhost:${PORT}/login`, { signal: AbortSignal.timeout(1000) })
+    return true
+  } catch {
+    return false
+  }
+}
+
 async function startApp(appDir, label) {
   mkdirSync(OUT_DIR, { recursive: true })
+  if (await portInUse()) {
+    throw new Error(
+      `Le port ${PORT} est déjà occupé (serveur d'un run interrompu ?) : l'arrêter avant de mesurer, ` +
+        `par exemple \`lsof -tiTCP:${PORT} -sTCP:LISTEN | xargs kill\`.`
+    )
+  }
   const log = openSync(path.join(OUT_DIR, `server-${label}.log`), 'a')
   const started = Date.now()
   const child = spawn('npm', ['run', 'start', '--', '-p', String(PORT)], {
@@ -92,7 +121,11 @@ async function startApp(appDir, label) {
     stdio: ['ignore', log, log],
     detached: true,
   })
+  currentChild = child
   for (let i = 0; i < 120; i++) {
+    if (child.exitCode !== null) {
+      throw new Error(`${label} : le serveur s'est arrêté au démarrage (voir ${path.join(OUT_DIR, `server-${label}.log`)})`)
+    }
     try {
       const res = await fetch(`http://localhost:${PORT}/login`)
       if (res.ok) return { child, coldStartMs: Date.now() - started }
@@ -111,6 +144,7 @@ function stopApp(child) {
   } catch {
     // déjà arrêté
   }
+  if (currentChild === child) currentChild = null
 }
 
 function rssMb(child) {
@@ -128,6 +162,7 @@ function rssMb(child) {
 }
 
 function runK6(scenario, duration, outFile) {
+  rmSync(outFile, { force: true }) // jamais relire le résumé d'une exécution précédente
   const env = ['-e', `SCENARIO=${scenario}`, '-e', `PERF_DURATION=${duration}`]
   const script = 'tests/perf/k6/scenarios.js'
   if (hasK6Binary()) {
@@ -137,7 +172,7 @@ function runK6(scenario, duration, outFile) {
   const linux = process.platform === 'linux'
   const base = linux ? `http://localhost:${PORT}` : `http://host.docker.internal:${PORT}`
   run('docker', [
-    'run', '--rm', ...(linux ? ['--network', 'host'] : []),
+    'run', '--rm', ...(linux ? ['--network', 'host', '--user', `${process.getuid()}:${process.getgid()}`] : []),
     '-v', `${ROOT}:/work`, '-w', '/work',
     'grafana/k6:0.54.0', 'run', '--quiet',
     '--summary-export', path.relative(ROOT, outFile), ...env, '-e', `BASE_URL=${base}`, script,
@@ -145,6 +180,7 @@ function runK6(scenario, duration, outFile) {
 }
 
 function readSummary(file) {
+  if (!existsSync(file)) throw new Error(`k6 n'a pas produit de résumé : ${file}`)
   const { metrics } = JSON.parse(readFileSync(file, 'utf8'))
   const duration = metrics['http_req_duration{scenario:main}']
   const failed = metrics['http_req_failed{scenario:main}']
@@ -201,15 +237,22 @@ function aggregate(samples) {
 function evaluate(raw) {
   const rows = []
   const failures = []
-  for (const scenario of SCENARIOS) {
+  for (const scenario of Object.keys(raw.base.scenarios)) {
     const base = aggregate(raw.base.scenarios[scenario])
     const cur = aggregate(raw.current.scenarios[scenario])
     const ratio = cur.p95 / base.p95
+    const delta = cur.p95 - base.p95
     const unstable = base.spread > UNSTABLE_SPREAD || cur.spread > UNSTABLE_SPREAD
+    // Séparation nette : même le meilleur passage courant est plus lent que le
+    // pire passage baseline (× seuil). Vaut même quand la mesure est instable.
+    const curBest = Math.min(...raw.current.scenarios[scenario].map((s) => s.p95))
+    const baseWorst = Math.max(...raw.base.scenarios[scenario].map((s) => s.p95))
+    const separated = curBest > baseWorst * REGRESSION_RATIO && delta > MIN_DELTA_MS
+    const significant = !unstable && ((ratio > REGRESSION_RATIO && delta > MIN_DELTA_MS) || ratio > LARGE_RATIO)
     let status = 'ok'
     if (cur.errorRate > 0.01) status = 'erreurs'
+    else if (separated || significant) status = 'régression'
     else if (unstable) status = 'instable'
-    else if (ratio > REGRESSION_RATIO && cur.p95 - base.p95 > MIN_DELTA_MS) status = 'régression'
     if (!AA && ['erreurs', 'régression'].includes(status)) failures.push(`${scenario} : ${status}`)
     rows.push({ scenario, base, cur, ratio, status })
   }
@@ -269,6 +312,13 @@ function render(result, raw, meta) {
 }
 
 async function main() {
+  if (EVALUATE_FILE) {
+    const saved = JSON.parse(readFileSync(EVALUATE_FILE, 'utf8'))
+    AA = saved.meta.mode === 'aa'
+    const result = evaluate(saved.raw)
+    console.log(render(result, saved.raw, saved.meta))
+    process.exit(result.failures.length ? 1 : 0)
+  }
   mkdirSync(OUT_DIR, { recursive: true })
   ensureBaseline()
   if (!AA && process.env.PERF_SKIP_BUILD !== '1') run('npm', ['run', 'build'], { cwd: ROOT })

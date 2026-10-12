@@ -26,11 +26,16 @@ env:
 
 jobs:
   perf:
-    if: github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'perf')
+    # Sur PR : seulement à la pose du label `perf`, ou à un nouveau commit d'une
+    # PR qui le porte (poser un autre label ne relance rien).
+    if: >-
+      github.event_name != 'pull_request' ||
+      (github.event.action == 'labeled' && github.event.label.name == 'perf') ||
+      (github.event.action == 'synchronize' && contains(github.event.pull_request.labels.*.name, 'perf'))
     runs-on: ubuntu-latest
     timeout-minutes: 45
     permissions:
-      contents: write
+      contents: read
       pull-requests: write
     services:
       postgres:
@@ -73,8 +78,25 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh pr comment ${{ github.event.pull_request.number }} --body-file perf-results/latest.md || true
-      - if: always() && github.event_name == 'schedule' && hashFiles('perf-results/history-line.jsonl') != ''
-        run: |
+
+  # Seul job avec un droit d'écriture sur le dépôt : il ne s'exécute que la
+  # nuit, sur main, jamais sur le code d'une PR.
+  history:
+    needs: perf
+    if: always() && github.event_name == 'schedule' && needs.perf.result != 'skipped'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/download-artifact@v4
+        with:
+          name: perf-results
+          path: perf-results
+      - run: |
+          test -f perf-results/history-line.jsonl || { echo "Pas de mesure à historiser."; exit 0; }
           git config user.name "github-actions[bot]"
           git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
           if git ls-remote --exit-code --heads origin perf-history >/dev/null; then
