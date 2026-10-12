@@ -3,7 +3,7 @@ SHELL := /bin/bash
 
 COMPOSE := docker compose
 
-.PHONY: help install env up down restart logs migrate ensure-bucket seed dev build start lint typecheck clean test-setup test test-api test-e2e test-defects test-report
+.PHONY: help install env up down restart logs migrate ensure-bucket seed dev build start lint typecheck clean test-setup test test-api test-e2e test-defects test-report test-perf perf-aa
 
 help: ## Affiche cette aide
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-18s\033[0m %s\n", $$1, $$2}'
@@ -76,3 +76,9 @@ test-defects: test-setup ## Tableau rouge → vert des défauts
 
 test-report: ## Ouvre le dernier rapport HTML
 	npx playwright show-report
+
+test-perf: up migrate ensure-bucket ## Performance : baseline contre version courante (k6, environ 15 min)
+	node tests/perf/compare.mjs
+
+perf-aa: up migrate ensure-bucket ## Performance : baseline contre elle-même, mesure du bruit
+	node tests/perf/compare.mjs --aa
