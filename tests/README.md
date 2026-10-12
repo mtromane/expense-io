@@ -65,6 +65,7 @@ attendu, tous les tests passent au sens propre.
 ## Règles
 
 - Ne jamais modifier un test `@parity` pour le faire passer : cela change un comportement, à justifier dans la PR.
+- `tests/`, `playwright.config.ts`, `scripts/seed-e2e.mjs`, `docs/tests/` et `.github/` appartiennent à la team Tests (`.github/CODEOWNERS`) : leur review est demandée automatiquement sur toute PR qui les touche.
 - Instance de panne sur le port 3001 (S3 injoignable, secret distinct) pour les tests d'erreur serveur.
 
 ## Limite connue : baseline-proof et schéma
