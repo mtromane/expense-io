@@ -9,7 +9,9 @@ const BASE = __ENV.BASE_URL || 'http://localhost:3100'
 const SCENARIO = __ENV.SCENARIO
 const DURATION = __ENV.PERF_DURATION || '15s'
 const PASSWORD = 'perf-pass-1234'
-const USERS = { emp: 'e1.sub1@c1.perf.test', mgr: 'sub1@c1.perf.test', hr: 'hr@c1.perf.test' }
+// writer : employé dédié aux écritures (P-CREATE, P-OCR), lu par aucun autre
+// scénario, pour que les notes créées ne gonflent pas les listes mesurées.
+const USERS = { emp: 'e1.sub1@c1.perf.test', mgr: 'sub1@c1.perf.test', hr: 'hr@c1.perf.test', writer: 'writer@c1.perf.test' }
 const png = open('../../fixtures/receipts/receipt.png', 'b')
 
 function login(email) {
@@ -39,7 +41,7 @@ const SCENARIOS = {
   'P-HR': { actor: 'hr', vus: 5, run: get('/api/hr/expense-notes') },
   'P-USERS': { actor: 'hr', vus: 5, run: get('/api/hr/users') },
   'P-CREATE': {
-    actor: 'emp',
+    actor: 'writer',
     vus: 5,
     run: (params) =>
       http.post(
@@ -49,7 +51,7 @@ const SCENARIOS = {
       ),
   },
   'P-OCR': {
-    actor: 'emp',
+    actor: 'writer',
     vus: 5,
     run: (params) => http.post(`${BASE}/api/expense-notes/receipt-suggestion`, { receipt: receiptFile() }, params),
   },
@@ -84,7 +86,12 @@ export const options = {
 }
 
 export function setup() {
-  return { emp: login(USERS.emp).cookie, mgr: login(USERS.mgr).cookie, hr: login(USERS.hr).cookie }
+  return {
+    emp: login(USERS.emp).cookie,
+    mgr: login(USERS.mgr).cookie,
+    hr: login(USERS.hr).cookie,
+    writer: login(USERS.writer).cookie,
+  }
 }
 
 export default function (auth) {

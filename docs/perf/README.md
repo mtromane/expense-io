@@ -7,7 +7,7 @@ Le barème met **0** si l'application est moins performante après la migration.
 `tests/perf/compare.mjs` :
 
 1. prépare la baseline (worktree du commit `265924b`, build de production) et build la version courante ;
-2. pour chaque passage, recrée une base dédiée `expense_io_perf`, applique **les migrations de la version mesurée**, puis la peuple avec `scripts/seed-perf.mjs` (20 entreprises, 2 000 utilisateurs, 193 300 notes, distribution déterministe) ;
+2. pour chaque passage, recrée une base dédiée `expense_io_perf`, applique **les migrations de la version mesurée**, puis la peuple avec `scripts/seed-perf.mjs` (20 entreprises, 2 001 utilisateurs, 193 300 notes, distribution déterministe) ;
 3. démarre la version sur le port 3100 (build de production), chauffe, exécute les scénarios k6 ;
 4. alterne les passages A, B, A, B, A, B (la dérive de la machine s'annule) et compare les **médianes de p95**.
 
@@ -18,7 +18,10 @@ On ne compare jamais à un chiffre stocké : seul compte le ratio `p95 courant /
 ```bash
 make test-perf   # baseline contre version courante (environ 15 min)
 make perf-aa     # baseline contre elle-même : mesure du bruit
+node tests/perf/compare.mjs --evaluate perf-results/latest.json   # réévalue un run sans remesurer
 ```
+
+Si le port 3100 est déjà occupé (serveur d'un run interrompu), la mesure s'arrête avec un message au lieu de mesurer le mauvais serveur. Ctrl-C arrête proprement le serveur en cours.
 
 Prérequis : Docker (Postgres, LocalStack) et k6 (binaire `k6`, sinon l'image Docker `grafana/k6:0.54.0` est utilisée automatiquement).
 
@@ -32,6 +35,7 @@ Prérequis : Docker (Postgres, LocalStack) et k6 (binaire `k6`, sinon l'image Do
 | `PERF_SKIP_BUILD` | — | `1` pour ne pas rebuilder la version courante |
 | `PERF_REGRESSION_RATIO` | 1.10 | seuil de régression (ratio p95) |
 | `PERF_MIN_DELTA_MS` | 5 | écart absolu minimal pour parler de régression |
+| `PERF_LARGE_RATIO` | 1.5 | au-delà, régression même sous le plancher de 5 ms |
 | `PERF_UNSTABLE_SPREAD` | 0.25 | dispersion au-delà de laquelle un scénario est « instable » |
 
 Sur GitHub (`.github/workflows/perf.yml`) :
@@ -48,8 +52,8 @@ Sur GitHub (`.github/workflows/perf.yml`) :
 | P-MGR | `GET /api/manager/expense-notes`, manager à 48 rattachés | PERF-02 |
 | P-HR | `GET /api/hr/expense-notes` | PERF-02 |
 | P-USERS | `GET /api/hr/users` | garde-fou |
-| P-CREATE | création de note avec reçu PNG | garde-fou |
-| P-OCR | suggestion OCR, 5 utilisateurs simultanés | PERF-01 |
+| P-CREATE | création de note avec reçu PNG (compte `writer`, lu par aucun autre scénario) | garde-fou |
+| P-OCR | suggestion OCR, 5 utilisateurs simultanés (compte `writer`) | PERF-01 |
 | P-MIX | montée de 0 à 50 utilisateurs simultanés, requêtes mixtes | saturation, erreurs |
 | P-LOGIN | connexion (CSRF + identifiants) | garde-fou ; ne mesure **pas** le coût bcrypt de l'app (comptes de perf hachés en coût 4) |
 
@@ -62,9 +66,17 @@ Le rapport est dans `perf-results/latest.md` (données brutes : `perf-results/la
 | Statut | Signification | Bloquant |
 |---|---|---|
 | `ok` | pas d'écart significatif | non |
-| `instable` | dispersion entre passages > 25 % : mesure non conclusive | non (relancer) |
-| `régression` | p95 courant > 1,10 × baseline **et** plus de 5 ms d'écart | **oui** |
+| `instable` | dispersion entre passages > 25 % et pas de séparation nette : mesure non conclusive | non (relancer) |
+| `régression` | voir les trois règles ci-dessous | **oui** |
 | `erreurs` | plus de 1 % de requêtes en erreur | **oui** |
+
+Une régression est signalée si l'une de ces règles est vraie :
+
+1. mesure stable, p95 courant > 1,10 × baseline **et** plus de 5 ms d'écart ;
+2. mesure stable, p95 courant > 1,5 × baseline (même sous 5 ms d'écart) ;
+3. **séparation nette**, même si la mesure est instable : le meilleur passage courant est plus lent que le pire passage baseline × 1,10, avec plus de 5 ms d'écart.
+
+La règle 3 empêche le statut `instable` de masquer un vrai ralentissement sur une machine bruyante (runner CI).
 
 Le run échoue (code de sortie 1) en cas de régression, d'erreurs, ou d'incohérence sur les objectifs ci-dessous.
 
@@ -103,7 +115,7 @@ Conclusions :
 
 - Sur des latences de quelques millisecondes, le bruit atteint **+22 %** pour un code identique (P-HR : 4 ms d'écart). Un seuil en pourcentage seul déclencherait de fausses régressions : d'où le **plancher de 5 ms** (`PERF_MIN_DELTA_MS`).
 - Sur les latences plus élevées (P-OCR, P-MIX), le bruit reste autour de 5 % : le seuil de **10 %** est au-dessus.
-- Avec la règle combinée (ratio > 1,10 **et** écart > 5 ms), la mesure A/A ne signale aucune régression.
+- Avec les trois règles de régression, la mesure A/A réévaluée comme un A/B (`--evaluate`) ne signale aucune régression ; des régressions synthétiques (P-OCR × 3 avec baseline instable, P-USERS de 3 à 9 ms) sont signalées.
 - P-LOGIN, très court, est souvent « instable » : il n'est pas conclusif seul.
 - Le bruit d'un runner GitHub peut différer : lancer le workflow `perf` à la main sur `main` en A/A (`node tests/perf/compare.mjs --aa`) pour le recalibrer si des faux positifs apparaissent.
 
