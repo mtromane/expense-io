@@ -48,7 +48,8 @@ test.describe('Contrat OpenAPI (docs/api/openapi.yaml)', { tag: '@parity' }, () 
 
   test('un champ mal typé ou manquant est refusé', () => {
     expect(validateResponse('GET', '/api/expense-notes', 200, [{ ...NOTE, amount: '42.5' }])).not.toEqual([])
-    const { status: _status, ...withoutStatus } = NOTE
+    const withoutStatus: Record<string, unknown> = { ...NOTE }
+    delete withoutStatus.status
     expect(validateResponse('GET', '/api/expense-notes', 200, [withoutStatus])).not.toEqual([])
   })
 

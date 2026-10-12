@@ -94,7 +94,7 @@ export function setup() {
   }
 }
 
-export default function (auth) {
+export default function run(auth) {
   const params = selected.actor ? { headers: { Cookie: auth[selected.actor] } } : {}
   const res = selected.run(params, auth)
   check(res, { 'statut 2xx': (r) => r.status >= 200 && r.status < 300 })
