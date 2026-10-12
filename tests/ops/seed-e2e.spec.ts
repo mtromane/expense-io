@@ -16,7 +16,7 @@ test.describe('seed-e2e', { tag: '@parity' }, () => {
 
   test('seed-e2e restaure la hiérarchie du dataset', async () => {
     const hr = await apiLogin(credentialsOf(actor('hrA')))
-    const target = actor('reassignE2E')
+    const target = actor('reassignSeed')
     const put = await hr.put(`/api/hr/users/${target.id}/manager`, {
       data: { managerId: actor('rootMgrA').id },
     })

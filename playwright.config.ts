@@ -23,7 +23,21 @@ export default defineConfig({
     timezoneId: 'Europe/Paris',
     trace: 'retain-on-failure',
   },
-  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
+  projects: [
+    {
+      name: 'chromium',
+      use: { ...devices['Desktop Chrome'] },
+      testIgnore: 'ops/seed-e2e.spec.ts',
+    },
+    {
+      // Relance seed-e2e (remise à zéro de la hiérarchie) : uniquement après
+      // tous les autres tests, pour ne pas perturber ceux qui tournent en parallèle.
+      name: 'seed-checks',
+      use: { ...devices['Desktop Chrome'] },
+      testMatch: 'ops/seed-e2e.spec.ts',
+      dependencies: ['chromium'],
+    },
+  ],
   webServer: [
     {
       command: 'npm run start',
