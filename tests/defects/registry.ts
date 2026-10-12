@@ -18,6 +18,12 @@ export const DEFECTS = {
   'ROB-03c': { title: 'Montant hors numeric(10,2) → 500', fixed: false },
   'ROB-03d': { title: 'Montant non numérique accepté', fixed: false },
   'ROB-03e': { title: 'PUT manager sans JSON valide désassigne le manager', fixed: false },
+  'SEC-06': { title: 'Clés de reçu séquentielles et prévisibles', fixed: false },
+  'SEC-07': { title: 'Type de reçu validé sur le MIME déclaré par le client', fixed: false },
+  'SEC-08': { title: 'Suggestion OCR sans limite de taille', fixed: false },
+  'SEC-09': { title: 'RLS inopérante (rôle de base superuser)', fixed: false },
+  'ROB-01': { title: 'Création de note non atomique (S3 hors transaction)', fixed: false },
+  'BUG-01': { title: 'Date affichée décalée d’un jour en fuseau négatif', fixed: false },
 } satisfies Record<string, { title: string; fixed: boolean }>
 
 export type DefectId = keyof typeof DEFECTS
