@@ -1,0 +1,25 @@
+name: setup-app
+description: Installe les dépendances, prépare la base et S3, build l'application
+inputs:
+  app-dir:
+    description: Dossier de l'application à builder (baseline-proof = worktree baseline)
+    default: .
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@v4
+      with:
+        node-version: 24
+        cache: npm
+    - shell: bash
+      run: npm ci && touch .env
+    - shell: bash
+      run: npx playwright install --with-deps chromium
+    - shell: bash
+      working-directory: ${{ inputs.app-dir }}
+      run: |
+        if [ "${{ inputs.app-dir }}" != "." ]; then npm ci && touch .env; fi
+        npm run migrate:up
+        npm run ensure-bucket
+        npm run seed
+        npm run build
