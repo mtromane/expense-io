@@ -51,9 +51,9 @@ for (const row of AUTHZ_MATRIX) {
     const { status, defect } = typeof cell === 'number' ? { status: cell, defect: undefined } : cell
     const tag = defect ? ['@defect', `@${defect}`] : ['@parity']
     test(`AUTHZ ${row.id} ${row.method} ${row.path} — ${column} → ${status}`, { tag }, async () => {
-      if (defect) expectDefect(defect)
       const id = await resolveId(row)
       const url = id ? row.path.replace(':id', id) : row.path
+      if (defect) expectDefect(defect) // après la mise en place : un échec de setup reste un vrai échec
       const res = await contexts.get(column)!.fetch(url, { method: row.method, ...requestOptions(row) })
       expect(res.status()).toBe(status)
     })

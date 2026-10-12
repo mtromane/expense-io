@@ -1,30 +1,59 @@
 import { expect, test, type APIRequestContext, type APIResponse } from '@playwright/test'
-import { actor } from '../support/actors'
+import { actor, type ActorKey } from '../support/actors'
 import { loginAs } from '../support/auth'
 import { createNote, postNote, uniqueDescription } from '../support/notes'
 import { expectDefect, type DefectId } from './registry'
 
-test('ROB-02 décisions simultanées : exactement une réussite par note',
-  { tag: ['@defect', '@ROB-02'] }, async () => {
-    expectDefect('ROB-02')
-    test.setTimeout(90_000)
-    const emp = await loginAs('empA1')
-    const mgr = await loginAs('subMgrA')
-    const notes = await Promise.all(
-      Array.from({ length: 5 }, () => createNote(emp, { description: uniqueDescription('Course') }))
-    )
-    for (const note of notes) {
-      const responses = await Promise.all(
-        Array.from({ length: 20 }, (_, i) =>
-          mgr.post(`/api/manager/expense-notes/${note.id}/${i % 2 ? 'reject' : 'approve'}`)
-        )
+// expectDefect() est appelé juste avant l'oracle, après la mise en place :
+// un échec de setup reste un vrai échec, jamais un « échec attendu ».
+
+const RACES: { name: string; author: ActorKey; decider: ActorKey; base: string }[] = [
+  { name: 'manager', author: 'empA1', decider: 'subMgrA', base: '/api/manager/expense-notes' },
+  { name: 'RH', author: 'rootMgrA', decider: 'hrA', base: '/api/hr/expense-notes' },
+]
+
+for (const { name, author, decider, base } of RACES) {
+  test(`ROB-02 décisions simultanées (${name}) : exactement une réussite par note`,
+    { tag: ['@defect', '@ROB-02'] }, async () => {
+      test.setTimeout(90_000)
+      const authorCtx = await loginAs(author)
+      const deciderCtx = await loginAs(decider)
+      const notes = await Promise.all(
+        Array.from({ length: 5 }, () => createNote(authorCtx, { description: uniqueDescription('Course') }))
       )
-      const statuses = responses.map((r) => r.status())
-      expect(statuses.filter((s) => s === 200), `note ${note.id} : ${statuses.join(',')}`).toHaveLength(1)
-      expect(statuses.filter((s) => s !== 200).every((s) => s === 409)).toBe(true)
-    }
-    await Promise.all([emp.dispose(), mgr.dispose()])
+      expectDefect('ROB-02')
+      for (const note of notes) {
+        const responses = await Promise.all(
+          Array.from({ length: 20 }, (_, i) => deciderCtx.post(`${base}/${note.id}/${i % 2 ? 'reject' : 'approve'}`))
+        )
+        const statuses = responses.map((r) => r.status())
+        expect(statuses.filter((s) => s === 200), `note ${note.id} : ${statuses.join(',')}`).toHaveLength(1)
+        expect(statuses.filter((s) => s !== 200).every((s) => s === 409)).toBe(true)
+      }
+      await Promise.all([authorCtx.dispose(), deciderCtx.dispose()])
+    })
+}
+
+const INVALID_ID_ROUTES: { actor: ActorKey; method: 'GET' | 'POST' | 'PUT'; path: string; data?: unknown }[] = [
+  { actor: 'empA1', method: 'GET', path: '/api/expense-notes/pas-un-uuid/receipt-url' },
+  { actor: 'subMgrA', method: 'POST', path: '/api/manager/expense-notes/pas-un-uuid/approve' },
+  { actor: 'subMgrA', method: 'POST', path: '/api/manager/expense-notes/pas-un-uuid/reject' },
+  { actor: 'subMgrA', method: 'GET', path: '/api/manager/expense-notes/pas-un-uuid/receipt-url' },
+  { actor: 'hrA', method: 'POST', path: '/api/hr/expense-notes/pas-un-uuid/approve' },
+  { actor: 'hrA', method: 'POST', path: '/api/hr/expense-notes/pas-un-uuid/reject' },
+  { actor: 'hrA', method: 'GET', path: '/api/hr/expense-notes/pas-un-uuid/receipt-url' },
+  { actor: 'hrA', method: 'PUT', path: '/api/hr/users/pas-un-uuid/manager', data: { managerId: null } },
+]
+
+for (const route of INVALID_ID_ROUTES) {
+  test(`ROB-03a UUID invalide → 404 : ${route.method} ${route.path}`, { tag: ['@defect', '@ROB-03a'] }, async () => {
+    const ctx = await loginAs(route.actor)
+    expectDefect('ROB-03a')
+    const res = await ctx.fetch(route.path, { method: route.method, data: route.data })
+    expect(res.status()).toBe(404)
+    await ctx.dispose()
   })
+}
 
 interface Ctx {
   emp: APIRequestContext
@@ -32,12 +61,6 @@ interface Ctx {
 }
 
 const ROB03: { id: DefectId; name: string; status: number; run: (c: Ctx) => Promise<APIResponse>; after?: (c: Ctx) => Promise<void> }[] = [
-  {
-    id: 'ROB-03a',
-    name: 'UUID invalide dans l’URL → 404',
-    status: 404,
-    run: (c) => c.emp.get('/api/expense-notes/pas-un-uuid/receipt-url'),
-  },
   {
     id: 'ROB-03b',
     name: 'date invalide → 400',
@@ -74,8 +97,8 @@ const ROB03: { id: DefectId; name: string; status: number; run: (c: Ctx) => Prom
 
 for (const { id, name, status, run, after } of ROB03) {
   test(`${id} ${name}`, { tag: ['@defect', `@${id}`] }, async () => {
-    expectDefect(id)
     const c: Ctx = { emp: await loginAs('empA1'), hr: await loginAs('hrA') }
+    expectDefect(id)
     const res = await run(c)
     expect(res.status()).toBe(status)
     if (after) await after(c)

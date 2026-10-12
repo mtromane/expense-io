@@ -15,7 +15,7 @@
         { "key": "reassignRob03", "name": "Reassign ROB-03", "role": "employee", "manager": "subMgrA" },
         { "key": "reassignE2E", "name": "Reassign E2E", "role": "employee" },
         { "key": "reassignHrApi", "name": "Reassign HR API", "role": "employee", "manager": "subMgrA" },
-        { "key": "reassignSeed", "name": "Reassign Seed", "role": "employee" }
+        { "key": "reassignSeed", "name": "Reassign Seed", "role": "employee", "manager": "subMgrA" }
       ]
     },
     {

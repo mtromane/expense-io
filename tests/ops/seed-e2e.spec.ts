@@ -25,7 +25,7 @@ test.describe('seed-e2e', { tag: '@parity' }, () => {
     execFileSync('node', ['scripts/seed-e2e.mjs'], { stdio: 'inherit' })
 
     const users = (await (await hr.get('/api/hr/users')).json()) as { id: string; managerId: string | null }[]
-    expect(users.find((u) => u.id === target.id)?.managerId).toBeNull()
+    expect(users.find((u) => u.id === target.id)?.managerId).toBe(actor('subMgrA').id)
     await hr.dispose()
   })
 })

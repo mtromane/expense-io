@@ -37,6 +37,8 @@ jobs:
       - id: filter
         uses: dorny/paths-filter@v3
         with:
+          # schedule / workflow_dispatch n'ont pas de base dans leur payload.
+          base: ${{ github.event.repository.default_branch || 'main' }}
           filters: |
             code:
               - '**'
