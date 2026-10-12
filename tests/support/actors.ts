@@ -13,6 +13,7 @@ export type ActorKey =
   | 'reassignRob03'
   | 'reassignE2E'
   | 'reassignHrApi'
+  | 'reassignSeed'
   | 'hrB'
   | 'rootMgrB'
   | 'empB'
