@@ -27,6 +27,28 @@ Une fois l'environnement prêt : `npx playwright test <fichier> --no-deps`.
 | `@parity` | comportement de la baseline, doit toujours passer |
 | `@defect` + `@SEC-xx` / `@ROB-xx` | défaut technique ; échec attendu tant que `fixed: false` dans `tests/defects/registry.ts` |
 
+## Pourquoi la CI est verte alors que 21 tests échouent
+
+Les tests `@defect` décrivent le comportement **correct**. Sur l'application
+actuelle, ils échouent réellement (exemple SEC-03 : le test attend `409`,
+l'application renvoie `200`). Tant que le défaut est déclaré `fixed: false`
+dans `tests/defects/registry.ts`, cet échec est **attendu** (`test.fail()`) :
+Playwright l'affiche `✘` mais le compte comme réussi, et la CI reste verte.
+Sans ce mécanisme, `main` serait rouge en permanence et on ne verrait plus
+les vraies régressions.
+
+Ce n'est pas permanent : `test.fail()` disparaît défaut par défaut.
+
+| Moment | `fixed` | Défaut | Résultat du test | CI |
+|---|---|---|---|---|
+| Avant correction | `false` | présent | échoue (attendu) | verte |
+| Corrigé, registre pas à jour | `false` | corrigé | passe (inattendu) : « Expected to fail, but passed » | **rouge** → passer `fixed: true` |
+| Corrigé et déclaré | `true` | corrigé | passe, test normal | verte |
+| Déclaré corrigé à tort | `true` | présent | échoue | **rouge** |
+
+Fin de migration : les 11 identifiants sont à `fixed: true`, plus aucun échec
+attendu, tous les tests passent au sens propre.
+
 ## Corriger un défaut
 
 1. Corriger l'application.
