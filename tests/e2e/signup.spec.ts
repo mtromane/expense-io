@@ -15,7 +15,9 @@ test.describe('E2E-01 — inscription', { tag: '@parity' }, () => {
   test('second inscrit du même domaine → employé, sans lien RH', async ({ browser }) => {
     const domain = uniqueDomain()
     const first = await browser.newContext()
-    await signupUI(await first.newPage(), { name: 'Premier', email: `premier@${domain}`, password: 'motdepasse1' })
+    const firstPage = await first.newPage()
+    await signupUI(firstPage, { name: 'Premier', email: `premier@${domain}`, password: 'motdepasse1' })
+    await expect(firstPage).toHaveURL(/\/expenses$/) // inscription terminée avant la suivante
     await first.close()
 
     const second = await browser.newContext()
@@ -29,7 +31,9 @@ test.describe('E2E-01 — inscription', { tag: '@parity' }, () => {
   test('email déjà utilisé → message d’erreur', async ({ browser }) => {
     const email = `doublon@${uniqueDomain()}`
     const first = await browser.newContext()
-    await signupUI(await first.newPage(), { name: 'A', email, password: 'motdepasse1' })
+    const firstPage = await first.newPage()
+    await signupUI(firstPage, { name: 'A', email, password: 'motdepasse1' })
+    await expect(firstPage).toHaveURL(/\/expenses$/) // inscription terminée avant la suivante
     await first.close()
 
     const second = await browser.newContext()

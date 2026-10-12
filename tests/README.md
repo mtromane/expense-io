@@ -41,3 +41,12 @@ Une fois l'environnement prêt : `npx playwright test <fichier> --no-deps`.
 
 - Ne jamais modifier un test `@parity` pour le faire passer : cela change un comportement, à justifier dans la PR.
 - Instance de panne sur le port 3001 (S3 injoignable, secret distinct) pour les tests d'erreur serveur.
+
+## Limite connue : baseline-proof et schéma
+
+Le job `baseline-proof` lance `scripts/seed-e2e.mjs` **de la branche** contre
+la base créée par les migrations **de la baseline**. Si la migration
+d'architecture change le schéma `users` / `companies` (nouvelle table, colonne
+NOT NULL, rôle SQL dédié pour SEC-09) et adapte `seed-e2e.mjs`, ce job casse.
+Dans ce cas : garder `seed-e2e.mjs` compatible avec les deux schémas, ou
+l'adapter selon `APP_DIR` (une version du seed par application testée).

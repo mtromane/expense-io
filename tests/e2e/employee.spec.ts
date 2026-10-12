@@ -18,6 +18,6 @@ test('E2E-03 — l’employé soumet une note et la voit dans l’historique', {
   await expect(row).toBeVisible()
   await expect(row).toContainText('en attente')
   await expect(row).toContainText('12 mars 2026')
-  await expect(row).toContainText(/42,50\s€/)
-  await expect(page.getByText(/1 note · 42,50\s€ au total/)).toBeVisible()
+  await expect(row).toContainText(/42,50[\u00a0\u202f]€/) // espace insécable (Intl fr-FR)
+  await expect(page.getByText(/1 note · 42,50[\u00a0\u202f]€ au total/)).toBeVisible()
 })
