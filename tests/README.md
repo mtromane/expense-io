@@ -89,6 +89,6 @@ make perf-aa     # baseline contre elle-même : mesure du bruit
 ```
 
 Sur GitHub : poser le label `perf` sur une PR, le rapport est commenté
-automatiquement ; mesure complète chaque nuit sur `main`. Objectifs PERF-01 et
+automatiquement ; mesure complète à chaque merge sur `main`. Objectifs PERF-01 et
 PERF-02 : `tests/perf/targets.json` (même logique `fixed` que les défauts).
 Détail : `docs/perf/README.md`.

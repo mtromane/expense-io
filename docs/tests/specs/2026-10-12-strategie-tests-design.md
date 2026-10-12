@@ -342,7 +342,7 @@ ROB-02 est probabiliste sur `baseline` (5 notes × 20 requêtes rendent le rouge
 | `parity` | services, migrations, seeds, start, `@parity` + `@metier` | oui (100 %) |
 | `defects` | `@defect` | oui |
 | `baseline-proof` | tests nouveaux ou modifiés rejoués sur `baseline` : `@parity` vert, `@defect` rouge | oui si `tests/` change |
-| `perf` | comparaison A/B (section 8) | label `perf` ou nocturne |
+| `perf` | comparaison A/B (section 8) | label `perf` ou merge sur `main` |
 
 Un test `test.fail()` qui passe fait échouer la CI : impossible d'oublier de basculer un défaut corrigé.
 
@@ -354,7 +354,8 @@ Un test `test.fail()` qui passe fait échouer la CI : impossible d'oublier de ba
 | PR en brouillon | `static` |
 | push sur `main` | `static`, `parity`, `defects` |
 | label `perf` | `perf` |
-| nocturne 02:00 sur `main` | tout (P0 à P2), `baseline-proof` complet, `perf`, historique |
+| nocturne 02:00 sur `main` | tout (P0 à P2), `baseline-proof` complet |
+| merge sur `main` (hors docs) | `perf` (workflow `perf.yml`) + historique : un point de courbe par PR de migration |
 | manuel (`workflow_dispatch`) | au choix |
 | tag `soutenance` | tout + rapports finaux |
 

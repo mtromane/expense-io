@@ -41,7 +41,7 @@ Prérequis : Docker (Postgres, LocalStack) et k6 (binaire `k6`, sinon l'image Do
 Sur GitHub (`.github/workflows/perf.yml`) :
 
 - **label `perf` sur une PR** : comparaison complète, rapport commenté sur la PR et affiché dans le résumé du job ;
-- **chaque nuit sur `main`** : mesure ajoutée à l'historique (branche `perf-history`, fichiers `docs/perf/history.jsonl` et `docs/perf/trend.md`) ;
+- **à chaque merge sur `main`** (hors changements de documentation seuls) : mesure ajoutée à l'historique (branche `perf-history`, fichiers `docs/perf/history.jsonl` et `docs/perf/trend.md`) — un point de courbe par étape de migration, et une régression introduite sans label `perf` détectée sur le bon commit ;
 - **lancement manuel** possible depuis l'onglet Actions.
 
 ## Scénarios
