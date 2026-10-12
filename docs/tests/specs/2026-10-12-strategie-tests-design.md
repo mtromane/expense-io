@@ -313,6 +313,7 @@ Décisions prises à l'implémentation, mesurées et documentées dans `docs/per
 - P-CREATE et P-OCR utilisent un compte dédié (`writer@c1.perf.test`), lu par aucun autre scénario, pour que les notes créées ne faussent pas les listes mesurées ;
 - P-LOGIN ne mesure pas le coût bcrypt de l'application (comptes de perf hachés en coût 4) : simple garde-fou ;
 - seuils : le bruit A/A atteint +22 % sur des latences de quelques ms ; une régression exige donc ratio > 1,10 **et** écart > 5 ms, ou ratio > 1,5, ou une séparation nette entre passages (cette dernière règle vaut aussi quand la mesure est instable) ;
+- seuil de régression relevé à 1,25 en CI (bruit du runner GitHub jusqu'à 15 % observé à code identique), 1,10 en local ; mode `aa` disponible au lancement manuel du workflow pour recalibrer ;
 - pas de mesure CPU ; sorties `perf-results/latest.*` (l'historique `perf-history` porte le commit et la date) ; `docs/perf/rapport-final.md` sera produit en fin de migration.
 
 ## 9. Robustesse

@@ -10,6 +10,12 @@ on:
       - 'docs/**'
       - '**/*.md'
   workflow_dispatch:
+    inputs:
+      mode:
+        description: "ab = baseline contre version courante ; aa = baseline contre elle-même (mesure du bruit du runner)"
+        type: choice
+        options: [ab, aa]
+        default: ab
 
 concurrency:
   # PR : seule la dernière mesure compte. main : un groupe par commit, aucune
@@ -29,6 +35,10 @@ env:
   S3_BUCKET: receipts
   S3_FORCE_PATH_STYLE: 'true'
   PERF_BASELINE_DIR: ../baseline
+  # Le runner GitHub est plus bruyant que les machines locales : jusqu'à 15 %
+  # d'écart observé entre deux versions au code identique (P-MGR, 21 ms, run
+  # du 2026-10-12). Seuil relevé en CI ; à recalibrer avec le mode `aa`.
+  PERF_REGRESSION_RATIO: '1.25'
 
 jobs:
   perf:
@@ -72,7 +82,7 @@ jobs:
         with:
           k6-version: '0.54.0'
       - id: compare
-        run: node tests/perf/compare.mjs
+        run: node tests/perf/compare.mjs ${{ inputs.mode == 'aa' && '--aa' || '' }}
       - if: always()
         run: cat perf-results/latest.md >> "$GITHUB_STEP_SUMMARY" || true
       - if: always()

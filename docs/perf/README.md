@@ -42,7 +42,9 @@ Sur GitHub (`.github/workflows/perf.yml`) :
 
 - **label `perf` sur une PR** : comparaison complète, rapport commenté sur la PR et affiché dans le résumé du job ;
 - **à chaque merge sur `main`** (hors changements de documentation seuls) : mesure ajoutée à l'historique (branche `perf-history`, fichiers `docs/perf/history.jsonl` et `docs/perf/trend.md`) — un point de courbe par étape de migration, et une régression introduite sans label `perf` détectée sur le bon commit ;
-- **lancement manuel** possible depuis l'onglet Actions.
+- **lancement manuel** depuis l'onglet Actions (workflow `perf`, bouton « Run workflow ») : mode `ab` (comparaison) ou `aa` (baseline contre elle-même, pour mesurer le bruit du runner).
+
+En CI, le seuil de régression est relevé à **1,25** (`PERF_REGRESSION_RATIO` dans `perf.yml`) : voir « Bruit mesuré ».
 
 ## Scénarios
 
@@ -117,7 +119,7 @@ Conclusions :
 - Sur les latences plus élevées (P-OCR, P-MIX), le bruit reste autour de 5 % : le seuil de **10 %** est au-dessus.
 - Avec les trois règles de régression, la mesure A/A réévaluée comme un A/B (`--evaluate`) ne signale aucune régression ; des régressions synthétiques (P-OCR × 3 avec baseline instable, P-USERS de 3 à 9 ms) sont signalées.
 - P-LOGIN, très court, est souvent « instable » : il n'est pas conclusif seul.
-- Le bruit d'un runner GitHub peut différer : lancer le workflow `perf` à la main sur `main` en A/A (`node tests/perf/compare.mjs --aa`) pour le recalibrer si des faux positifs apparaissent.
+- **Runner GitHub** : premier run de la PR #2 (2026-10-12), qui ne modifie pas l'application, donc deux côtés au code identique : écarts de −15 % (P-MGR, 21 ms), −12 % (P-HR, instable), +10 % (P-CREATE). Le bruit dépasse 10 % sur des latences de plusieurs dizaines de ms : le seuil de 1,10 y produirait de fausses régressions. Seuil CI relevé à **1,25** ; à recalibrer avec le mode `aa` du workflow (lancement manuel, une fois `perf.yml` sur `main`).
 
 ## Limites
 
