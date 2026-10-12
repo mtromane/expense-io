@@ -27,7 +27,7 @@ Une fois l'environnement prêt : `npx playwright test <fichier> --no-deps`.
 | `@parity` | comportement de la baseline, doit toujours passer |
 | `@defect` + `@SEC-xx` / `@ROB-xx` | défaut technique ; échec attendu tant que `fixed: false` dans `tests/defects/registry.ts` |
 
-## Pourquoi la CI est verte alors que 21 tests échouent
+## Pourquoi la CI est verte alors que des tests de défaut échouent
 
 Les tests `@defect` décrivent le comportement **correct**. Sur l'application
 actuelle, ils échouent réellement (exemple SEC-03 : le test attend `409`,
@@ -46,7 +46,7 @@ Ce n'est pas permanent : `test.fail()` disparaît défaut par défaut.
 | Corrigé et déclaré | `true` | corrigé | passe, test normal | verte |
 | Déclaré corrigé à tort | `true` | présent | échoue | **rouge** |
 
-Fin de migration : les 11 identifiants sont à `fixed: true`, plus aucun échec
+Fin de migration : les 17 identifiants sont à `fixed: true`, plus aucun échec
 attendu, tous les tests passent au sens propre.
 
 ## Corriger un défaut
@@ -76,3 +76,17 @@ d'architecture change le schéma `users` / `companies` (nouvelle table, colonne
 NOT NULL, rôle SQL dédié pour SEC-09) et adapte `seed-e2e.mjs`, ce job casse.
 Dans ce cas : garder `seed-e2e.mjs` compatible avec les deux schémas, ou
 l'adapter selon `APP_DIR` (une version du seed par application testée).
+
+## Performance
+
+Comparaison automatique contre la baseline (k6, même machine, ratios p95) :
+
+```bash
+make test-perf   # baseline contre version courante, environ 15 min
+make perf-aa     # baseline contre elle-même : mesure du bruit
+```
+
+Sur GitHub : poser le label `perf` sur une PR, le rapport est commenté
+automatiquement ; mesure complète chaque nuit sur `main`. Objectifs PERF-01 et
+PERF-02 : `tests/perf/targets.json` (même logique `fixed` que les défauts).
+Détail : `docs/perf/README.md`.
