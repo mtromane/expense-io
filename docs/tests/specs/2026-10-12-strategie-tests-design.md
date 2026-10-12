@@ -231,7 +231,8 @@ make test-report
 | RCPT | URL de reçu → mêmes octets et même content-type (employé, manager, RH) ; note d'autrui → 404 | P0 |
 | MGR | Liste = notes en attente des rattachés directs (pas N-2), tri ASC ; approve/reject ; seconde décision → 409 `Already decided` ; hors périmètre → 404 | P0 |
 | HR | Liste = managers racine de l'entreprise ; décisions, 409, 404 ; annuaire employés + managers triés par nom, sans RH ; assignation 200, `null` → racine, soi-même → 409, non-manager → 409, cible d'une autre entreprise → 404 | P0 |
-| OCR | Images de référence → `{amount, expenseDate}` comparés au golden ; PDF → `{}` ; champ non fichier → 400 | P1 |
+| OCR ✅ | Images de référence → `{amount, expenseDate}` comparés au golden ; PDF → `{}` ; champ non fichier → 400 | P1 |
+| CONTRAT ✅ | Chaque réponse validée contre `docs/api/openapi.yaml` (schémas stricts, codes documentés) ; `make api-diff` (oasdiff) pour comparer une spec générée | P1 |
 | GOLD | Réponses JSON normalisées comparées aux références enregistrées sur `baseline` | P1 |
 
 ### 7.2 UI
@@ -243,8 +244,8 @@ make test-report
 | E2E-03 | Soumission d'une note → historique, total, badge « en attente » | P0 |
 | E2E-04 | Manager approuve / rejette → l'employé voit « approuvée » / « rejetée » | P0 |
 | E2E-05 | RH assigne un manager → le manager voit les notes ; RH tranche une note de manager racine | P0 |
-| E2E-06 | « Voir le reçu » ouvre le reçu | P1 |
-| E2E-07 | « Pré-remplir depuis le reçu » remplit montant et date ; message si rien n'est reconnu | P1 |
+| E2E-06 ✅ | « Voir le reçu » ouvre le reçu | P1 |
+| E2E-07 ✅ | « Pré-remplir depuis le reçu » remplit montant et date ; message si rien n'est reconnu | P1 |
 | E2E-08 | Gardes : anonyme → `/login` ; mauvais rôle → « Accès réservé » ; connecté sur `/` → `/expenses` | P0 |
 
 ### 7.3 Exploitation
@@ -257,7 +258,7 @@ make test-report
 | OPS-04 | Ports et variables de `.env.example` effectivement utilisés | P1 |
 | OPS-05 | `lint`, `typecheck`, `build` passent | P0 |
 
-**Volume estimé** : environ 230 tests (API ~170 dont matrice ~100, UI ~12, exploitation ~8, défauts ~22, métier ~18).
+**Volume estimé** : environ 230 tests (API ~170 dont matrice ~100, UI ~12, exploitation ~8, défauts ~22, métier ~18). **Réalisé au 2026-10-12** : 208 tests — parité 181 (API 151 dont contrat 8 et OCR 7, UI 24, exploitation 6), défauts 27 ; tests métier remplacés par de la documentation.
 
 ---
 
@@ -426,7 +427,7 @@ Rapport HTML Playwright et traces en artefacts ; résumé du job avec compteurs,
 | L0 ✅ | Tag `baseline`, Playwright, `seed-e2e`, support (auth, acteurs, notes), commandes make | `make test` exécute un test vide en CI |
 | L1 (P0) ✅ | AUTHZ, AUTH, EMP, RCPT, MGR, HR, E2E-01/02/03/04/05/08, OPS-01/02/05, CI `static` + `parity` | vert sur `baseline` ; gate actif |
 | L2 (P0) ✅ | Défauts SEC-01 à 05, ROB-02, ROB-03 ; job `defects` ; `baseline-proof` | rouges sur `baseline`, CI verte (`test.fail`) |
-| L3 (P1) — défauts P1 ✅, reste à faire | OCR, GOLD, E2E-06/07, OPS-03/04, ~~défauts P1~~, MET-01 à 09, `questions-metier.md` | idem |
+| L3 (P1) — partiel | ~~OCR~~, ~~contrat OpenAPI~~, GOLD (remplacé en partie par le contrat), ~~E2E-06/07~~, OPS-03/04, ~~défauts P1~~, MET-01 à 09 (documentés seulement, décision 2026-10-12), `questions-metier.md` | idem |
 | L4 (P1) ✅ | Perf : `seed-perf`, scénarios k6, `compare.mjs`, A/A, job `perf`, historique | rapport A/B `baseline` contre `baseline` publié |
 | L5 | Documentation générée, `CLAUDE.md` / `AGENTS.md`, gabarit, ADR, fiche Q&R | docs à jour depuis la CI |
 | L6 (P2) | ROB-01b, FUZZ, SIGNUP, LEAK | — |

@@ -18,7 +18,8 @@ Application Next.js 16 de notes de frais (PostgreSQL, S3 via LocalStack, OCR tes
    Les tests attaquent le build de production : relance `npm run build` après chaque modification du code.
 2. **Ne modifie jamais un fichier de `tests/`, `playwright.config.ts`, `scripts/seed-e2e.mjs` ou `.github/` pour faire passer un test.** Un test `@parity` rouge signale une régression : corrige le code applicatif. Ces fichiers appartiennent à la team Tests (`.github/CODEOWNERS`).
 3. **Ne change pas le contrat** :
-   - routes API, codes HTTP, forme du JSON, messages d'erreur ;
+   - routes API, codes HTTP, forme du JSON, messages d'erreur : tout est décrit dans `docs/api/openapi.yaml` et vérifié sur chaque réponse des tests (« Réponse hors contrat » = régression ; ne modifie jamais ce fichier pour faire passer un test) ;
+   - sortie de la suggestion OCR sur les reçus de référence (`tests/fixtures/ocr/`) ;
    - textes français de l'interface (labels, boutons) ;
    - scripts npm, cibles make, variables de `.env.example`, ports 3000 / 5433 / 4567 ;
    - comptes de démo de `scripts/seed.mjs`.

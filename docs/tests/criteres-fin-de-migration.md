@@ -19,14 +19,16 @@ Cocher chaque ligne. Une seule case vide = migration non terminée.
 
 ### 2.1 Rien n'a été perdu (parité)
 
-- [ ] Les **162 tests `@parity`** passent : `npx playwright test --grep @parity`.
+- [ ] Les **181 tests `@parity`** passent : `npx playwright test --grep @parity`.
+- [ ] Toutes les réponses de l'API sont conformes au contrat **`docs/api/openapi.yaml`** : c'est vérifié automatiquement sur chaque réponse obtenue par les tests (schémas stricts, codes HTTP documentés).
 - [ ] Aucun test `@parity` n'a été modifié, sauf changement de comportement **voulu**, justifié dans la PR et validé par la team Tests.
 - [ ] Le **contrat** ci-dessous est intact (il est vérifié par les tests, mais c'est lui qui compte) :
 
 | Élément | Ce qui ne doit pas changer |
 |---|---|
 | Routes API | les 14 chemins et verbes (`/api/expense-notes`, `/api/manager/...`, `/api/hr/...`) |
-| Réponses | forme JSON (`id`, `userId`, `amount` en nombre, `expenseDate` en `YYYY-MM-DD`, `description`, `receiptKey`, `status`, `createdAt` ISO), codes HTTP, messages d'erreur (`Champs invalides`, `Already decided`, `Invalid manager`, `Not found`…) |
+| Réponses | décrites dans `docs/api/openapi.yaml` : forme JSON (`id`, `userId`, `amount` en nombre, `expenseDate` en `YYYY-MM-DD`, `description`, `receiptKey`, `status`, `createdAt` ISO), codes HTTP, erreurs `{"error": "..."}` sans stack ; messages exacts (`Champs invalides`, `Already decided`, `Invalid manager`, `Not found`…) |
+| Suggestion OCR | sur les reçus de référence (`tests/fixtures/ocr/`), même montant et même date qu'avant |
 | Tris | employé : `created_at` décroissant ; manager et RH : `created_at` croissant |
 | Interface | textes français des labels et boutons (`Montant (€)`, `Soumettre`, `Approuver`, `Rejeter`, `Voir le reçu`, `Se connecter`, `Se déconnecter`…) |
 | Exploitation | scripts npm (`dev`, `build`, `start`, `lint`, `typecheck`, `migrate:up`, `migrate:down`, `ensure-bucket`, `seed`), cibles make, variables de `.env.example`, ports 3000 / 5433 / 4567 |
@@ -92,6 +94,8 @@ Vérification : `make test-perf` en local (environ 15 min), ou poser le label `p
 | Renommer un script npm, une cible make, une variable d'environnement ou changer un port | la CI des professeurs lance l'application avec ces noms : tout leur E2E tomberait |
 | Modifier un texte de l'interface | les E2E (les nôtres et probablement ceux des professeurs) cherchent les éléments par leur texte |
 | Modifier un test pour le faire passer | un test de parité rouge signale une régression, pas un test à « réparer » |
+| Modifier `docs/api/openapi.yaml` pour faire passer un test | c'est le contrat de l'app d'origine ; une réponse « hors contrat » est une régression |
+| Réenregistrer les références OCR (`OCR_RECORD=1`) | elles décrivent la sortie de l'app d'origine ; un écart est une régression de l'OCR |
 | Passer `fixed: true` sans corriger | le test redevient normal et la CI passe au rouge |
 | Supprimer ou casser `scripts/seed.mjs` | les comptes de démo font partie du contrat |
 | Changer le schéma `users` / `companies` sans prévenir | `scripts/seed-e2e.mjs` (acteurs de test) doit suivre — voir §7 |
@@ -116,7 +120,10 @@ make test-defects   # tableau rouge → vert des défauts
 make test-report    # ouvre le rapport HTML du dernier run
 make test-perf      # performance : baseline contre version courante (environ 15 min, k6)
 make perf-aa        # performance : baseline contre elle-même (mesure du bruit)
+make api-diff NEW=chemin/openapi.yaml   # changements cassants entre le contrat et une autre spec (oasdiff)
 ```
+
+Contrat d'API : `docs/api/openapi.yaml`. Si votre nouvelle architecture **génère** sa spécification OpenAPI depuis le code (zod-openapi, etc.), comparez-la au contrat avec `make api-diff NEW=<votre spec>` : aucun changement cassant ne doit apparaître.
 
 Perf : rapport dans `perf-results/latest.md`, lecture et seuils dans `docs/perf/README.md`. Sur GitHub, poser le label `perf` sur la PR.
 
@@ -212,6 +219,8 @@ Points d'attention par défaut :
 | `UntrustedHost` dans les logs | `AUTH_TRUST_HOST` absent en production | la config Playwright et la CI le fournissent ; en lancement manuel : `AUTH_TRUST_HOST=true npm run start` |
 | Tests verts mais changement non pris en compte | serveur ou build périmé | arrêter les serveurs sur 3000 / 3001, `npm run build`, relancer |
 | Un test de parité casse alors que le changement est voulu | changement de comportement | le justifier dans la PR et demander à la team Tests d'adapter le test |
+| `Réponse hors contrat (docs/api/openapi.yaml)` | champ ajouté, retiré ou mal typé, code HTTP non documenté, stack trace dans une erreur | corriger la réponse ; le message liste l'écart exact |
+| Test OCR `sortie identique à la référence` en échec | l'extraction du montant ou de la date a changé (ex. réécriture du worker Tesseract pour PERF-01) | corriger l'OCR, ne pas réenregistrer les références |
 | `Le port 3100 est déjà occupé` (perf) | serveur d'une mesure interrompue | `lsof -tiTCP:3100 -sTCP:LISTEN \| xargs kill`, puis relancer |
 | Perf : `régression` sur un scénario | ralentissement réel, ou bruit sur une machine chargée | relancer `make test-perf` machine au repos ; si la régression persiste, c'est un vrai ralentissement à corriger |
 | Perf : scénario `instable` | trop de dispersion entre passages | relancer ; augmenter `PERF_RUNS` ou `PERF_DURATION` |
