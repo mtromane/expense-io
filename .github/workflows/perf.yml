@@ -3,12 +3,18 @@ name: perf
 on:
   pull_request:
     types: [labeled, synchronize]
-  schedule:
-    - cron: '0 3 * * *'
+  # Une mesure par merge sur main : un point de courbe par étape de migration.
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
   workflow_dispatch:
 
 concurrency:
-  group: perf-${{ github.ref }}
+  # PR : seule la dernière mesure compte. main : un groupe par commit, aucune
+  # mesure annulée ni remplacée (chaque run a sa propre machine).
+  group: perf-${{ github.event_name == 'push' && github.sha || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
@@ -79,11 +85,11 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: gh pr comment ${{ github.event.pull_request.number }} --body-file perf-results/latest.md || true
 
-  # Seul job avec un droit d'écriture sur le dépôt : il ne s'exécute que la
-  # nuit, sur main, jamais sur le code d'une PR.
+  # Seul job avec un droit d'écriture sur le dépôt : il ne s'exécute qu'après
+  # un merge sur main, jamais sur le code d'une PR.
   history:
     needs: perf
-    if: always() && github.event_name == 'schedule' && needs.perf.result != 'skipped'
+    if: always() && github.event_name == 'push' && needs.perf.result != 'skipped'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -110,5 +116,20 @@ jobs:
           node tests/perf/trend.mjs ../perf-history/docs/perf/history.jsonl ../perf-history/docs/perf/trend.md
           cd ../perf-history
           git add docs/perf
-          git commit -m "perf: mesure du $(date -u +%F)"
-          git push origin perf-history
+          git commit -m "perf: mesure de ${GITHUB_SHA::7}"
+          # Deux merges rapprochés peuvent pousser en même temps : on rejoue.
+          for attempt in 1 2 3 4 5; do
+            git push origin perf-history && exit 0
+            git fetch origin perf-history
+            git rebase origin/perf-history || {
+              git rebase --abort
+              git reset --hard origin/perf-history
+              cat "$GITHUB_WORKSPACE/perf-results/history-line.jsonl" >> docs/perf/history.jsonl
+              node "$GITHUB_WORKSPACE/tests/perf/trend.mjs" docs/perf/history.jsonl docs/perf/trend.md
+              git add docs/perf
+              git commit -m "perf: mesure de ${GITHUB_SHA::7}"
+            }
+            sleep $((attempt * 5))
+          done
+          echo "Échec du push de l'historique après 5 tentatives." >&2
+          exit 1
