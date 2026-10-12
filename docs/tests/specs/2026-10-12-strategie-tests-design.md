@@ -354,6 +354,7 @@ Un test `test.fail()` qui passe fait échouer la CI : impossible d'oublier de ba
 ### 10.3 Protection de `main` et propriété
 
 - Checks obligatoires : `static`, `parity`, `defects`.
+- `CODEOWNERS` : `tests/`, `playwright.config.ts`, `scripts/seed-e2e.mjs`, `docs/tests/`, `.github/` → revue team Tests (Romane, Lukas, Thibault). Bloquant uniquement si la protection de `main` exige la revue des code owners.
 - Modifier un test `@parity` = changer un comportement : justification obligatoire dans la PR.
 
 ### 10.4 Tests instables
