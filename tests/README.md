@@ -29,6 +29,26 @@ Une fois l'environnement prêt : `npx playwright test <fichier> --no-deps`.
 | `@defect` + `@SEC-xx` / `@ROB-xx` / `@BUG-xx` | défaut technique ; échec attendu tant que `fixed: false` dans `tests/defects/registry.ts` |
 | perf (hors Playwright) | PERF-01, PERF-02 et non-régression : `tests/perf/`, objectifs dans `tests/perf/targets.json` |
 
+## Contrat d'API (OpenAPI)
+
+`docs/api/openapi.yaml` décrit les 14 endpoints de l'app d'origine (requêtes,
+réponses, codes HTTP, erreurs). Les contextes HTTP de `tests/support/auth.ts`
+passent par `tests/support/contract.ts` : **chaque réponse de l'API obtenue par
+un test est validée contre ce contrat** (schémas stricts : un champ en trop,
+manquant ou mal typé, ou un code non documenté, fait échouer le test avec
+l'écart exact). `tests/api/contract.spec.ts` vérifie le contrat lui-même.
+
+Changements cassants entre le contrat et une autre spécification (par exemple
+générée par la nouvelle architecture) : `make api-diff NEW=<spec>` (oasdiff).
+
+## OCR de référence
+
+`tests/fixtures/ocr/` contient des reçus fixes (générés par
+`tests/fixtures/generate-ocr-receipts.mjs`) et, dans `expected/`, la sortie de
+l'app d'origine pour chacun. `tests/api/ocr.spec.ts` exige la même sortie.
+Réenregistrer (`OCR_RECORD=1 npx playwright test tests/api/ocr.spec.ts --no-deps`)
+uniquement pour un changement voulu et validé par la team Tests.
+
 ## Pourquoi la CI est verte alors que des tests de défaut échouent
 
 Les tests `@defect` décrivent le comportement **correct**. Sur l'application
