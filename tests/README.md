@@ -3,6 +3,9 @@
 Harnais boîte noire : Playwright attaque l'application lancée en build de
 production. Spec : `docs/tests/specs/2026-10-12-strategie-tests-design.md`.
 
+Ce qui est attendu à la fin de la migration, et comment le vérifier :
+`docs/tests/criteres-fin-de-migration.md`.
+
 ## Lancer
 
 ```bash
