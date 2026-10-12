@@ -35,7 +35,7 @@ Cocher chaque ligne. Une seule case vide = migration non terminée.
 
 ### 2.2 Les défauts techniques sont corrigés
 
-- [ ] Chaque identifiant de `tests/defects/registry.ts` est passé à `fixed: true`.
+- [ ] Chaque identifiant de `tests/defects/registry.ts` (17 défauts) est passé à `fixed: true`.
 - [ ] `make test-defects` est vert **après** ces bascules.
 
 | ID | À corriger | Résultat attendu, vérifié par les tests |
@@ -51,8 +51,14 @@ Cocher chaque ligne. Une seule case vide = migration non terminée.
 | ROB-03c | montant trop grand pour `numeric(10,2)` → 500 | `400` |
 | ROB-03d | montant non numérique (`12abc`) accepté | `400` |
 | ROB-03e | `PUT .../manager` sans JSON valide retire le manager | `400`, manager conservé |
+| SEC-06 | clés de reçu séquentielles (`receipts/960.png`) | clé non devinable (au moins 16 caractères, pas un simple numéro), différente à chaque note |
+| SEC-07 | type de reçu contrôlé sur le MIME déclaré | contenu qui n'est pas une image déclaré `image/png` → `400 {"error":"Type de fichier non autorisé pour le reçu"}` |
+| SEC-08 | suggestion OCR sans limite de taille | fichier de plus de 10 Mo → `400 {"error":"Fichier trop volumineux"}` |
+| SEC-09 | RLS inopérante (utilisateur de base superuser) | dans le contexte posé par l'app (`app.current_user_id`), la base ne renvoie que les notes de l'utilisateur — **décision archi**, voir §5 |
+| ROB-01 | création de note non atomique | S3 indisponible → erreur 5xx **et** aucune note créée |
+| BUG-01 | date affichée décalée d'un jour en fuseau négatif | en fuseau `America/New_York`, la date saisie `2026-03-12` s'affiche « 12 mars 2026 » |
 
-Défauts P1 de la spec (§5.1) dont les tests arrivent dans le plan suivant : SEC-06 (clés de reçu prévisibles), SEC-07 (type de fichier non vérifié), SEC-08 (OCR sans limite de taille), SEC-09 (RLS inopérante), ROB-01 (création de note non atomique), PERF-01 (worker OCR recréé à chaque appel), PERF-02 (index manquants), BUG-01 (date décalée en fuseau négatif). Ils font partie de la définition de « terminé » dès que leurs tests sont livrés.
+Les objectifs de performance PERF-01 et PERF-02 sont suivis à part, dans `tests/perf/targets.json` (§2.4).
 
 ### 2.3 Les défauts métier ne sont pas touchés (pour l'instant)
 
@@ -62,8 +68,14 @@ Défauts P1 de la spec (§5.1) dont les tests arrivent dans le plan suivant : SE
 ### 2.4 Pas plus lent qu'avant
 
 - [ ] Aucune régression de performance : le barème met **0** si l'application est moins performante.
-- [ ] Gains attendus sur PERF-01 (OCR) et PERF-02 (listes sur gros volume).
-- L'outil de comparaison automatique avec la baseline (`make test-perf`) arrive dans le plan suivant ; d'ici là, signaler à la team Tests toute PR qui touche à l'OCR, aux requêtes SQL ou aux listes.
+- [ ] Objectifs atteints et déclarés `fixed: true` dans `tests/perf/targets.json` :
+
+| ID | À corriger | Objectif mesuré |
+|---|---|---|
+| PERF-01 | worker Tesseract recréé à chaque requête | p95 de la suggestion OCR ≤ 50 % de la baseline |
+| PERF-02 | aucun index sur les colonnes filtrées | p95 des listes employé, manager et RH ≤ 50 % de la baseline (200 000 notes) |
+
+Vérification : `make test-perf` en local (environ 15 min), ou poser le label `perf` sur la PR (rapport commenté automatiquement). Détail, lecture du rapport et bruit mesuré : `docs/perf/README.md`.
 
 ### 2.5 Qualité et CI
 
@@ -131,7 +143,7 @@ Important :
 
 Rapport détaillé avec traces des échecs : `make test-report`.
 
-**Pourquoi la CI est verte alors que des tests de défaut échouent ?** Tant qu'un défaut est `fixed: false`, son échec est attendu : c'est l'état « rouge » du cycle rouge → vert, enregistré au lieu de bloquer `main`. Quand le défaut est corrigé et déclaré `fixed: true`, le test devient un test normal et passe. À la fin de la migration, il n'y a plus aucun échec attendu. Détail et tableau des 4 situations : `tests/README.md`, section « Pourquoi la CI est verte alors que 21 tests échouent ».
+**Pourquoi la CI est verte alors que des tests de défaut échouent ?** Tant qu'un défaut est `fixed: false`, son échec est attendu : c'est l'état « rouge » du cycle rouge → vert, enregistré au lieu de bloquer `main`. Quand le défaut est corrigé et déclaré `fixed: true`, le test devient un test normal et passe. À la fin de la migration, il n'y a plus aucun échec attendu. Détail et tableau des 4 situations : `tests/README.md`, section « Pourquoi la CI est verte alors que des tests de défaut échouent ».
 
 ### 4.4 Vérifier contre la baseline (optionnel, fait par la CI)
 
@@ -164,6 +176,14 @@ Points d'attention par défaut :
 | SEC-05 | garder les mêmes codes HTTP ; seul le corps change (message générique, pas de `stack`) |
 | ROB-02 | rendre la décision atomique (mise à jour conditionnée au statut `pending`) ; la seconde décision renvoie toujours `409 Already decided` |
 | ROB-03 | codes attendus : identifiant invalide → `404` (même réponse qu'une note inexistante), entrée invalide → `400 {"error":"Champs invalides"}` |
+| SEC-06 | `scripts/seed.mjs` construit lui-même les clés des notes de démo (`receipts/<n>.png`) : sans effet sur le test, mais à aligner pour la cohérence |
+| SEC-07 | vérifier le contenu réel du fichier (signature PNG, JPEG, WebP, PDF) ; les vrais fichiers doivent rester acceptés, y compris un PNG de 10 Mo complété par des zéros |
+| SEC-08 | même limite et même message que la création de note (`Fichier trop volumineux`) |
+| SEC-09 | deux options : rendre la RLS effective (rôle de base sans privilège, par exemple `SET LOCAL ROLE` exposé via la variable `APP_DB_ROLE`) **sans changer `DATABASE_URL`**, ou retirer la RLS et l'assumer (le test est alors supprimé avec la team Tests) |
+| ROB-01 | ne pas laisser de note sans reçu : téléverser avant d'insérer, ou annuler l'insertion si le téléversement échoue |
+| BUG-01 | une date `YYYY-MM-DD` n'est pas un instant : l'afficher sans conversion de fuseau |
+| PERF-01 | réutiliser un worker (ou un pool) Tesseract au lieu d'en créer un par requête |
+| PERF-02 | ajouter les index dans une **nouvelle** migration (ne pas modifier la migration initiale) |
 
 ---
 
