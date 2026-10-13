@@ -4,6 +4,8 @@
 - **Statut** : design validé en séance, spec en relecture
 - **Périmètre** : harnais de validation qui garantit la non-régression pendant la migration d'architecture, prouve la correction des défauts techniques et mesure l'évolution des performances.
 
+> **Mise à jour du 2026-10-13** : décision d'équipe, le métier doit être totalement fonctionnel. Les « incohérences conservées » (§3) et les défauts MET-01 à MET-09 (§5.2) sont désormais **à corriger**, sauf la note hors périmètre en `404`, conservée volontairement. Font foi : `docs/tests/criteres-fin-de-migration.md` §2.3, `AGENTS.md` règle 5, `docs/audit/22-comportements-a-corriger.md` (inventaire) et `docs/audit/21-decisions-architecture.md` (options tranchées).
+
 ---
 
 ## 1. Contexte
@@ -71,6 +73,8 @@ Contrat à préserver, encodé en tests :
 
 **Incohérences conservées pour parité** (documentées, non corrigées) :
 
+> **Mise à jour du 2026-10-13** : décision d'équipe, le métier doit être totalement fonctionnel. Les incohérences ci dessous et les défauts MET-01 à MET-09 (§5.2) sont désormais **à corriger**, sauf la note hors périmètre en `404`, conservée volontairement. Font foi : `docs/tests/criteres-fin-de-migration.md` §2.3, `AGENTS.md` règle 5, `docs/audit/22-comportements-a-corriger.md` (inventaire) et `docs/audit/21-decisions-architecture.md` (options tranchées).
+
 - mauvais rôle → `401` sur les routes manager, `403` sur les routes RH, y compris anonyme ;
 - note hors périmètre → `404` (pas `403`) ;
 - `/manager` et `/hr` avec un mauvais rôle → page 200 « Accès réservé ».
@@ -116,6 +120,8 @@ Contrat à préserver, encodé en tests :
 **Risques de parité à surveiller** : SEC-04 exige que la CI des professeurs fournisse `AUTH_SECRET` (présent dans `.env.example`, probable) ; SEC-06 change le format de `receiptKey`, exposé dans le JSON, et impose d'aligner `scripts/seed.mjs`.
 
 ### 5.2 Métier — documenter, caractériser, attendre (`@metier`)
+
+> **Mise à jour du 2026-10-13** : décision d'équipe, le métier doit être totalement fonctionnel. Les défauts MET-01 à MET-09 ci dessous sont désormais **à corriger**. Font foi : `docs/tests/criteres-fin-de-migration.md` §2.3, `AGENTS.md` règle 5, `docs/audit/22-comportements-a-corriger.md` (inventaire) et `docs/audit/21-decisions-architecture.md` (options tranchées). Le mécanisme de bascule devient : la team Tests ajoute le défaut au registre (`fixed: false`) avec son test, puis la PR de correction passe `fixed: true`.
 
 | ID | Constat |
 |---|---|

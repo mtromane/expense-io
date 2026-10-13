@@ -38,7 +38,7 @@ Le sujet décrit une évolution historique (Supabase, Stripe, OpenAI, SMTP, bus,
 | Facturation Stripe à refactorer en Clean/Hexa | **N'existe pas** | Appliquer la même démarche au domaine qui porte le plus de règles : la **validation** (`approve` / `reject`, qui voit quoi, concurrence) |
 | Appel OpenAI synchrone, timeouts, retries | **OCR Tesseract local**, synchrone, worker recréé à chaque requête (`src/lib/ocr.ts:118`) | Même diagnostic « maillon le plus lent », mais remède différent : local et CPU, pas distant et instable (A-08) |
 | Bus « Reçu déposé » + Worker | **Aucun bus** | Rien à « unifier ». Ne pas créer un bus pour cocher une case (KISS) ; outbox Postgres seulement si une fonctionnalité le justifie (A-10) |
-| Emails SMTP | `NotificationPort` + `ConsoleNotificationAdapter`, jamais appelés | Candidat naturel au live coding (§9) |
+| Emails SMTP | `NotificationPort` + `ConsoleNotificationAdapter`, jamais appelés | À brancher seulement si une fonctionnalité en a besoin (A-10) |
 | `if (user.role === 'manager')` copié collé, fuite entre entreprises | **Présent tel quel** : 12 fichiers, fuite démontrée (`V-06`, PoC) | Refacto prioritaire (A-03, A-04) |
 | Supabase (Auth + Postgres) | Auth.js maison + Postgres local | Build vs Buy : l'auth reste « achetée » (Auth.js) ; on ne la réécrit pas |
 | Multi région | Absent | ADR de principe, pas d'implémentation (A-13) |
@@ -67,8 +67,8 @@ Format court par constat : **problème constaté** (fichiers), **concept du cour
 
 * **Constaté** : 14 contrôles `session?.user` dans 13 fichiers de routes, dont 10 avec test de rôle, plus `src/app/manager/page.tsx:7`, `src/app/hr/page.tsx:7` et `src/app/layout.tsx:79`. Les codes divergent : `401` côté manager, `403` côté RH (`V-15.1`), et le contrat **fige** cette incohérence (`criteres-fin-de-migration.md` §2.1).
 * **Concept** : vérification de rôle centralisée dans un service ou middleware de permissions unique.
-* **Décision** : un `requireActor(request, { role, deniedStatus })` unique dans `src/modules/identity/` (ou un wrapper `withActor(handler, policy)`), qui renvoie un `Actor` typé `{ id, role, companyId }`. Le code de refus est un **paramètre de la politique**, pas une copie : on centralise la règle tout en respectant le contrat.
-* **Tradeoff** : on ne corrige pas l'incohérence 401/403 (visible, contrat figé). On la rend **explicite et documentée** en un seul endroit. C'est un choix assumé à présenter.
+* **Décision** : un `requireActor(request, { role })` unique dans `src/modules/identity/` (ou un wrapper `withActor(handler, policy)`), qui renvoie un `Actor` typé `{ id, role, companyId }` et applique le standard : `401` si non connecté, `403` si connecté sans le rôle.
+* **Tradeoff** : corriger l'incohérence change des réponses figées par les tests de parité (`authz-matrix.ts`), à faire évoluer avec la team Tests. Accepté : le professeur attend la correction de ce genre de bizarrerie, et la correction tient en une ligne une fois la garde centralisée, ce qui démontre le bénéfice de la refacto (D12, [22-comportements-a-corriger.md](22-comportements-a-corriger.md) `B-01`, `B-02`).
 * **Proxy** : `src/proxy.ts` exclut `/api` du matcher. Ne pas déplacer le contrôle des API dans le proxy : Next.js recommande de revérifier au plus près de la donnée, et les codes 401/403 par route seraient perdus.
 
 ### A-04 · Isolation entre entreprises reposant sur des `WHERE` manuels
@@ -128,7 +128,7 @@ Format court par constat : **problème constaté** (fichiers), **concept du cour
 
 * **Constaté** : `NotificationPort` jamais appelé (`MET-09`, évolution listée dans `14`). Aucun mécanisme d'échange asynchrone : rien à « unifier ».
 * **Concept** : Producer / Broker / Consumer, ack, DLQ, idempotence, Contract First, corrélation ; chorégraphie vs orchestration.
-* **Décision (ADR-005, conditionnelle)** : **si** on livre la notification de décision (candidat live coding, §9), utiliser le **pattern Outbox sur Postgres** plutôt qu'un broker :
+* **Décision (ADR-005, conditionnelle)** : aucun asynchrone tant qu'aucune fonctionnalité ne le justifie. **Si** une fonctionnalité en a besoin (par exemple notifier l'auteur d'une décision, éventuellement celle imposée au live coding), utiliser le **pattern Outbox sur Postgres** plutôt qu'un broker :
   * le use case `decideExpenseNote` écrit l'événement `ExpenseNoteDecided.v1` dans une table `outbox` **dans la même transaction** que la décision (pas de double écriture incohérente) ;
   * un worker lit l'outbox, appelle `NotificationPort`, marque le message traité (ack) ;
   * **idempotence** : clé unique `(event_type, note_id)` et marquage `processed_at` : un rejeu ne renvoie pas de notification ;
@@ -190,7 +190,7 @@ Décision : monolithe modulaire (ADR-001). Les modules communiquent par **ports*
 | `expenses` (soumission) | créer et lister ses notes, reçu | `submitExpenseNote`, `listMyExpenseNotes`, `getMyReceiptUrl` | `ExpenseNoteRepository`, `ReceiptStorage` | Postgres, S3 |
 | `approval` (validation) | qui voit et tranche quelle note, décision | `listPendingForManager`, `listPendingForHr`, `decideExpenseNote`, `getReceiptUrlForApprover` | `ApprovalRepository`, `ReceiptStorage`, (`EventOutbox`) | Postgres, S3 |
 | `receipt-scan` | suggestion OCR | `suggestFromReceipt` | `ReceiptScanner` | Tesseract (pool) |
-| `notification` (option live coding) | prévenir l'auteur d'une décision | `dispatchPendingNotifications` | `NotificationPort` | Console, puis SMTP |
+| `notification` (si une fonctionnalité l'exige) | prévenir l'auteur d'une décision | `dispatchPendingNotifications` | `NotificationPort` | Console, puis SMTP |
 | `shared` | config, logger, erreurs, transaction, garde HTTP | | | |
 
 Note de vocabulaire (cours) : Server Port ≈ Gateway ≈ Repository ici ; Application ≈ Use Case ; Adapter HTTP ≈ Controller (le `route.ts`).
@@ -300,6 +300,7 @@ Approche « strangler » : une route ou un module à la fois, chaque PR verte su
 | 5 | Module `receipt-scan` : pool Tesseract borné, limite de taille | Maillon lent, ADR-004 | `SEC-08`, `PERF-01` | OCR de référence, `make test-perf` |
 | 6 | Nouvelle migration : index, `company_id` + trigger, policies complétées ; `SET LOCAL ROLE` via `APP_DB_ROLE` | Isolation structurelle (RLS) | `SEC-09`, `PERF-02` | `make test-perf`, PoC `V-05` réfuté |
 | 7 | Front : `utils/format`, client API typé | KISS | `BUG-01` | E2E en `America/New_York` |
+| 7 bis | Métier fonctionnel : changement de rôle, validation des notes sans valideur, cycles, nom de l'auteur, codes HTTP, saisie, inscription (ordre du §3 de `22`) | Domaine au centre : une `ApprovalPolicy` unique répond à « qui valide quoi » | nouveaux défauts à ajouter au registre | tests mis à jour par la team Tests |
 | 8 | ESLint d'architecture en erreur ; suppression de `src/lib/*` devenu vide ; ADR, HLD, LLD, DAT | Inversion des dépendances vérifiée | (tous à `fixed: true`) | CI verte, tag `soutenance` |
 
 Dépendance dure (rappel de `13`) : l'étape 6 (RLS effective) n'est livrable qu'**après** que toutes les écritures passent par les repositories scopés, sinon la création de note casse.
@@ -308,10 +309,10 @@ Dépendance dure (rappel de `13`) : l'étape 6 (RLS effective) n'est livrable qu
 
 ## 7. Contraintes à ne pas oublier pendant la refacto
 
-* **Contrat figé** : routes, codes (y compris `401` manager / `403` RH), messages anglais existants (`Already decided`, `Invalid manager`, `Not found`, `Unauthorized`), forme JSON dont `receiptKey`, textes de l'UI, scripts npm, ports, comptes de seed (`AGENTS.md`).
+* **Contrat** : routes, messages anglais existants (`Already decided`, `Invalid manager`, `Not found`, `Unauthorized`), forme JSON dont `receiptKey`, textes de l'UI, scripts npm, ports, comptes de seed restent figés (`AGENTS.md`). Exceptions décidées : les comportements étranges de [22-comportements-a-corriger.md](22-comportements-a-corriger.md), corrigés **en ajout** (nouvelle route, nouveau champ) plutôt qu'en remplacement, après mise à jour des tests par la team Tests.
 * **Performance** : 0 au barème si plus lent. Pas d'aller retour SQL supplémentaire ; `make test-perf` avant chaque fusion qui touche SQL, OCR ou listes.
 * **Tests** : ne jamais modifier `tests/`, `playwright.config.ts`, `scripts/seed-e2e.mjs`, `.github/`. Les unitaires de `tests/p2-unitaires` figent l'API de `ExpenseNote`, `User`, `withUserScope`, `utils/*` : les déplacer, ne pas les casser.
-* **Défauts métier `MET-01` à `MET-09`** : ne pas les corriger sans décision des professeurs, même si la nouvelle architecture le rend trivial. Le dire en soutenance : « l'architecture le permet en une ligne, la décision est produit ».
+* **Défauts métier `MET-01` à `MET-09`** : désormais dans le périmètre (le métier doit être totalement fonctionnel). `AGENTS.md` règle 5 et `docs/tests/criteres-fin-de-migration.md` §2.1 et §2.3 disent encore le contraire : les réviser avec la team Tests avant la première PR métier.
 * **Commentaires trompeurs (`V-00`)** : les supprimer au passage dans chaque fichier touché.
 
 ## 8. Livrables d'architecture à produire
@@ -324,7 +325,7 @@ Dans `docs/architecture/` :
 | `adr/ADR-002-clean-architecture-legere.md` | couches, règle de dépendance, ESLint, ranimer plutôt que supprimer `domain/` | A-01, A-02 |
 | `adr/ADR-003-isolation-multitenant.md` | repository scopé + RLS effective + `company_id` par trigger | A-04 |
 | `adr/ADR-004-ocr-synchrone-borne.md` | pas de bus, pool borné, délai, alternatives rejetées | A-08 |
-| `adr/ADR-005-outbox-notifications.md` | outbox vs broker, idempotence, DLQ, contrat versionné, corrélation | A-10 (si livré) |
+| `adr/ADR-005-outbox-notifications.md` | outbox vs broker, idempotence, DLQ, contrat versionné, corrélation | A-10 (si une fonctionnalité l'exige) |
 | `adr/ADR-006-mono-region-cap.md` | CAP, tenant = unité de résidence, routage par région | A-13 |
 | `adr/ADR-007-decision-atomique.md` | verrou optimiste vs `FOR UPDATE` | A-05 |
 | `HLD.md` | vue système (§4), modules, flux principaux | slides |
@@ -335,51 +336,39 @@ Pour les slides (15 min) : avant / après de l'arborescence (Screaming Architect
 
 ## 9. Préparer le live coding
 
+La fonctionnalité est **imposée par les professeurs le jour de la soutenance**. Il n'y a donc rien à coder à l'avance pour elle : la préparation consiste à rendre la codebase et l'agent IA capables d'absorber **n'importe quelle** fonctionnalité en respectant les guidelines. Ce travail se fait **en fin de migration**, quand l'architecture est stable.
+
 ### 9.1 Ce que le jury regardera
 
 La fonctionnalité doit : vivre dans le bon module, passer par les ports existants, respecter l'isolation par entreprise et la garde centralisée, n'utiliser l'asynchrone que si c'est justifié, arriver avec ses tests. Les prompts doivent être détaillés et explicables.
 
-### 9.2 Candidats
+### 9.2 À préparer en fin de migration
 
-| Fonctionnalité | Module | Montre | Risque |
-|---|---|---|---|
-| **Notification de l'auteur à la décision** (`MET-09`, `NotificationPort`) | `approval` + `notification` | outbox, idempotence, DLQ, corrélation, port réutilisé, adapter remplaçable | worker à lancer à côté ; à répéter |
-| Motif de rejet saisi et affiché | `approval` | entité enrichie, contrat étendu (ajout de champ facultatif), presenter | change une réponse existante : vérifier les schémas stricts du contrat |
-| Historique des décisions (`M-05.1`) | `approval` | nouvelle table, nouveau use case, scoping tenant | modéré |
-| Plafond de montant par entreprise | `expenses` + `organization` | règle de domaine pure, testable en unitaire | `MET-06` : décision produit |
+* **`AGENTS.md` soigné** : la carte des modules, la règle de dépendance, où placer quoi (entité, use case, port, adapter, route), la garde `route()`, le scoping par entreprise, les contraintes du contrat, la commande de vérification. C'est le levier principal : l'agent doit respecter l'architecture sans qu'on la répète dans chaque prompt.
+* **Guide `docs/architecture/ajouter-une-fonctionnalite.md`** : étapes (test rouge, port, use case et son unitaire, adapter, route, `make test`), avec un exemple réel tiré d'un module migré.
+* **Règles ESLint d'architecture bloquantes** : garde fou automatique si l'agent importe de l'infrastructure dans le domaine.
+* **Une répétition à blanc** sur une fonctionnalité inventée par l'équipe, pour tester l'`AGENTS.md` et chronométrer.
 
-Recommandation : **notification de décision**. C'est la seule qui coche l'asynchrone de façon justifiée (envoi vers un service externe instable en production), elle réutilise un port qui existe déjà, et elle se termine en 15 minutes si la structure du module `notification` et la table `outbox` sont prêtes (seul le use case et le branchement sont codés en direct). Variante sûre si le temps manque : motif de rejet, sans asynchrone.
+### 9.3 Points d'attention pour le jour J
 
-**Contrat** : une nouvelle fonctionnalité ajoute du contrat, elle ne doit pas en casser. Les schémas OpenAPI des tests sont stricts (un champ en trop échoue) : préférer de **nouvelles routes** à l'ajout de champs dans les réponses existantes, et en parler avec la team Tests avant.
-
-### 9.3 Gabarit à préparer avant la soutenance
-
-* `docs/architecture/ajouter-une-fonctionnalite.md` : étapes (test E2E rouge, port, use case + unitaire, adapter, route via `route()`, vérification `make test`), règles d'import, où placer quoi.
-* Section dans `AGENTS.md` qui pointe vers ce guide, pour que l'agent IA du live coding respecte les guidelines sans qu'on les répète dans chaque prompt.
-* Trame de prompt, à adapter en direct :
+* **Contrat** : une nouvelle fonctionnalité ajoute du contrat, elle ne doit pas en casser. Les schémas OpenAPI des tests sont stricts (un champ en trop échoue) : préférer de **nouvelles routes** à l'ajout de champs dans les réponses existantes.
+* **Asynchrone** : ne l'introduire que si la fonctionnalité appelle un traitement lent ou un service externe instable (A-10). Savoir expliquer pourquoi on le fait, ou pourquoi on ne le fait pas.
+* **Métier** : si la fonctionnalité recoupe un `MET-xx`, le traiter comme une évolution demandée, pas comme une correction.
+* **Trame de prompt** à adapter en direct :
 
 ```text
-Contexte : lis docs/architecture/HLD.md et docs/architecture/ajouter-une-fonctionnalite.md.
-Objectif : quand une note est approuvée ou rejetée, notifier son auteur.
+Contexte : lis AGENTS.md et docs/architecture/ajouter-une-fonctionnalite.md.
+Objectif : <fonctionnalité donnée par le jury>.
 Contraintes :
-* le use case decideExpenseNote écrit un événement ExpenseNoteDecided.v1 dans l'outbox,
-  dans la même transaction que la décision ;
+* identifie le module concerné et justifie ce choix avant de coder ;
 * aucun import d'infrastructure dans modules/*/domain ni modules/*/application ;
-* le worker est idempotent (clé note_id + type), passe en DLQ après 3 échecs,
-  journalise le correlationId ;
-* commence par le test unitaire du use case avec un faux EventOutbox, puis implémente.
+* accès aux données uniquement par un repository scopé par l'acteur courant ;
+* garde de rôle via route(), jamais de test de rôle dans le handler ;
+* asynchrone uniquement si le traitement est lent ou dépend d'un service externe ;
+* commence par le test unitaire du use case avec des ports simulés, puis implémente.
 Vérification : npm run lint && npm run typecheck && npm run test:unit && make test.
 ```
 
 ## 10. Décisions à prendre en équipe
 
-| Sujet | Options | Recommandation |
-|---|---|---|
-| `V-01` : supprimer ou ranimer `src/domain` | supprimer (audit) / ranimer (unitaires, cours) | ranimer (A-02) |
-| `V-31` : refacto de fond | strict nécessaire / modules complets | modules complets : c'est la note ARLA |
-| `SEC-09` | RLS effective / retirer la RLS | effective, avec `APP_DB_ROLE` (A-04) |
-| `company_id` sur `expense_notes` | oui par trigger / non | oui, nouvelle migration |
-| Asynchrone | aucun / outbox pour la notification / broker | outbox, seulement si la notification est livrée |
-| Génération des types depuis OpenAPI | oui / types à la main | oui si le temps le permet, sinon à la main |
-| Fonctionnalité du live coding | voir §9.2 | notification de décision |
-| Fusion de `tests/p2-unitaires` | maintenant / plus tard | maintenant, avant toute refacto |
+Le détail, avec les pour et contre de chaque option, est dans [21-decisions-architecture.md](21-decisions-architecture.md) (D1 à D19). Les comportements étranges et le métier à rendre fonctionnel sont inventoriés dans [22-comportements-a-corriger.md](22-comportements-a-corriger.md).

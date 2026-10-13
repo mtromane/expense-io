@@ -17,6 +17,8 @@ dépôt, deux niveaux au-dessus). Point d'entrée humain : [README.md](README.md
 | Rejouer / tester un constat vérifié | `poc/README.md` |
 | Ce qui est volontairement exclu | `14-hors-perimetre.md` |
 | Architecture cible, modules, ports, plan de refacto (constats `A-xx`) | `20-audit-architecture-arla.md` |
+| Décisions d'équipe, pour et contre | `21-decisions-architecture.md` |
+| Comportements étranges à corriger, métier à rendre fonctionnel (`B-xx`) | `22-comportements-a-corriger.md` |
 
 `07-points-de-vigilance.md` est la liste initiale de l'étape 1 : pour la
 cotation et l'état à jour, `12-constats.md` fait foi.
@@ -29,8 +31,10 @@ cotation et l'état à jour, `12-constats.md` fait foi.
 - **Les `chemin:ligne` datent du 2026-10-09** (relatifs à la racine du dépôt) :
   revérifier dans le code avant d'agir, ils dérivent.
 - **Contrainte projet** : toute correction reste invisible pour l'utilisateur
-  (mêmes écrans, parcours et réponses). Les fiches `Visible : oui` demandent
-  un arbitrage humain avant d'être traitées.
+  (mêmes écrans, parcours et réponses), **sauf** les comportements étranges et
+  le métier listés dans `22-comportements-a-corriger.md`, qui doivent être
+  corrigés (décision d'équipe du 2026-10-13). Les choix ouverts sont dans
+  `21-decisions-architecture.md` ; ne pas implémenter une option non tranchée.
 - Ne pas se fier aux commentaires du code qui parlent de sécurité (V-00), ni
   supposer que `src/domain/` porte les règles métier : il n'est jamais appelé
   (V-01).
