@@ -1,0 +1,14 @@
+# Harnais de tests : toute modification doit être validée par la team Tests
+# (Romane, Lukas, Thibault). Un test de parité qui casse signale une
+# régression : on corrige le code, pas le test.
+/tests/                   @mtromane @LKsLg @thibaultbriens
+/playwright.config.ts     @mtromane @LKsLg @thibaultbriens
+/scripts/seed-e2e.mjs     @mtromane @LKsLg @thibaultbriens
+/docs/tests/              @mtromane @LKsLg @thibaultbriens
+/docs/api/                @mtromane @LKsLg @thibaultbriens
+/docs/perf/               @mtromane @LKsLg @thibaultbriens
+# La CI (et ce fichier) : la désactiver contournerait le harnais.
+/.github/                 @mtromane @LKsLg @thibaultbriens
+# Règles pour les agents IA : les retirer contournerait le harnais.
+/AGENTS.md                @mtromane @LKsLg @thibaultbriens
+/CLAUDE.md                @mtromane @LKsLg @thibaultbriens

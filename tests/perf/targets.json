@@ -1,0 +1,14 @@
+{
+  "PERF-01": {
+    "title": "Worker Tesseract recréé à chaque requête",
+    "scenarios": ["P-OCR"],
+    "maxRatio": 0.5,
+    "fixed": false
+  },
+  "PERF-02": {
+    "title": "Index manquants sur les colonnes filtrées",
+    "scenarios": ["P-EMP", "P-MGR", "P-HR"],
+    "maxRatio": 0.5,
+    "fixed": false
+  }
+}
