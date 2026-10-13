@@ -71,7 +71,7 @@ Recommandation : **traduire côté interface**, garder l'API, sauf indication co
 | `V-12.2` | Deux inscriptions simultanées du même email : erreur non gérée | Message « Un compte existe déjà avec cet email. » | faible | non | aucun |
 | `V-12.1` | Inscription non transactionnelle : entreprise sans RH possible | Entreprise et premier compte créés dans une transaction | faible | non | aucun |
 | `M-03` / `MET-01` | Une « entreprise » peut naître sur `gmail.com` ; son premier inscrit devient RH de tous les suivants | Refuser les domaines publics (liste) à l'inscription | moyenne | **oui** (liste, message) | aucun ; nouveau message d'interface |
-| `V-17` / `MET-01` | Email jamais vérifié | Vérification par lien | faible | **oui** (pas de SMTP dans la stack ; probablement hors périmètre) | aucun |
+| `V-17` / `MET-01` | Email jamais vérifié | Vérification par lien | faible | **oui** (aucun envoi d'email dans la stack ; probablement hors périmètre) | aucun |
 | `M-07` | Un employé sans manager affiché « racine » dans la console RH | Libellé selon le rôle (« à rattacher » pour un employé) | moyenne | oui (texte) | E2E RH si le texte du menu est ciblé |
 | `V-20`, `V-22`, `V-23` | Énumération des comptes, mots de passe courants, session longue | À traiter comme sécurité, pas comme métier | faible | oui | aucun |
 

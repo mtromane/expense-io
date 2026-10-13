@@ -1,17 +1,17 @@
 # 20 · Audit d'architecture ARLA : écarts à combler pour la soutenance
 
 * Pour qui : l'équipe archi, avant de lancer les refactos et de préparer les slides.
-* Point de départ : l'audit sécurité et métier (`10` à `14`), le harnais de tests (`tests/`, `docs/tests/`) et les attendus du cours ARLA (Clean Architecture, Hexagonale, monolithe modulaire, multitenant, asynchrone, CAP, ADR/HLD/LLD/DAT).
+* Point de départ : l'audit sécurité et métier (`10` à `14`), le harnais de tests (`tests/`, `docs/tests/`) et les attendus du cours ARLA (Clean Architecture, Hexagonale, monolithe modulaire, multitenant, asynchrone, ADR/HLD/LLD/DAT).
 * État relevé le 2026-10-13 sur `main` (`d354ae2`). Les `chemin:ligne` dérivent dès que le code bouge : revérifier avant d'agir.
 * Identifiants : `A-xx` = constat d'architecture (nouveau). Les `V-xx`, `M-xx` (audit), `SEC-xx`, `ROB-xx`, `PERF-xx`, `MET-xx` (tests) sont cités tels quels.
 
 ## 0. Verdict en cinq points
 
-1. **L'audit existant est un très bon audit de sécurité, pas encore un audit d'architecture.** Il cote 63 constats (OWASP, intégrité, métier) et le harnais de tests les rend mesurables. Il manque la lecture « cours ARLA » : découpage en domaines, inversion des dépendances, ports et adapters, stratégie asynchrone, CAP, et les livrables ADR / HLD / LLD / DAT. Ce document comble cet écart.
-2. **La codebase n'est pas celle du récit du cours.** Pas de Stripe, pas d'OpenAI, pas de SMTP, pas de bus, pas de facturation, une seule base. Les exemples du sujet (« facturation en Clean Architecture », « unifier les protocoles asynchrones ») ne s'appliquent pas tels quels : il faut les **transposer** à ce qui existe vraiment (§2), et le dire en soutenance plutôt que de plaquer Stripe ou un bus sur un code qui n'en a pas.
+1. **L'audit existant est un très bon audit de sécurité, pas encore un audit d'architecture.** Il cote 63 constats (OWASP, intégrité, métier) et le harnais de tests les rend mesurables. Il manque la lecture « cours ARLA » : découpage en domaines, inversion des dépendances, ports et adapters, stratégie asynchrone, et les livrables ADR / HLD / LLD / DAT. Ce document comble cet écart.
+2. **On audite le code réel.** Une application Next.js, une base PostgreSQL, un stockage S3, un OCR local, aucun traitement asynchrone. Les refactos portent sur ce qui existe : le domaine qui concentre le plus de règles est la **validation** des notes (`approve` / `reject`, qui voit quoi, concurrence).
 3. **Le cœur du problème architectural est unique : tout vit dans les route handlers.** 13 fichiers de routes portent chacun authentification, contrôle de rôle, règle d'accès, SQL, mapping JSON et gestion d'erreur. La couche `domain/ports/adapters` existe mais n'est branchée nulle part : c'est exactement le « piège fréquent » du cours (bonne terminologie, métier toujours couplé à l'infra).
-4. **La cible recommandée est un monolithe modulaire en Clean Architecture « légère »** (un seul déployable Next.js, modules par domaine, ports en interfaces, adapters dédiés, composition root). Pas de microservices, pas de bus : ni la taille de l'équipe, ni la charge, ni le contrat figé ne les justifient (§4, ADR-001).
-5. **La refacto doit corriger les 17 défauts du registre en passant par la nouvelle architecture**, pas à côté : chaque défaut corrigé devient la preuve qu'un principe du cours a été appliqué (§6). C'est la meilleure histoire à raconter en 15 minutes, et elle est vérifiable par `make test`.
+4. **La cible recommandée est un monolithe modulaire en Clean Architecture « légère »** (un seul déployable Next.js, modules par domaine, ports en interfaces, adapters dédiés, composition root). Pas de microservices, pas de bus : ni la taille de l'équipe, ni la charge, ni le contrat figé ne les justifient (§3, ADR-001).
+5. **La refacto doit corriger les 17 défauts du registre en passant par la nouvelle architecture**, pas à côté : chaque défaut corrigé devient la preuve qu'un principe du cours a été appliqué (§5). C'est la meilleure histoire à raconter en 15 minutes, et elle est vérifiable par `make test`.
 
 ## 1. Attendus du cours face à l'existant
 
@@ -25,25 +25,10 @@
 | Isolation multitenant structurelle | Filtres `WHERE company_id = ...` écrits à la main ; RLS contournée (superuser) | `V-03`, `V-05.1`, `V-06`, `SEC-02`, `SEC-03`, `SEC-09` | Repository scopé par acteur + RLS effective (A-04) |
 | Asynchrone justifié (DLQ, idempotence, contrat, corrélation) | Aucun asynchrone. OCR synchrone dans la requête | `V-13.1`, `PERF-01` (sous l'angle perf) | ADR « pas de bus pour l'OCR » + outbox pour la notification si on la livre (A-08, A-10) |
 | Twelve Factor | Secret en dur, config lue à l'import, pas de validation | `V-08`, `SEC-04`, `V-36` | Module de config validé au démarrage (A-11) |
-| CAP, données distribuées | Une base, une région, aucune réflexion écrite | rien | ADR mono région + partitionnement par entreprise (A-13) |
-| ADR, HLD, LLD, DAT | Aucun | La spec de tests prévoit `docs/tests/adr/` (pas encore écrit) | Produire `docs/architecture/` (§8) |
-| Live coding conforme aux guidelines | Gabarit E2E prévu, pas de gabarit d'architecture | `tests/e2e/_template.spec.ts` (prévu) | Gabarit de module + guide « ajouter une fonctionnalité » (§9) |
+| ADR, HLD, LLD, DAT | Aucun | La spec de tests prévoit `docs/tests/adr/` (pas encore écrit) | Produire `docs/architecture/` (§7) |
+| Live coding conforme aux guidelines | Gabarit E2E prévu, pas de gabarit d'architecture | `tests/e2e/_template.spec.ts` (prévu) | Gabarit de module + guide « ajouter une fonctionnalité » (§8) |
 
-## 2. Transposer le récit du cours à cette codebase
-
-Le sujet décrit une évolution historique (Supabase, Stripe, OpenAI, SMTP, bus, multi région). Ce dépôt en est une **version réduite**. Il faut l'assumer en soutenance : un architecte audite le code réel, pas le récit.
-
-| Élément du récit | Dans ce dépôt | Ce qu'on en fait |
-|---|---|---|
-| Facturation Stripe à refactorer en Clean/Hexa | **N'existe pas** | Appliquer la même démarche au domaine qui porte le plus de règles : la **validation** (`approve` / `reject`, qui voit quoi, concurrence) |
-| Appel OpenAI synchrone, timeouts, retries | **OCR Tesseract local**, synchrone, worker recréé à chaque requête (`src/lib/ocr.ts:118`) | Même diagnostic « maillon le plus lent », mais remède différent : local et CPU, pas distant et instable (A-08) |
-| Bus « Reçu déposé » + Worker | **Aucun bus** | Rien à « unifier ». Ne pas créer un bus pour cocher une case (KISS) ; outbox Postgres seulement si une fonctionnalité le justifie (A-10) |
-| Emails SMTP | `NotificationPort` + `ConsoleNotificationAdapter`, jamais appelés | À brancher seulement si une fonctionnalité en a besoin (A-10) |
-| `if (user.role === 'manager')` copié collé, fuite entre entreprises | **Présent tel quel** : 12 fichiers, fuite démontrée (`V-06`, PoC) | Refacto prioritaire (A-03, A-04) |
-| Supabase (Auth + Postgres) | Auth.js maison + Postgres local | Build vs Buy : l'auth reste « achetée » (Auth.js) ; on ne la réécrit pas |
-| Multi région | Absent | ADR de principe, pas d'implémentation (A-13) |
-
-## 3. Constats d'architecture
+## 2. Constats d'architecture
 
 Format court par constat : **problème constaté** (fichiers), **concept du cours**, **décision proposée**, **tradeoff**, **preuve** (tests qui basculent).
 
@@ -81,7 +66,7 @@ Format court par constat : **problème constaté** (fichiers), **concept du cour
 * **Décision** : **défense en profondeur sur deux niveaux**, livrés ensemble (lot 4 de `13`) :
   1. **Applicatif** : les repositories ne s'obtiennent qu'à partir d'un `Actor` (`repositories.for(actor)`), qui pose `app.current_user_id` et ajoute le scoping entreprise. Une seule implémentation de « qui voit quelle note » : `ApprovalPolicy` (reprend `V-03`).
   2. **Base** : RLS effective via `SET LOCAL ROLE` sur un rôle sans privilège exposé par `APP_DB_ROLE` (option proposée par la team Tests, `DATABASE_URL` inchangée), policies complétées (`UPDATE` propriétaire, RH filtré par entreprise).
-* **Option à arbitrer** : ajouter `expense_notes.company_id`. Gain : policies RLS simples, index direct pour `PERF-02`, prérequis du partitionnement par entreprise (A-13). Contrainte : `scripts/seed.mjs` et `scripts/seed-perf.mjs` insèrent dans `expense_notes` sans cette colonne et doivent rester compatibles avec la baseline. Solution : colonne remplie par un **trigger `BEFORE INSERT`** depuis `users.company_id`, dans une **nouvelle** migration. Aucun script à modifier.
+* **Option à arbitrer** : ajouter `expense_notes.company_id`. Gain : policies RLS simples, index direct pour `PERF-02`. Contrainte : `scripts/seed.mjs` et `scripts/seed-perf.mjs` insèrent dans `expense_notes` sans cette colonne et doivent rester compatibles avec la baseline. Solution : colonne remplie par un **trigger `BEFORE INSERT`** depuis `users.company_id`, dans une **nouvelle** migration. Aucun script à modifier.
 * **Tradeoff** : la RLS ajoute un coût par requête (sous requêtes des policies). À mesurer avec `make test-perf` : si une liste régresse, simplifier les policies grâce à `company_id` plutôt que de renoncer.
 * **Preuve** : `SEC-02`, `SEC-03`, `SEC-09` passent à `fixed: true` ; `poc/V-05`, `poc/V-06` passent de `CONFIRMÉ` à `RÉFUTÉ`.
 
@@ -113,7 +98,7 @@ Format court par constat : **problème constaté** (fichiers), **concept du cour
 * **Concept** : la résilience du système est celle de son maillon le plus lent ; questionner l'utilité de l'asynchrone avant de l'introduire.
 * **Décision (ADR-004)** : **rester synchrone**, sans bus. Port `ReceiptScanner` dans le module `receipt-scan`, adapter `TesseractReceiptScanner` avec un **pool de workers réutilisés** (taille bornée), file d'attente bornée, délai maximal (au delà : suggestion vide, déjà le comportement en cas d'erreur), limite de 10 Mo **avant** lecture du corps.
 * **Pourquoi pas d'asynchrone ici** : la suggestion sert à **pré remplir le formulaire** pendant que l'utilisateur le remplit ; il attend la réponse par conception. Un traitement différé imposerait un polling ou un push côté UI (changement visible, contrat cassé) pour un traitement local de quelques secondes qui ne dépend d'aucun service externe instable. Le cours dit « asynchrone uniquement si lent **ou** externe et instable » : ici c'est lent mais local, et la borne de concurrence suffit.
-* **Évolutivité gagnée** : le port permet de remplacer Tesseract par un service distant (OpenAI, Textract) sans toucher au use case. Ce jour là, et seulement ce jour là, l'asynchrone redevient une question (A-10).
+* **Évolutivité gagnée** : le port permet de remplacer Tesseract par un service OCR distant sans toucher au use case. Ce jour là, et seulement ce jour là, l'asynchrone redevient une question (A-10).
 * **Preuve** : `PERF-01` (p95 OCR ≤ 50 % de la baseline), `SEC-08`, références OCR inchangées (`tests/fixtures/ocr/`).
 
 ### A-09 · Création de note non atomique
@@ -150,12 +135,9 @@ Format court par constat : **problème constaté** (fichiers), **concept du cour
 * **Décision** : nouvelle migration (jamais modifier la migration initiale). Index guidés par les 3 requêtes de liste. À combiner avec A-04 (`company_id`).
 * **Règle de refacto** : **un use case = autant d'allers retours SQL qu'aujourd'hui, pas plus**. Le barème met 0 si l'application est plus lente : la couche repository ne doit pas transformer une jointure en deux requêtes. Mesurer avec `make test-perf` avant de fusionner chaque étape.
 
-### A-13 · Données distribuées et international
+### A-13 · Retiré
 
-* **Constaté** : une instance Postgres, une région ; aucune réflexion écrite.
-* **Concept** : théorème CAP ; Postgres penche CA ; réplication multi région non gratuite.
-* **Décision (ADR-006, sans implémentation)** : rester mono région tant que la conformité ne l'impose pas. Si l'international arrive : **l'entreprise est l'unité de résidence des données** (un tenant vit dans une région), pas de réplication multi maître. Un manager valide les notes de **sa** entreprise, donc d'une seule région : on route sa requête vers la région du tenant (cohérence forte privilégiée sur la disponibilité pour une décision financière). La lecture d'agrégats multi régions (reporting) peut, elle, être éventuellement cohérente.
-* **Prérequis préparé dès maintenant** : `company_id` porté par chaque ligne (A-04) et repositories scopés par tenant : le jour du partitionnement, seul l'adapter change.
+Sans objet pour ce projet (une seule base, aucun besoin multi région). Identifiant conservé pour ne pas renuméroter.
 
 ### A-14 · Front : duplication et logique d'affichage
 
@@ -165,13 +147,13 @@ Format court par constat : **problème constaté** (fichiers), **concept du cour
 ### A-15 · Aucun livrable d'architecture
 
 * **Constaté** : pas d'ADR, de HLD, de LLD, de DAT. La spec de tests annonce `docs/tests/adr/` (ADR-T01 à T03), pas encore écrits.
-* **Décision** : produire `docs/architecture/` (§8). C'est un attendu explicite du cours et le support des 15 minutes d'audit.
+* **Décision** : produire `docs/architecture/` (§7). C'est un attendu explicite du cours et le support des 15 minutes d'audit.
 
-## 4. Architecture cible (HLD)
+## 3. Architecture cible (HLD)
 
-### 4.1 Choix de découpage : monolithe modulaire
+### 3.1 Choix de découpage : monolithe modulaire
 
-| Critère (cours §3) | Monolithe modulaire | Microservices |
+| Critère | Monolithe modulaire | Microservices |
 |---|---|---|
 | Délai, time to market | une PR à la fois, harnais existant réutilisé tel quel | réécriture de l'exploitation, du déploiement, des tests |
 | Coût, maturité de l'équipe | une app, un `make dev` | N déploiements, traçabilité distribuée, monitoring |
@@ -181,7 +163,7 @@ Format court par constat : **problème constaté** (fichiers), **concept du cour
 
 Décision : monolithe modulaire (ADR-001). Les modules communiquent par **ports** (interfaces) et use cases, jamais en lisant les tables d'un autre module.
 
-### 4.2 Modules (bounded contexts)
+### 3.2 Modules (bounded contexts)
 
 | Module | Responsabilité | Use cases | Ports (sortie) | Adapters |
 |---|---|---|---|---|
@@ -190,12 +172,12 @@ Décision : monolithe modulaire (ADR-001). Les modules communiquent par **ports*
 | `expenses` (soumission) | créer et lister ses notes, reçu | `submitExpenseNote`, `listMyExpenseNotes`, `getMyReceiptUrl` | `ExpenseNoteRepository`, `ReceiptStorage` | Postgres, S3 |
 | `approval` (validation) | qui voit et tranche quelle note, décision | `listPendingForManager`, `listPendingForHr`, `decideExpenseNote`, `getReceiptUrlForApprover` | `ApprovalRepository`, `ReceiptStorage`, (`EventOutbox`) | Postgres, S3 |
 | `receipt-scan` | suggestion OCR | `suggestFromReceipt` | `ReceiptScanner` | Tesseract (pool) |
-| `notification` (si une fonctionnalité l'exige) | prévenir l'auteur d'une décision | `dispatchPendingNotifications` | `NotificationPort` | Console, puis SMTP |
+| `notification` (si une fonctionnalité l'exige) | prévenir l'auteur d'une décision | `dispatchPendingNotifications` | `NotificationPort` | Console, puis email |
 | `shared` | config, logger, erreurs, transaction, garde HTTP | | | |
 
 Note de vocabulaire (cours) : Server Port ≈ Gateway ≈ Repository ici ; Application ≈ Use Case ; Adapter HTTP ≈ Controller (le `route.ts`).
 
-### 4.3 Règle de dépendance
+### 3.3 Règle de dépendance
 
 ```mermaid
 flowchart LR
@@ -208,7 +190,7 @@ flowchart LR
     PG["Pg*Repository"]
     S3["S3ReceiptStorage"]
     TS["TesseractReceiptScanner"]
-    NT["ConsoleNotification / Smtp"]
+    NT["ConsoleNotification / Email"]
   end
   subgraph UC["Use Cases"]
     U["submitExpenseNote, decideExpenseNote, assignManager, suggestFromReceipt..."]
@@ -235,7 +217,7 @@ Règles vérifiables automatiquement (à mettre dans ESLint, `no-restricted-impo
 
 Rendre ces règles bloquantes en CI (`npm run lint`) est un argument fort en soutenance : l'architecture n'est plus une convention, elle est **vérifiée**.
 
-### 4.4 Arborescence cible (Screaming Architecture)
+### 3.4 Arborescence cible (Screaming Architecture)
 
 ```text
 src/
@@ -259,7 +241,7 @@ src/
 
 Les fichiers actuels de `src/domain`, `src/ports`, `src/adapters`, `src/utils` sont **déplacés** dans ce schéma (pas réécrits) : seule la ligne d'import des unitaires suit, ce que la team Tests autorise.
 
-## 5. LLD : exemple du module `approval`
+## 4. LLD : exemple du module `approval`
 
 ```ts
 // modules/approval/ports/ApprovalRepository.ts
@@ -286,7 +268,7 @@ export function makeDecideExpenseNote(deps: { approvals: ApprovalRepository }) {
 * Le test unitaire du use case utilise un `InMemoryApprovalRepository` : note absente → `NotFound` ; note déjà tranchée → `AlreadyDecided` ; `saveDecision` qui renvoie `false` → `AlreadyDecided`. Aucune base, aucun Next.js : c'est la preuve de testabilité demandée par le cours.
 * Les 4 routes deviennent : `export const POST = route({ role: 'manager', deniedStatus: 401 }, (ctx) => decide(ctx, 'approve'))`.
 
-## 6. Plan de refacto incrémental
+## 5. Plan de refacto incrémental
 
 Approche « strangler » : une route ou un module à la fois, chaque PR verte sur `static`, `parity`, `defects`, sans régression de perf. Chaque étape **corrige des défauts en passant par la nouvelle architecture**, ce qui relie chaque principe du cours à une preuve.
 
@@ -307,7 +289,7 @@ Dépendance dure (rappel de `13`) : l'étape 6 (RLS effective) n'est livrable qu
 
 `APP_DB_ROLE` est une nouvelle variable : l'ajouter à `.env.example` avec une valeur par défaut, sans renommer les existantes (le contrat interdit les renommages, pas les ajouts). À valider avec la team Tests.
 
-## 7. Contraintes à ne pas oublier pendant la refacto
+## 6. Contraintes à ne pas oublier pendant la refacto
 
 * **Contrat** : routes, messages anglais existants (`Already decided`, `Invalid manager`, `Not found`, `Unauthorized`), forme JSON dont `receiptKey`, textes de l'UI, scripts npm, ports, comptes de seed restent figés (`AGENTS.md`). Exceptions décidées : les comportements étranges de [22-comportements-a-corriger.md](22-comportements-a-corriger.md), corrigés **en ajout** (nouvelle route, nouveau champ) plutôt qu'en remplacement, après mise à jour des tests par la team Tests.
 * **Performance** : 0 au barème si plus lent. Pas d'aller retour SQL supplémentaire ; `make test-perf` avant chaque fusion qui touche SQL, OCR ou listes.
@@ -315,41 +297,40 @@ Dépendance dure (rappel de `13`) : l'étape 6 (RLS effective) n'est livrable qu
 * **Défauts métier `MET-01` à `MET-09`** : désormais dans le périmètre (le métier doit être totalement fonctionnel). `AGENTS.md` règle 5 et `docs/tests/criteres-fin-de-migration.md` §2.1 et §2.3 disent encore le contraire : les réviser avec la team Tests avant la première PR métier.
 * **Commentaires trompeurs (`V-00`)** : les supprimer au passage dans chaque fichier touché.
 
-## 8. Livrables d'architecture à produire
+## 7. Livrables d'architecture à produire
 
 Dans `docs/architecture/` :
 
 | Livrable | Contenu | Sert à |
 |---|---|---|
-| `adr/ADR-001-monolithe-modulaire.md` | contexte, décision, alternatives (microservices, statu quo), conséquences | §4.1 |
+| `adr/ADR-001-monolithe-modulaire.md` | contexte, décision, alternatives (microservices, statu quo), conséquences | §3.1 |
 | `adr/ADR-002-clean-architecture-legere.md` | couches, règle de dépendance, ESLint, ranimer plutôt que supprimer `domain/` | A-01, A-02 |
 | `adr/ADR-003-isolation-multitenant.md` | repository scopé + RLS effective + `company_id` par trigger | A-04 |
 | `adr/ADR-004-ocr-synchrone-borne.md` | pas de bus, pool borné, délai, alternatives rejetées | A-08 |
 | `adr/ADR-005-outbox-notifications.md` | outbox vs broker, idempotence, DLQ, contrat versionné, corrélation | A-10 (si une fonctionnalité l'exige) |
-| `adr/ADR-006-mono-region-cap.md` | CAP, tenant = unité de résidence, routage par région | A-13 |
 | `adr/ADR-007-decision-atomique.md` | verrou optimiste vs `FOR UPDATE` | A-05 |
-| `HLD.md` | vue système (§4), modules, flux principaux | slides |
+| `HLD.md` | vue système (§3), modules, flux principaux | slides |
 | `LLD/<module>.md` | ports, use cases, schéma des tables, séquences | revue de code |
 | `DAT.md` | stack, déploiement, config, sécurité, exploitation, tests, perf | document de synthèse |
 
 Pour les slides (15 min) : avant / après de l'arborescence (Screaming Architecture), le graphe de dépendances avant / après, le tableau rouge → vert des 17 défauts, la courbe de perf (`perf-history`), et 3 ADR choisies pour montrer des tradeoffs **assumés** (dont au moins une décision de ne pas faire : ADR-004).
 
-## 9. Préparer le live coding
+## 8. Préparer le live coding
 
 La fonctionnalité est **imposée par les professeurs le jour de la soutenance**. Il n'y a donc rien à coder à l'avance pour elle : la préparation consiste à rendre la codebase et l'agent IA capables d'absorber **n'importe quelle** fonctionnalité en respectant les guidelines. Ce travail se fait **en fin de migration**, quand l'architecture est stable.
 
-### 9.1 Ce que le jury regardera
+### 8.1 Ce que le jury regardera
 
 La fonctionnalité doit : vivre dans le bon module, passer par les ports existants, respecter l'isolation par entreprise et la garde centralisée, n'utiliser l'asynchrone que si c'est justifié, arriver avec ses tests. Les prompts doivent être détaillés et explicables.
 
-### 9.2 À préparer en fin de migration
+### 8.2 À préparer en fin de migration
 
 * **`AGENTS.md` soigné** : la carte des modules, la règle de dépendance, où placer quoi (entité, use case, port, adapter, route), la garde `route()`, le scoping par entreprise, les contraintes du contrat, la commande de vérification. C'est le levier principal : l'agent doit respecter l'architecture sans qu'on la répète dans chaque prompt.
 * **Guide `docs/architecture/ajouter-une-fonctionnalite.md`** : étapes (test rouge, port, use case et son unitaire, adapter, route, `make test`), avec un exemple réel tiré d'un module migré.
 * **Règles ESLint d'architecture bloquantes** : garde fou automatique si l'agent importe de l'infrastructure dans le domaine.
 * **Une répétition à blanc** sur une fonctionnalité inventée par l'équipe, pour tester l'`AGENTS.md` et chronométrer.
 
-### 9.3 Points d'attention pour le jour J
+### 8.3 Points d'attention pour le jour J
 
 * **Contrat** : une nouvelle fonctionnalité ajoute du contrat, elle ne doit pas en casser. Les schémas OpenAPI des tests sont stricts (un champ en trop échoue) : préférer de **nouvelles routes** à l'ajout de champs dans les réponses existantes.
 * **Asynchrone** : ne l'introduire que si la fonctionnalité appelle un traitement lent ou un service externe instable (A-10). Savoir expliquer pourquoi on le fait, ou pourquoi on ne le fait pas.
@@ -369,6 +350,6 @@ Contraintes :
 Vérification : npm run lint && npm run typecheck && npm run test:unit && make test.
 ```
 
-## 10. Décisions à prendre en équipe
+## 9. Décisions à prendre en équipe
 
 Le détail, avec les pour et contre de chaque option, est dans [21-decisions-architecture.md](21-decisions-architecture.md) (D1 à D19). Les comportements étranges et le métier à rendre fonctionnel sont inventoriés dans [22-comportements-a-corriger.md](22-comportements-a-corriger.md).

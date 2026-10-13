@@ -1,7 +1,7 @@
 # 21 · Décisions d'architecture à prendre en équipe : pour et contre
 
 * Pour qui : l'équipe, en séance de décision. Une décision par section, à trancher puis à reporter dans l'ADR correspondante.
-* Source : §10 de [20-audit-architecture-arla.md](20-audit-architecture-arla.md), complété des décisions implicites que le jury risque de poser en question.
+* Source : §9 de [20-audit-architecture-arla.md](20-audit-architecture-arla.md), complété des décisions implicites que le jury risque de poser en question.
 * Grille utilisée (cours ARLA) : délai, coût, maturité de l'équipe, sécurité, performance (0 au barème si plus lent), contrat figé par les tests, valeur pour la soutenance.
 * Les points métier (`MET-01` à `MET-09`, lot 8) sont désormais dans le périmètre : le métier doit être totalement fonctionnel. Inventaire complet dans [22-comportements-a-corriger.md](22-comportements-a-corriger.md) ; seuls ceux qui demandent un choix figurent ici (D12 à D19).
 
@@ -62,7 +62,7 @@ Contexte : l'audit sécurité coté `V-31` en « à décider selon l'appétit de
 |---|---|---|
 | Strict nécessaire (corriger les défauts dans les routes) | Rapide ; risque de régression minimal ; peu de fichiers touchés | Les doublons restent (4 routes de décision, 7 mappings, 12 contrôles de rôle) ; aucun principe du cours démontré ; le live coding se fera dans un code qui ne respecte aucune guideline |
 | **Modules complets** (Clean Architecture légère, tous les endpoints migrés) | C'est le cœur de la note ARLA ; chaque défaut corrigé prouve un principe ; le live coding s'appuie sur des ports existants ; les doublons disparaissent | Plus long (estimation : 8 étapes, une PR chacune) ; risque de régression, couvert par 181 tests de parité et le contrat OpenAPI ; risque perf si un use case fait plus de requêtes qu'avant |
-| Intermédiaire (modules `approval` et `expenses` seulement) | Montre la démarche sur les deux domaines riches ; temps maîtrisé | Codebase hétérogène à la soutenance, exactement le problème du « nouveau Tech Lead » du sujet ; le jury peut ouvrir une route non migrée |
+| Intermédiaire (modules `approval` et `expenses` seulement) | Montre la démarche sur les deux domaines riches ; temps maîtrisé | Codebase hétérogène à la soutenance, avec deux façons d'écrire une route ; le jury peut ouvrir une route non migrée |
 
 Recommandation : **modules complets**, en commençant par `approval` (le plus de règles et de doublons). Si le temps manque, s'arrêter proprement à l'option intermédiaire et l'assumer dans une ADR.
 
@@ -83,7 +83,7 @@ Contexte : la règle de dépendance (domaine et use cases sans import de `pg`, `
 
 | Option | Pour | Contre |
 |---|---|---|
-| Aucune règle | Rien à configurer | L'architecture redevient une convention qui dérive, ce que le sujet reproche à l'existant ; l'agent IA du live coding n'a aucun garde fou |
+| Aucune règle | Rien à configurer | L'architecture redevient une convention qui dérive, comme dans l'existant ; l'agent IA du live coding n'a aucun garde fou |
 | Avertissement | N'interrompt pas la migration pendant que l'ancien code coexiste | Les avertissements s'ignorent |
 | **Avertissement puis bloquantes** à la fin de la migration | Progressif pendant la transition, puis l'architecture est **prouvée** par `npm run lint` ; très bon argument en soutenance et garde fou pour le live coding | Un peu de configuration ; ajustements quand une exception légitime apparaît |
 
@@ -106,9 +106,9 @@ Contexte : l'entreprise d'une note est aujourd'hui retrouvée par jointure sur `
 
 | Option | Pour | Contre |
 |---|---|---|
-| **Oui, rempli par trigger `BEFORE INSERT`** | Policies RLS simples et rapides ; index direct (`PERF-02`) ; prérequis du partitionnement par entreprise (international, ADR-006) ; aucun script de seed à modifier grâce au trigger | Dénormalisation : la colonne doit rester cohérente si un utilisateur changeait d'entreprise (cas impossible aujourd'hui, à verrouiller par contrainte) ; une migration de plus ; logique cachée dans un trigger, à documenter |
+| **Oui, rempli par trigger `BEFORE INSERT`** | Policies RLS simples et rapides ; index direct (`PERF-02`) ; aucun script de seed à modifier grâce au trigger | Dénormalisation : la colonne doit rester cohérente si un utilisateur changeait d'entreprise (cas impossible aujourd'hui, à verrouiller par contrainte) ; une migration de plus ; logique cachée dans un trigger, à documenter |
 | Oui, rempli par l'application | Logique visible dans le code | Casse `scripts/seed.mjs` et `scripts/seed-perf.mjs` (colonne `NOT NULL` absente des `INSERT`), or `seed-perf` doit rester compatible avec la baseline |
-| Non | Schéma inchangé, aucun risque de migration | Policies RLS avec sous requêtes coûteuses ; filtres d'entreprise par jointure partout ; argument CAP / international théorique seulement |
+| Non | Schéma inchangé, aucun risque de migration | Policies RLS avec sous requêtes coûteuses ; filtres d'entreprise par jointure partout |
 
 Recommandation : **oui, par trigger**, dans une nouvelle migration. Prévenir la team Tests même si leurs scripts ne bougent pas.
 
@@ -138,7 +138,7 @@ Recommandation : **les deux**, c'est aussi la meilleure illustration de l'idempo
 
 ## D10 · Fonctionnalité du live coding : sans objet
 
-La fonctionnalité est imposée par les professeurs le jour de la soutenance. Rien à choisir ni à coder avant. La préparation (un `AGENTS.md` soigné, le guide « ajouter une fonctionnalité », les règles ESLint bloquantes, une répétition à blanc) se fait en fin de migration : voir §9 de [20-audit-architecture-arla.md](20-audit-architecture-arla.md). Identifiant conservé pour ne pas renuméroter.
+La fonctionnalité est imposée par les professeurs le jour de la soutenance. Rien à choisir ni à coder avant. La préparation (un `AGENTS.md` soigné, le guide « ajouter une fonctionnalité », les règles ESLint bloquantes, une répétition à blanc) se fait en fin de migration : voir §8 de [20-audit-architecture-arla.md](20-audit-architecture-arla.md). Identifiant conservé pour ne pas renuméroter.
 
 ## D11 · Types de réponse générés depuis OpenAPI ou écrits à la main
 
@@ -242,6 +242,6 @@ Recommandation : **`403` si Next.js le permet sans changer le rendu**, sinon gar
 ## Après la séance
 
 * Reporter chaque décision dans son ADR (`docs/architecture/adr/`), au format contexte, décision, alternatives, conséquences.
-* Mettre à jour `20-audit-architecture-arla.md` §10 avec les choix retenus.
+* Mettre à jour `20-audit-architecture-arla.md` §9 avec les choix retenus.
 * Prévenir la team Tests pour D1, D6 et D7 (nouvelle variable, migration), et pour D9 si un script de worker est ajouté.
 * Réviser avec la team Tests `AGENTS.md` (règle 5) et `docs/tests/criteres-fin-de-migration.md` (§2.1, §2.3), puis ajouter les nouveaux défauts au registre avant toute PR de correction métier (voir §5 de `22`).
