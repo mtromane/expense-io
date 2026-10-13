@@ -1,1 +1,2 @@
 {"sha":"d5e31b3","date":"2026-10-13T08:54:27.354Z","mode":"ab","runs":3,"duration":"15s","ratios":{"P-EMP":1.005,"P-MGR":0.988,"P-HR":1.011,"P-USERS":0.97,"P-CREATE":0.976,"P-OCR":1.021,"P-MIX":1.012,"P-LOGIN":0.967}}
+{"sha":"d354ae2","date":"2026-10-13T09:01:28.012Z","mode":"ab","runs":3,"duration":"15s","ratios":{"P-EMP":1.044,"P-MGR":0.895,"P-HR":0.833,"P-USERS":0.987,"P-CREATE":0.966,"P-OCR":0.98,"P-MIX":1.034,"P-LOGIN":0.993}}
