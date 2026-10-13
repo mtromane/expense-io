@@ -28,6 +28,9 @@ les implémenter — c'est la suite, en équipe).
 | [12-constats.md](12-constats.md) | Les 63 fiches cotées, l'hygiène, la couverture OWASP |
 | [13-plan-remediation.md](13-plan-remediation.md) | Correctifs ordonnés en lots, avec dépendances |
 | [14-hors-perimetre.md](14-hors-perimetre.md) | Évolutions non traitées |
+| [20-audit-architecture-arla.md](20-audit-architecture-arla.md) | Audit d'architecture (cours ARLA) : écarts à combler, architecture cible, plan de refacto, live coding |
+| [21-decisions-architecture.md](21-decisions-architecture.md) | Décisions d'équipe : pour et contre de chaque option |
+| [22-comportements-a-corriger.md](22-comportements-a-corriger.md) | Comportements étranges et métier à rendre fonctionnel |
 | [poc/](poc/) | Démonstrations rejouables des constats vérifiés |
 
 **Cartographie (étape 1)** :

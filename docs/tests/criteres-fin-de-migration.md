@@ -9,7 +9,7 @@
 
 ## 1. En une phrase
 
-La migration est terminée quand **`make test` est vert sur `main`, que tous les défauts techniques sont marqués corrigés dans `tests/defects/registry.ts`, que les objectifs de `tests/perf/targets.json` sont atteints sans aucune régression de performance (`make test-perf`), et que la CI GitHub est verte**, sans qu'aucun test de parité n'ait été modifié pour y arriver.
+La migration est terminée quand **`make test` est vert sur `main`, que tous les défauts techniques sont marqués corrigés dans `tests/defects/registry.ts`, que le métier est totalement fonctionnel (§2.3), que les objectifs de `tests/perf/targets.json` sont atteints sans aucune régression de performance (`make test-perf`), et que la CI GitHub est verte**, sans qu'aucun test de parité n'ait été modifié pour y arriver, hors évolutions de comportement décidées au §2.3.
 
 ---
 
@@ -21,7 +21,7 @@ Cocher chaque ligne. Une seule case vide = migration non terminée.
 
 - [ ] Les **181 tests `@parity`** passent : `npx playwright test --grep @parity`.
 - [ ] Toutes les réponses de l'API sont conformes au contrat **`docs/api/openapi.yaml`** : c'est vérifié automatiquement sur chaque réponse obtenue par les tests (schémas stricts, codes HTTP documentés).
-- [ ] Aucun test `@parity` n'a été modifié, sauf changement de comportement **voulu**, justifié dans la PR et validé par la team Tests.
+- [ ] Aucun test `@parity` n'a été modifié, sauf changement de comportement **voulu** (§2.3), justifié dans la PR et validé par la team Tests.
 - [ ] Le **contrat** ci-dessous est intact (il est vérifié par les tests, mais c'est lui qui compte) :
 
 | Élément | Ce qui ne doit pas changer |
@@ -33,11 +33,11 @@ Cocher chaque ligne. Une seule case vide = migration non terminée.
 | Interface | textes français des labels et boutons (`Montant (€)`, `Soumettre`, `Approuver`, `Rejeter`, `Voir le reçu`, `Se connecter`, `Se déconnecter`…) |
 | Exploitation | scripts npm (`dev`, `build`, `start`, `lint`, `typecheck`, `migrate:up`, `migrate:down`, `ensure-bucket`, `seed`), cibles make, variables de `.env.example`, ports 3000 / 5433 / 4567 |
 | Données de démo | comptes `hr@expense.io`, `manager@expense.io`, `demo@expense.io` ; `npm run seed` relançable sans doublon ; overrides `SEED_*` |
-| Incohérences conservées | mauvais rôle → `401` sur `/api/manager/*`, `403` sur `/api/hr/*` (même sans être connecté) ; note hors périmètre → `404` ; `/manager` et `/hr` avec un mauvais rôle → page « Accès réservé » |
+| Comportements conservés volontairement | note hors périmètre → `404` (ne pas révéler l'existence d'une ressource) ; `/manager` et `/hr` avec un mauvais rôle → page « Accès réservé » (même titre ; statut HTTP selon D19) ; une note en attente suit le nouveau manager après réaffectation |
 
 ### 2.2 Les défauts techniques sont corrigés
 
-- [ ] Chaque identifiant de `tests/defects/registry.ts` (17 défauts) est passé à `fixed: true`.
+- [ ] Chaque identifiant de `tests/defects/registry.ts` (17 défauts techniques à l'origine, plus les défauts métier ajoutés au titre du §2.3) est passé à `fixed: true`.
 - [ ] `make test-defects` est vert **après** ces bascules.
 
 | ID | À corriger | Résultat attendu, vérifié par les tests |
@@ -62,10 +62,17 @@ Cocher chaque ligne. Une seule case vide = migration non terminée.
 
 Les objectifs de performance PERF-01 et PERF-02 sont suivis à part, dans `tests/perf/targets.json` (§2.4).
 
-### 2.3 Les défauts métier ne sont pas touchés (pour l'instant)
+### 2.3 Le métier est totalement fonctionnel
 
-- [ ] Aucun des points MET-01 à MET-09 (spec §5.2) n'est « corrigé » sans décision des professeurs. Ils sont documentés, pas à traiter.
-- Si les professeurs demandent une correction, la team Tests bascule le test correspondant et prévient l'équipe archi.
+Décision d'équipe du 2026-10-13 : les professeurs ont des tests qui échouent sur l'application d'origine et qu'ils attendent verts après la migration, probablement sur les comportements étranges. Les défauts métier MET-01 à MET-09 (spec §5.2) et les comportements inventoriés dans `docs/audit/22-comportements-a-corriger.md` sont donc **à corriger**.
+
+* [ ] Le circuit complet fonctionne depuis l'interface, sans seed ni SQL : inscription d'une entreprise, nomination d'un manager par la RH, rattachement, soumission, validation, statut visible par l'auteur.
+* [ ] Toute note a un valideur : employé sans manager, manager racine, RH (règle tranchée en D13).
+* [ ] Codes HTTP standard : `401` si non connecté, `403` si connecté sans le rôle, sur toutes les routes `/api/manager/*` et `/api/hr/*`.
+* [ ] Chaque point de `22-comportements-a-corriger.md` est soit corrigé, soit marqué « conservé » avec sa justification.
+* [ ] Chaque correction suit le cycle rouge → vert : la team Tests ajoute d'abord le défaut au registre (`fixed: false`) avec son test, et fait évoluer dans la même PR les tests de parité et `docs/api/openapi.yaml` qui figeaient l'ancien comportement.
+* [ ] Aucun texte d'interface existant renommé : on ajoute (menu, message, champ), on ne remplace pas.
+* [ ] Seules les options tranchées dans `docs/audit/21-decisions-architecture.md` (D12 à D19) sont implémentées.
 
 ### 2.4 Pas plus lent qu'avant
 
@@ -93,7 +100,7 @@ Vérification : `make test-perf` en local (environ 15 min), ou poser le label `p
 |---|---|
 | Renommer un script npm, une cible make, une variable d'environnement ou changer un port | la CI des professeurs lance l'application avec ces noms : tout leur E2E tomberait |
 | Modifier un texte de l'interface | les E2E (les nôtres et probablement ceux des professeurs) cherchent les éléments par leur texte |
-| Modifier un test pour le faire passer | un test de parité rouge signale une régression, pas un test à « réparer » |
+| Modifier un test pour le faire passer | un test de parité rouge signale une régression, pas un test à « réparer » ; seule exception : un comportement étrange dont la correction est décidée au §2.3, modifié par la team Tests |
 | Modifier `docs/api/openapi.yaml` pour faire passer un test | c'est le contrat de l'app d'origine ; une réponse « hors contrat » est une régression |
 | Réenregistrer les références OCR (`OCR_RECORD=1`) | elles décrivent la sortie de l'app d'origine ; un écart est une régression de l'OCR |
 | Passer `fixed: true` sans corriger | le test redevient normal et la CI passe au rouge |
@@ -203,7 +210,7 @@ Points d'attention par défaut :
 - [ ] Tous les points du §2 cochés.
 - [ ] Tag `soutenance` posé sur `main` : la CI fait une exécution complète et produit les rapports.
 - [ ] Rapport Playwright de ce run archivé (artefact GitHub `playwright-report-*`).
-- [ ] Le tableau rouge → vert (`tests/defects/registry.ts`) et la liste des questions métier sont prêts pour les slides.
+- [ ] Le tableau rouge → vert (`tests/defects/registry.ts`, techniques et métier) et l'inventaire des comportements corrigés (`docs/audit/22-comportements-a-corriger.md`) sont prêts pour les slides.
 - [ ] Comparaison de performance finale lancée (`make test-perf` ou label `perf` sur la dernière PR) : `perf-results/latest.md` archivé, PERF-01 et PERF-02 à `fixed: true`, aucune régression ; courbe de progression (`docs/perf/trend.md` sur la branche `perf-history`) prête pour les slides.
 - [ ] La démo de co-conception IA a été répétée : test E2E écrit d'abord (rouge) → implémentation assistée → CI verte.
 
