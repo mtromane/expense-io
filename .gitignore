@@ -40,3 +40,9 @@ next-env.d.ts
 
 # audit : brouillons de travail, consolidés dans docs/audit/12-constats.md
 /docs/audit/_travail/
+# tests
+/test-results/
+/playwright-report/
+/blob-report/
+/tests/.generated/
+/perf-results/

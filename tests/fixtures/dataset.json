@@ -1,0 +1,31 @@
+{
+  "password": "e2e-pass-1234",
+  "companies": [
+    {
+      "key": "A",
+      "domain": "a.e2e.test",
+      "users": [
+        { "key": "hrA", "name": "HR A", "role": "hr_admin" },
+        { "key": "rootMgrA", "name": "Root Manager A", "role": "manager" },
+        { "key": "subMgrA", "name": "Sub Manager A", "role": "manager", "manager": "rootMgrA" },
+        { "key": "empA1", "name": "Employee A1", "role": "employee", "manager": "subMgrA" },
+        { "key": "empA2", "name": "Employee A2", "role": "employee", "manager": "subMgrA" },
+        { "key": "empNoMgrA", "name": "Employee Orphan A", "role": "employee" },
+        { "key": "reassignSec03", "name": "Reassign SEC-03", "role": "employee", "manager": "subMgrA" },
+        { "key": "reassignRob03", "name": "Reassign ROB-03", "role": "employee", "manager": "subMgrA" },
+        { "key": "reassignE2E", "name": "Reassign E2E", "role": "employee" },
+        { "key": "reassignHrApi", "name": "Reassign HR API", "role": "employee", "manager": "subMgrA" },
+        { "key": "reassignSeed", "name": "Reassign Seed", "role": "employee", "manager": "subMgrA" }
+      ]
+    },
+    {
+      "key": "B",
+      "domain": "b.e2e.test",
+      "users": [
+        { "key": "hrB", "name": "HR B", "role": "hr_admin" },
+        { "key": "rootMgrB", "name": "Root Manager B", "role": "manager" },
+        { "key": "empB", "name": "Employee B", "role": "employee", "manager": "rootMgrB" }
+      ]
+    }
+  ]
+}

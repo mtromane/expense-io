@@ -1,0 +1,162 @@
+name: ci
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  push:
+    branches: [main]
+  schedule:
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CI: 'true'
+  DATABASE_URL: postgres://expense:expense@localhost:5433/expense_io
+  AUTH_SECRET: ci-main-instance-secret-0123456789abcdef
+  AUTH_TRUST_HOST: 'true'
+  S3_ENDPOINT: http://localhost:4567
+  S3_REGION: us-east-1
+  S3_ACCESS_KEY_ID: test
+  S3_SECRET_ACCESS_KEY: test
+  S3_BUCKET: receipts
+  S3_FORCE_PATH_STYLE: 'true'
+  BASELINE_SHA: 265924bc7274047989e708ab635c2854d376230f
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      code: ${{ steps.filter.outputs.code }}
+      tests: ${{ steps.filter.outputs.tests }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          # schedule / workflow_dispatch n'ont pas de base dans leur payload.
+          base: ${{ github.event.repository.default_branch || 'main' }}
+          filters: |
+            code:
+              - '**'
+              - '!docs/**'
+              - '!**/*.md'
+            tests:
+              - 'tests/**'
+              - 'playwright.config.ts'
+              - 'scripts/seed-e2e.mjs'
+
+  static:
+    needs: changes
+    if: needs.changes.outputs.code == 'true' || github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run build
+
+  parity:
+    needs: changes
+    if: (needs.changes.outputs.code == 'true' || github.event_name != 'pull_request') && github.event.pull_request.draft != true
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env: { POSTGRES_USER: expense, POSTGRES_PASSWORD: expense, POSTGRES_DB: expense_io }
+        ports: ['5433:5432']
+        options: >-
+          --health-cmd "pg_isready -U expense -d expense_io"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+      localstack:
+        image: localstack/localstack:3.8.1
+        env: { SERVICES: s3 }
+        ports: ['4567:4566']
+        options: >-
+          --health-cmd "curl -sf http://localhost:4566/_localstack/health"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-app
+      - run: npx playwright test --grep @parity
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-parity
+          path: playwright-report/
+
+  defects:
+    needs: changes
+    if: (needs.changes.outputs.code == 'true' || github.event_name != 'pull_request') && github.event.pull_request.draft != true
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env: { POSTGRES_USER: expense, POSTGRES_PASSWORD: expense, POSTGRES_DB: expense_io }
+        ports: ['5433:5432']
+        options: >-
+          --health-cmd "pg_isready -U expense -d expense_io"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+      localstack:
+        image: localstack/localstack:3.8.1
+        env: { SERVICES: s3 }
+        ports: ['4567:4566']
+        options: >-
+          --health-cmd "curl -sf http://localhost:4566/_localstack/health"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-app
+      - run: npx playwright test --grep @defect
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-defects
+          path: playwright-report/
+
+  baseline-proof:
+    needs: changes
+    if: (needs.changes.outputs.tests == 'true' || github.event_name == 'schedule') && github.event.pull_request.draft != true
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env: { POSTGRES_USER: expense, POSTGRES_PASSWORD: expense, POSTGRES_DB: expense_io }
+        ports: ['5433:5432']
+        options: >-
+          --health-cmd "pg_isready -U expense -d expense_io"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+      localstack:
+        image: localstack/localstack:3.8.1
+        env: { SERVICES: s3 }
+        ports: ['4567:4566']
+        options: >-
+          --health-cmd "curl -sf http://localhost:4566/_localstack/health"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - run: git worktree add ../baseline "$BASELINE_SHA"
+      - uses: ./.github/actions/setup-app
+        with:
+          app-dir: ../baseline
+      # Les tests de la branche contre l'application de la baseline :
+      # @parity doit passer, @defect doit échouer (BASELINE=1 force test.fail).
+      - run: npx playwright test --grep "@parity|@defect"
+        env:
+          APP_DIR: ../baseline
+          BASELINE: '1'
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-baseline-proof
+          path: playwright-report/

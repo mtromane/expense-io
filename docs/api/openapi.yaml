@@ -1,0 +1,304 @@
+openapi: 3.1.0
+info:
+  title: Expense.io API
+  version: 1.0.0
+  description: |
+    Contrat de l'API HTTP d'Expense.io, relevé sur l'application d'origine
+    (tag `baseline`, commit 265924b) et figé pour la migration d'architecture.
+
+    Ce fichier est vérifié par les tests : chaque réponse obtenue par les tests
+    d'API (tests/support/contract.ts) doit correspondre à l'opération, au code
+    HTTP et au schéma décrits ici. Les schémas sont stricts
+    (`additionalProperties: false`) : un champ ajouté, retiré ou mal typé fait
+    échouer la CI.
+
+    Les codes d'erreur listés incluent ceux attendus après correction des
+    défauts techniques (par exemple 400 sur un tri hors liste blanche, 404 sur
+    un identifiant invalide) ; le corps d'une erreur est toujours
+    `{"error": "..."}`, sans stack trace.
+
+    Authentification : cookie de session Auth.js (`authjs.session-token`),
+    obtenu via `/api/auth/csrf` puis `/api/auth/callback/credentials`
+    (routes Auth.js, hors de ce contrat).
+
+    Incohérences conservées pour parité : un rôle insuffisant renvoie 401 sur
+    `/api/manager/*` et 403 sur `/api/hr/*` (y compris sans session) ; une
+    note hors périmètre renvoie 404.
+servers:
+  - url: http://localhost:3000
+security:
+  - session: []
+
+paths:
+  /api/expense-notes:
+    get:
+      summary: Notes de frais de l'utilisateur connecté
+      description: Tri par défaut `created_at DESC`. Le paramètre `sort` accepte `<colonne> ASC|DESC`.
+      parameters:
+        - name: sort
+          in: query
+          required: false
+          schema: { type: string, examples: ['amount ASC'] }
+      responses:
+        '200':
+          description: Liste des notes de l'utilisateur
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: '#/components/schemas/ExpenseNote' } }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '500': { $ref: '#/components/responses/Error' }
+    post:
+      summary: Créer une note de frais avec son reçu
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [amount, expenseDate, description, receipt]
+              properties:
+                amount: { type: string, description: 'Montant > 0, au plus 2 décimales stockées' }
+                expenseDate: { type: string, description: 'YYYY-MM-DD' }
+                description: { type: string, minLength: 1 }
+                receipt: { type: string, format: binary, description: 'png, jpeg, webp ou pdf, 10 Mo maximum' }
+      responses:
+        '201':
+          description: Note créée
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ExpenseNote' }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '500': { $ref: '#/components/responses/Error' }
+
+  /api/expense-notes/{id}/receipt-url:
+    get:
+      summary: URL présignée du reçu d'une de ses notes
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      responses:
+        '200': { $ref: '#/components/responses/ReceiptUrl' }
+        '401': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '500': { $ref: '#/components/responses/Error' }
+
+  /api/expense-notes/receipt-suggestion:
+    post:
+      summary: Suggestion de montant et de date par OCR
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [receipt]
+              properties:
+                receipt: { type: string, format: binary }
+      responses:
+        '200':
+          description: Suggestion (champs absents si non reconnus ; `{}` pour un PDF)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Suggestion' }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '500': { $ref: '#/components/responses/Error' }
+
+  /api/manager/expense-notes:
+    get:
+      summary: Notes en attente des rattachés directs du manager (tri created_at ASC)
+      responses:
+        '200': { $ref: '#/components/responses/NoteList' }
+        '401': { $ref: '#/components/responses/Error' }
+        '500': { $ref: '#/components/responses/Error' }
+
+  /api/manager/expense-notes/{id}/approve:
+    post:
+      summary: Approuver une note d'un rattaché direct
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      responses:
+        '200': { $ref: '#/components/responses/Note' }
+        '401': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '500': { $ref: '#/components/responses/Error' }
+
+  /api/manager/expense-notes/{id}/reject:
+    post:
+      summary: Rejeter une note d'un rattaché direct
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      responses:
+        '200': { $ref: '#/components/responses/Note' }
+        '401': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '500': { $ref: '#/components/responses/Error' }
+
+  /api/manager/expense-notes/{id}/receipt-url:
+    get:
+      summary: URL présignée du reçu d'une note d'un rattaché direct
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      responses:
+        '200': { $ref: '#/components/responses/ReceiptUrl' }
+        '401': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '500': { $ref: '#/components/responses/Error' }
+
+  /api/hr/expense-notes:
+    get:
+      summary: Notes en attente des managers racine de l'entreprise (tri created_at ASC)
+      responses:
+        '200': { $ref: '#/components/responses/NoteList' }
+        '403': { $ref: '#/components/responses/Error' }
+        '500': { $ref: '#/components/responses/Error' }
+
+  /api/hr/expense-notes/{id}/approve:
+    post:
+      summary: Approuver une note d'un manager racine de l'entreprise
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      responses:
+        '200': { $ref: '#/components/responses/Note' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '500': { $ref: '#/components/responses/Error' }
+
+  /api/hr/expense-notes/{id}/reject:
+    post:
+      summary: Rejeter une note d'un manager racine de l'entreprise
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      responses:
+        '200': { $ref: '#/components/responses/Note' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '500': { $ref: '#/components/responses/Error' }
+
+  /api/hr/expense-notes/{id}/receipt-url:
+    get:
+      summary: URL présignée du reçu d'une note d'un manager racine de l'entreprise
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      responses:
+        '200': { $ref: '#/components/responses/ReceiptUrl' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '500': { $ref: '#/components/responses/Error' }
+
+  /api/hr/users:
+    get:
+      summary: Employés et managers de l'entreprise (tri par nom)
+      responses:
+        '200':
+          description: Annuaire
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: '#/components/schemas/CompanyUser' } }
+        '403': { $ref: '#/components/responses/Error' }
+        '500': { $ref: '#/components/responses/Error' }
+
+  /api/hr/users/{id}/manager:
+    put:
+      summary: Assigner (ou retirer avec null) le manager d'un employé ou d'un manager de l'entreprise
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                managerId: { type: [string, 'null'], format: uuid }
+      responses:
+        '200':
+          description: Utilisateur mis à jour
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CompanyUser' }
+        '400': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '500': { $ref: '#/components/responses/Error' }
+
+components:
+  securitySchemes:
+    session:
+      type: apiKey
+      in: cookie
+      name: authjs.session-token
+
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      description: Identifiant (UUID ; une valeur invalide doit donner 404)
+      schema: { type: string }
+
+  responses:
+    Error:
+      description: Erreur (message en clair, jamais de stack trace)
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Note:
+      description: Note de frais
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ExpenseNote' }
+    NoteList:
+      description: Liste de notes de frais
+      content:
+        application/json:
+          schema: { type: array, items: { $ref: '#/components/schemas/ExpenseNote' } }
+    ReceiptUrl:
+      description: URL présignée (valable 5 minutes)
+      content:
+        application/json:
+          schema:
+            type: object
+            additionalProperties: false
+            required: [url]
+            properties:
+              url: { type: string, format: uri }
+
+  schemas:
+    ExpenseNote:
+      type: object
+      additionalProperties: false
+      required: [id, userId, amount, expenseDate, description, receiptKey, status, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        userId: { type: string, format: uuid }
+        amount: { type: number, exclusiveMinimum: 0 }
+        expenseDate: { type: string, pattern: '^\d{4}-\d{2}-\d{2}$' }
+        description: { type: string }
+        receiptKey: { type: string }
+        status: { type: string, enum: [pending, approved, rejected] }
+        createdAt: { type: string, format: date-time }
+
+    CompanyUser:
+      type: object
+      additionalProperties: false
+      required: [id, name, email, role, managerId]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        email: { type: string }
+        role: { type: string, enum: [employee, manager] }
+        managerId: { type: [string, 'null'], format: uuid }
+
+    Suggestion:
+      type: object
+      additionalProperties: false
+      properties:
+        amount: { type: number }
+        expenseDate: { type: string, pattern: '^\d{4}-\d{2}-\d{2}$' }
+
+    Error:
+      type: object
+      additionalProperties: false
+      required: [error]
+      properties:
+        error: { type: string }
