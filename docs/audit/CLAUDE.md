@@ -16,6 +16,7 @@ dépôt, deux niveaux au-dessus). Point d'entrée humain : [README.md](README.md
 | Schéma SQL, RLS, DTO | `03-donnees-et-objets.md` |
 | Rejouer / tester un constat vérifié | `poc/README.md` |
 | Ce qui est volontairement exclu | `14-hors-perimetre.md` |
+| Architecture cible, modules, ports, plan de refacto (constats `A-xx`) | `20-audit-architecture-arla.md` |
 
 `07-points-de-vigilance.md` est la liste initiale de l'étape 1 : pour la
 cotation et l'état à jour, `12-constats.md` fait foi.
