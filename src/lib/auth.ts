@@ -1,14 +1,14 @@
 import NextAuth from 'next-auth'
 import Credentials from 'next-auth/providers/credentials'
 import bcrypt from 'bcryptjs'
+import { readAuthSecret } from '@/config'
 import { getPool } from '@/lib/db'
 
-// Généré une fois pour ce projet — pas besoin de le régénérer à chaque
-// déploiement.
-const AUTH_SECRET = 'e29f9c3b6a1d4e7f8021c5b6d4a9f0e3c7b8a2d1f6e5c4b3a2918273645fabcd'
-
+// Secret lu dans AUTH_SECRET (SEC-04), jamais écrit dans le code. Sa présence
+// est imposée au démarrage du serveur (src/instrumentation.ts) ; il reste
+// facultatif ici pour que `next build` n'en dépende pas.
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  secret: AUTH_SECRET,
+  secret: readAuthSecret(),
   session: { strategy: 'jwt' },
   pages: {
     signIn: '/login',

@@ -1,4 +1,5 @@
 import { Pool, types, type PoolClient } from 'pg'
+import { databaseUrl } from '@/config'
 
 // OID 1082 = date. Garde la chaîne "YYYY-MM-DD" brute renvoyée par Postgres
 // plutôt qu'un objet Date JS calé sur le fuseau local.
@@ -10,11 +11,7 @@ declare global {
 
 export function getPool(): Pool {
   if (!global.__pgPool) {
-    const connectionString = process.env.DATABASE_URL
-    if (!connectionString) {
-      throw new Error('DATABASE_URL is not set')
-    }
-    global.__pgPool = new Pool({ connectionString, max: 20 })
+    global.__pgPool = new Pool({ connectionString: databaseUrl(), max: 20 })
   }
   return global.__pgPool
 }
