@@ -1,76 +1,25 @@
-import path from 'node:path'
-import { getPool, withUserScope } from '@/lib/db'
-import { receiptKeyFor, uploadReceipt } from '@/lib/storage'
-import { presentExpenseNoteRow, route } from '@/modules/shared/http'
-
-const ALLOWED_RECEIPT_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'application/pdf']
-const MAX_RECEIPT_BYTES = 10 * 1024 * 1024
-
-const EXTENSION_BY_MIME: Record<string, string> = {
-  'image/png': '.png',
-  'image/jpeg': '.jpg',
-  'image/webp': '.webp',
-  'application/pdf': '.pdf',
-}
+import { listMyExpenseNotes, submitExpenseNote, type IncomingReceipt } from '@/modules/expenses'
+import { presentExpenseNote, route } from '@/modules/shared/http'
 
 export const GET = route({ deniedStatus: 401 }, async ({ request, actor }) => {
-  const url = new URL(request.url)
-  const sort = url.searchParams.get('sort') || 'created_at DESC'
-
-  return withUserScope(actor.id, async (client) => {
-    const result = await client.query(
-      `SELECT * FROM expense_notes WHERE user_id = $1 ORDER BY ${sort}`,
-      [actor.id]
-    )
-    return Response.json(result.rows.map(presentExpenseNoteRow))
-  })
+  const sort = new URL(request.url).searchParams.get('sort')
+  const notes = await listMyExpenseNotes(actor, sort)
+  return Response.json(notes.map(presentExpenseNote))
 })
 
+function incomingReceipt(value: FormDataEntryValue | null): IncomingReceipt | null {
+  if (!(value instanceof File)) return null
+  return { declaredType: value.type, size: value.size, read: async () => new Uint8Array(await value.arrayBuffer()) }
+}
+
 export const POST = route({ deniedStatus: 401 }, async ({ request, actor }) => {
-  const formData = await request.formData()
-  const amountRaw = formData.get('amount')
-  const expenseDate = formData.get('expenseDate')
-  const description = formData.get('description')
-  const receipt = formData.get('receipt')
-
-  const amount = typeof amountRaw === 'string' ? Number.parseFloat(amountRaw) : NaN
-
-  if (
-    !Number.isFinite(amount) ||
-    amount <= 0 ||
-    typeof expenseDate !== 'string' ||
-    typeof description !== 'string' ||
-    description.trim().length === 0 ||
-    !(receipt instanceof File)
-  ) {
-    return Response.json({ error: 'Champs invalides' }, { status: 400 })
-  }
-  if (!ALLOWED_RECEIPT_TYPES.includes(receipt.type)) {
-    return Response.json({ error: 'Type de fichier non autorisé pour le reçu' }, { status: 400 })
-  }
-  if (receipt.size > MAX_RECEIPT_BYTES) {
-    return Response.json({ error: 'Fichier trop volumineux' }, { status: 400 })
-  }
-
-  const note = await withUserScope(actor.id, async (client) => {
-    const inserted = await client.query(
-      `INSERT INTO expense_notes (user_id, amount, expense_date, description, receipt_key)
-       VALUES ($1, $2, $3, $4, $5)
-       RETURNING *`,
-      [actor.id, amount, expenseDate, description, '']
-    )
-    return inserted.rows[0]
+  const form = await request.formData()
+  const note = await submitExpenseNote({
+    actor,
+    amount: form.get('amount'),
+    expenseDate: form.get('expenseDate'),
+    description: form.get('description'),
+    receipt: incomingReceipt(form.get('receipt')),
   })
-
-  const extension = EXTENSION_BY_MIME[receipt.type] ?? path.extname(receipt.name) ?? ''
-  const receiptKey = receiptKeyFor(note.receipt_seq, extension)
-  const buffer = Buffer.from(await receipt.arrayBuffer())
-  await uploadReceipt(receiptKey, buffer, receipt.type)
-
-  const updated = await getPool().query(
-    `UPDATE expense_notes SET receipt_key = $1 WHERE id = $2 RETURNING *`,
-    [receiptKey, note.id]
-  )
-
-  return Response.json(presentExpenseNoteRow(updated.rows[0]), { status: 201 })
+  return Response.json(presentExpenseNote(note), { status: 201 })
 })

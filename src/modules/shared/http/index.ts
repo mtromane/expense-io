@@ -1,11 +1,3 @@
 export { errorResponse, INTERNAL_ERROR_MESSAGE } from './errors'
-export {
-  presentCompanyUserRow,
-  presentExpenseNote,
-  presentExpenseNoteRow,
-  type CompanyUserDto,
-  type CompanyUserRow,
-  type ExpenseNoteDto,
-  type ExpenseNoteRow,
-} from './presenters'
+export { presentExpenseNote, type ExpenseNoteDto } from './presenters'
 export { route, type Access, type RouteContext } from './route'

@@ -129,14 +129,14 @@ describe('listPendingNotes', () => {
 
 describe('getReceiptUrlForApprover', () => {
   it('URL signée du reçu d’une note du périmètre', async () => {
-    const receipts = { upload: vi.fn(), getSignedUrl: vi.fn(async (key: string) => `https://s3/${key}`) }
+    const receipts = { upload: vi.fn(), delete: vi.fn(), getSignedUrl: vi.fn(async (key: string) => `https://s3/${key}`) }
     const tx = transactionOver(new InMemoryApprovals(new Map([['mgr-1', [note()]]])))
     const url = await makeGetReceiptUrlForApprover({ transaction: tx, receipts })(MANAGER, 'note-1')
     expect(url).toBe('https://s3/receipts/abc.png')
   })
 
   it('note d’une autre équipe → NotFound, aucune URL signée (SEC-02)', async () => {
-    const receipts = { upload: vi.fn(), getSignedUrl: vi.fn() }
+    const receipts = { upload: vi.fn(), delete: vi.fn(), getSignedUrl: vi.fn() }
     const tx = transactionOver(new InMemoryApprovals(new Map([['autre-manager', [note()]]])))
     await expect(makeGetReceiptUrlForApprover({ transaction: tx, receipts })(MANAGER, 'note-1')).rejects.toBeInstanceOf(
       NotFoundError
