@@ -1,6 +1,7 @@
 export { errorResponse, INTERNAL_ERROR_MESSAGE } from './errors'
 export {
   presentCompanyUserRow,
+  presentExpenseNote,
   presentExpenseNoteRow,
   type CompanyUserDto,
   type CompanyUserRow,

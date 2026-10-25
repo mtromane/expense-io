@@ -1,4 +1,4 @@
-import type { ExpenseNoteStatus } from '@/domain/ExpenseNote'
+import type { ExpenseNote, ExpenseNoteStatus } from '@/domain/ExpenseNote'
 
 /** Note de frais telle que décrite par le contrat (docs/api/openapi.yaml). */
 export interface ExpenseNoteDto {
@@ -31,6 +31,12 @@ export interface ExpenseNoteRow {
   receipt_key: string
   status: ExpenseNoteStatus
   created_at: string | Date
+}
+
+export function presentExpenseNote(note: ExpenseNote): ExpenseNoteDto {
+  const { id, userId, amount, expenseDate, description, receiptKey, status, createdAt } = note.toJSON()
+  if (!createdAt) throw new Error(`Note ${id} sans date de création`)
+  return { id, userId, amount, expenseDate, description, receiptKey, status, createdAt }
 }
 
 export function presentExpenseNoteRow(row: ExpenseNoteRow): ExpenseNoteDto {
