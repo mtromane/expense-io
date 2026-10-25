@@ -9,7 +9,7 @@ import { test } from '@playwright/test'
 export const DEFECTS = {
   'SEC-01': { title: 'Injection SQL via ?sort=', fixed: false },
   'SEC-02': { title: 'Reçu manager sans contrôle de rattachement', fixed: true },
-  'SEC-03': { title: 'Assignation d’un manager d’une autre entreprise', fixed: false },
+  'SEC-03': { title: 'Assignation d’un manager d’une autre entreprise', fixed: true },
   'SEC-04': { title: 'AUTH_SECRET en dur, variable d’environnement ignorée', fixed: true },
   'SEC-05': { title: 'Stack trace renvoyée dans les 500', fixed: true },
   'ROB-02': { title: 'Double décision concurrente', fixed: true },
@@ -17,7 +17,7 @@ export const DEFECTS = {
   'ROB-03b': { title: 'Date invalide → 500', fixed: false },
   'ROB-03c': { title: 'Montant hors numeric(10,2) → 500', fixed: false },
   'ROB-03d': { title: 'Montant non numérique accepté', fixed: false },
-  'ROB-03e': { title: 'PUT manager sans JSON valide désassigne le manager', fixed: false },
+  'ROB-03e': { title: 'PUT manager sans JSON valide désassigne le manager', fixed: true },
   'SEC-06': { title: 'Clés de reçu séquentielles et prévisibles', fixed: false },
   'SEC-07': { title: 'Type de reçu validé sur le MIME déclaré par le client', fixed: false },
   'SEC-08': { title: 'Suggestion OCR sans limite de taille', fixed: false },
