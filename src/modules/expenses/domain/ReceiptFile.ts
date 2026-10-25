@@ -1,7 +1,5 @@
 import { InvalidInputError } from '@/modules/shared/domain'
 
-export const MAX_RECEIPT_BYTES = 10 * 1024 * 1024
-export const RECEIPT_TOO_LARGE = 'Fichier trop volumineux'
 export const RECEIPT_TYPE_REFUSED = 'Type de fichier non autorisé pour le reçu'
 
 export type ReceiptType = 'image/png' | 'image/jpeg' | 'image/webp' | 'application/pdf'

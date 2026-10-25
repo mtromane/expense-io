@@ -9,9 +9,6 @@ import { makeListMyExpenseNotes } from './application/listMyExpenseNotes'
 import { makeSubmitExpenseNote } from './application/submitExpenseNote'
 import { pgExpenseTransaction } from './infrastructure/PgExpenseNoteRepository'
 
-export type { IncomingReceipt } from './application/submitExpenseNote'
-export { MAX_RECEIPT_BYTES, RECEIPT_TOO_LARGE } from './domain/ReceiptFile'
-
 const transaction = pgExpenseTransaction
 const receipts = new S3ReceiptAdapter()
 

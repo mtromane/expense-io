@@ -1,23 +1,17 @@
 import type { ExpenseNote } from '@/domain/ExpenseNote'
-import { InvalidInputError, type Actor } from '@/modules/shared/domain'
-import type { ReceiptStoragePort } from '@/ports/ReceiptStoragePort'
-import { parseNewExpenseNote } from '../domain/ExpenseNoteInput'
 import {
-  assertReceiptContent,
-  EXTENSION_BY_TYPE,
-  isReceiptType,
+  InvalidInputError,
   MAX_RECEIPT_BYTES,
   RECEIPT_TOO_LARGE,
-  RECEIPT_TYPE_REFUSED,
-} from '../domain/ReceiptFile'
+  type Actor,
+  type IncomingReceipt,
+} from '@/modules/shared/domain'
+import type { ReceiptStoragePort } from '@/ports/ReceiptStoragePort'
+import { parseNewExpenseNote } from '../domain/ExpenseNoteInput'
+import { assertReceiptContent, EXTENSION_BY_TYPE, isReceiptType, RECEIPT_TYPE_REFUSED } from '../domain/ReceiptFile'
 import type { ExpenseTransaction } from '../ports/ExpenseNoteRepository'
 
-/** Reçu tel que reçu par la couche HTTP ; le contenu n'est lu qu'après les contrôles de taille. */
-export interface IncomingReceipt {
-  declaredType: string
-  size: number
-  read(): Promise<Uint8Array>
-}
+export type { IncomingReceipt }
 
 export interface SubmitExpenseNoteCommand {
   actor: Actor

@@ -1,14 +1,9 @@
-import { suggestFields } from '@/lib/ocr'
-import { route } from '@/modules/shared/http'
+import { suggestFromReceipt } from '@/modules/receipt-scan'
+import { assertBodyFitsReceipt, receiptFrom, route } from '@/modules/shared/http'
 
 export const POST = route({ deniedStatus: 401 }, async ({ request }) => {
-  const formData = await request.formData()
-  const receipt = formData.get('receipt')
-  if (!(receipt instanceof File)) {
-    return Response.json({ error: 'Champs invalides' }, { status: 400 })
-  }
-
-  const buffer = Buffer.from(await receipt.arrayBuffer())
-  const suggestion = await suggestFields({ data: buffer, mimeType: receipt.type })
+  assertBodyFitsReceipt(request)
+  const form = await request.formData()
+  const suggestion = await suggestFromReceipt(receiptFrom(form.get('receipt')))
   return Response.json(suggestion)
 })
