@@ -3,6 +3,7 @@ import path from 'node:path'
 import { expect, test, type APIRequestContext } from '@playwright/test'
 import { loginAs } from '../support/auth'
 import { receipt, type ReceiptFile } from '../support/files'
+import { apiError } from '../support/messages'
 
 // Tests de référence de la suggestion OCR : sur des reçus fixes, la sortie
 // `{amount, expenseDate}` doit rester exactement celle de l'application
@@ -67,6 +68,6 @@ test.describe('OCR — suggestion depuis le reçu', { tag: '@parity' }, () => {
   test('champ reçu qui n’est pas un fichier → 400 Champs invalides', async () => {
     const res = await emp.post('/api/expense-notes/receipt-suggestion', { multipart: { receipt: 'pas un fichier' } })
     expect(res.status()).toBe(400)
-    expect(await res.json()).toEqual({ error: 'Champs invalides' })
+    expect(await res.json()).toEqual(apiError('Champs invalides'))
   })
 })

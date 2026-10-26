@@ -69,7 +69,7 @@ reste un changement de comportement à valider par la team Tests.
 
 ## Contrat d'API (OpenAPI)
 
-`docs/api/openapi.yaml` décrit les 14 endpoints de l'app d'origine (requêtes,
+`docs/api/openapi.yaml` décrit les 14 endpoints de l'app d'origine, plus les 2 ajoutés par les décisions D13 et D14 (requêtes,
 réponses, codes HTTP, erreurs). Les contextes HTTP de `tests/support/auth.ts`
 passent par `tests/support/contract.ts` : **chaque réponse de l'API obtenue par
 un test est validée contre ce contrat** (schémas stricts : un champ en trop,

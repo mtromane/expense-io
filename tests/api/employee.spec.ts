@@ -2,6 +2,7 @@ import { expect, test, type APIRequestContext } from '@playwright/test'
 import { actor } from '../support/actors'
 import { loginAs } from '../support/auth'
 import { paddedPng, receipt } from '../support/files'
+import { apiError } from '../support/messages'
 import { createNote, listOwnNotes, postNote, uniqueDescription, UUID_PATTERN, type ExpenseNoteDto } from '../support/notes'
 
 const TEN_MB = 10 * 1024 * 1024
@@ -45,7 +46,7 @@ test.describe('EMP — notes de l’employé', { tag: '@parity' }, () => {
   test('reçu gif refusé', async () => {
     const res = await postNote(emp, { receipt: receipt('gif') })
     expect(res.status()).toBe(400)
-    expect(await res.json()).toEqual({ error: 'Type de fichier non autorisé pour le reçu' })
+    expect(await res.json()).toEqual(apiError('Type de fichier non autorisé pour le reçu'))
   })
 
   test('reçu de 10 Mo pile accepté', async () => {
@@ -58,7 +59,7 @@ test.describe('EMP — notes de l’employé', { tag: '@parity' }, () => {
     test.setTimeout(60_000)
     const res = await postNote(emp, { receipt: paddedPng(TEN_MB + 1) })
     expect(res.status()).toBe(400)
-    expect(await res.json()).toEqual({ error: 'Fichier trop volumineux' })
+    expect(await res.json()).toEqual(apiError('Fichier trop volumineux'))
   })
 
   const invalid: { name: string; multipart: Record<string, string | ReturnType<typeof receipt>> }[] = [
@@ -73,7 +74,7 @@ test.describe('EMP — notes de l’employé', { tag: '@parity' }, () => {
     test(`validation : ${name} → 400 Champs invalides`, async () => {
       const res = await emp.post('/api/expense-notes', { multipart })
       expect(res.status()).toBe(400)
-      expect(await res.json()).toEqual({ error: 'Champs invalides' })
+      expect(await res.json()).toEqual(apiError('Champs invalides'))
     })
   }
 

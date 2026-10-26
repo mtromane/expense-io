@@ -41,6 +41,8 @@ function requestOptions(row: MatrixRow): { multipart?: Record<string, string | R
       return { multipart: { receipt: receipt('pdf') } }
     case 'sameManager':
       return { data: { managerId: actor('subMgrA').id } }
+    case 'sameRole':
+      return { data: { role: 'employee' } }
     case 'none':
       return {}
   }

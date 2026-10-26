@@ -20,6 +20,14 @@ export type ActorKey =
   | 'hrB'
   | 'rootMgrB'
   | 'empB'
+  | 'hrC'
+  | 'mgrC'
+  | 'mgrC2'
+  | 'empC1'
+  | 'promoteC'
+  | 'sessionC'
+  | 'promoteUiC'
+  | 'totalsC'
 
 export interface Actor {
   key: ActorKey

@@ -29,6 +29,20 @@
         { "key": "rootMgrB", "name": "Root Manager B", "role": "manager" },
         { "key": "empB", "name": "Employee B", "role": "employee", "manager": "rootMgrB" }
       ]
+    },
+    {
+      "key": "C",
+      "domain": "c.e2e.test",
+      "users": [
+        { "key": "hrC", "name": "HR C", "role": "hr_admin" },
+        { "key": "mgrC", "name": "Manager C", "role": "manager" },
+        { "key": "mgrC2", "name": "Sub Manager C", "role": "manager", "manager": "mgrC" },
+        { "key": "empC1", "name": "Employee C1", "role": "employee", "manager": "mgrC2" },
+        { "key": "promoteC", "name": "Promote C", "role": "employee" },
+        { "key": "sessionC", "name": "Session C", "role": "employee" },
+        { "key": "promoteUiC", "name": "Promote UI C", "role": "employee" },
+        { "key": "totalsC", "name": "Totals C", "role": "employee", "manager": "mgrC" }
+      ]
     }
   ]
 }
