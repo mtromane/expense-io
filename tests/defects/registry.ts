@@ -23,7 +23,7 @@ export const DEFECTS = {
   'SEC-08': { title: 'Suggestion OCR sans limite de taille', fixed: true },
   'SEC-09': { title: 'RLS inopérante (rôle de base superuser)', fixed: true },
   'ROB-01': { title: 'Création de note non atomique (S3 hors transaction)', fixed: true },
-  'BUG-01': { title: 'Date affichée décalée d’un jour en fuseau négatif', fixed: false },
+  'BUG-01': { title: 'Date affichée décalée d’un jour en fuseau négatif', fixed: true },
 } satisfies Record<string, { title: string; fixed: boolean }>
 
 export type DefectId = keyof typeof DEFECTS
