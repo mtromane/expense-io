@@ -1,49 +1,28 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-
-interface CompanyUser {
-  id: string
-  name: string
-  email: string
-  role: 'employee' | 'manager'
-  managerId: string | null
-}
-
-interface ExpenseNote {
-  id: string
-  userId: string
-  amount: number
-  expenseDate: string
-  description: string
-  createdAt: string
-}
+import type { CompanyUserDto, ExpenseNoteDto } from '@/modules/shared/http/presenters'
+import { hrApi, type Decision } from '@/utils/api'
+import { formatCurrency, formatDate } from '@/utils/format'
 
 const selectClass =
   'rounded-md border border-gray-300 px-2 py-1.5 text-sm shadow-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 dark:border-gray-700 dark:bg-gray-900 dark:focus:ring-brand-900'
 
-const currencyFormatter = new Intl.NumberFormat('fr-FR', {
-  style: 'currency',
-  currency: 'EUR',
-})
-
-const dateFormatter = new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium' })
-
 export function AdminConsole() {
-  const [users, setUsers] = useState<CompanyUser[]>([])
+  const [users, setUsers] = useState<CompanyUserDto[]>([])
   const [usersLoading, setUsersLoading] = useState(true)
   const [usersError, setUsersError] = useState<string | null>(null)
   const [savingId, setSavingId] = useState<string | null>(null)
 
-  const [notes, setNotes] = useState<ExpenseNote[]>([])
+  const [notes, setNotes] = useState<ExpenseNoteDto[]>([])
   const [notesLoading, setNotesLoading] = useState(true)
   const [notesError, setNotesError] = useState<string | null>(null)
   const [decidingId, setDecidingId] = useState<string | null>(null)
 
   const loadUsers = useCallback(async () => {
-    const response = await fetch('/api/hr/users')
-    if (response.ok) {
-      setUsers(await response.json())
+    const result = await hrApi.listUsers()
+    if (result.ok) {
+      setUsers(result.data)
     } else {
       setUsersError("Impossible de charger l'annuaire.")
     }
@@ -51,9 +30,9 @@ export function AdminConsole() {
   }, [])
 
   const loadNotes = useCallback(async () => {
-    const response = await fetch('/api/hr/expense-notes')
-    if (response.ok) {
-      setNotes(await response.json())
+    const result = await hrApi.listPending()
+    if (result.ok) {
+      setNotes(result.data)
     } else {
       setNotesError('Impossible de charger les notes en attente.')
     }
@@ -71,51 +50,36 @@ export function AdminConsole() {
   async function handleManagerChange(userId: string, managerId: string) {
     setSavingId(userId)
     setUsersError(null)
-    const response = await fetch(`/api/hr/users/${userId}/manager`, {
-      method: 'PUT',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ managerId: managerId === '' ? null : managerId }),
-    })
+    const result = await hrApi.assignManager(userId, managerId === '' ? null : managerId)
     setSavingId(null)
 
-    if (response.ok) {
+    if (result.ok) {
       await loadUsers()
     } else {
-      const body = await response.json().catch(() => null)
-      setUsersError(
-        typeof body?.error === 'string' ? body.error : "Échec de l'assignation."
-      )
+      setUsersError(result.error ?? "Échec de l'assignation.")
     }
   }
 
   async function handleViewReceipt(id: string) {
     setNotesError(null)
-    const response = await fetch(`/api/hr/expense-notes/${id}/receipt-url`)
-    if (!response.ok) {
+    const result = await hrApi.receiptUrl(id)
+    if (!result.ok) {
       setNotesError('Impossible de récupérer le reçu.')
       return
     }
-    const { url } = await response.json()
-    window.open(url, '_blank', 'noopener,noreferrer')
+    window.open(result.data.url, '_blank', 'noopener,noreferrer')
   }
 
-  async function handleDecide(id: string, decision: 'approve' | 'reject') {
+  async function handleDecide(id: string, decision: Decision) {
     setDecidingId(id)
     setNotesError(null)
-    const response = await fetch(`/api/hr/expense-notes/${id}/${decision}`, {
-      method: 'POST',
-    })
+    const result = await hrApi.decide(id, decision)
     setDecidingId(null)
 
-    if (response.ok) {
+    if (result.ok) {
       await loadNotes()
     } else {
-      const body = await response.json().catch(() => null)
-      setNotesError(
-        typeof body?.error === 'string'
-          ? body.error
-          : 'Échec de la décision sur cette note de frais.'
-      )
+      setNotesError(result.error ?? 'Échec de la décision sur cette note de frais.')
     }
   }
 
@@ -225,11 +189,11 @@ export function AdminConsole() {
                     <tr key={note.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
                       <td className="px-6 py-3">{author?.name ?? note.userId.slice(0, 8)}</td>
                       <td className="px-6 py-3 whitespace-nowrap text-gray-500 dark:text-gray-400">
-                        {dateFormatter.format(new Date(note.expenseDate))}
+                        {formatDate(note.expenseDate)}
                       </td>
                       <td className="px-6 py-3">{note.description}</td>
                       <td className="px-6 py-3 text-right font-medium whitespace-nowrap">
-                        {currencyFormatter.format(note.amount)}
+                        {formatCurrency(note.amount)}
                       </td>
                       <td className="px-6 py-3 text-right whitespace-nowrap">
                         <button

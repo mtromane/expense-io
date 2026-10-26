@@ -1,0 +1,55 @@
+import type {
+  CompanyUserDto,
+  ExpenseNoteDto,
+  ReceiptUrlDto,
+  SuggestionDto,
+} from '@/modules/shared/http/presenters'
+
+/**
+ * Client des routes /api pour les écrans. Chaque appel renvoie les données
+ * typées par les DTO du contrat, ou le message `error` renvoyé par l'API
+ * (absent si le corps n'en contient pas : l'écran affiche alors le sien).
+ */
+export type ApiResult<T> = { ok: true; data: T } | { ok: false; error?: string }
+
+export type Decision = 'approve' | 'reject'
+
+async function request<T>(url: string, init?: RequestInit): Promise<ApiResult<T>> {
+  const response = await fetch(url, init)
+  if (response.ok) {
+    return { ok: true, data: (await response.json()) as T }
+  }
+  const body = await response.json().catch(() => null)
+  return { ok: false, error: typeof body?.error === 'string' ? body.error : undefined }
+}
+
+const post = { method: 'POST' }
+
+export const employeeApi = {
+  listNotes: () => request<ExpenseNoteDto[]>('/api/expense-notes'),
+  submitNote: (form: FormData) => request<ExpenseNoteDto>('/api/expense-notes', { ...post, body: form }),
+  suggestFromReceipt: (form: FormData) =>
+    request<SuggestionDto>('/api/expense-notes/receipt-suggestion', { ...post, body: form }),
+  receiptUrl: (id: string) => request<ReceiptUrlDto>(`/api/expense-notes/${id}/receipt-url`),
+}
+
+export const managerApi = {
+  listPending: () => request<ExpenseNoteDto[]>('/api/manager/expense-notes'),
+  receiptUrl: (id: string) => request<ReceiptUrlDto>(`/api/manager/expense-notes/${id}/receipt-url`),
+  decide: (id: string, decision: Decision) =>
+    request<ExpenseNoteDto>(`/api/manager/expense-notes/${id}/${decision}`, post),
+}
+
+export const hrApi = {
+  listUsers: () => request<CompanyUserDto[]>('/api/hr/users'),
+  assignManager: (userId: string, managerId: string | null) =>
+    request<CompanyUserDto>(`/api/hr/users/${userId}/manager`, {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ managerId }),
+    }),
+  listPending: () => request<ExpenseNoteDto[]>('/api/hr/expense-notes'),
+  receiptUrl: (id: string) => request<ReceiptUrlDto>(`/api/hr/expense-notes/${id}/receipt-url`),
+  decide: (id: string, decision: Decision) =>
+    request<ExpenseNoteDto>(`/api/hr/expense-notes/${id}/${decision}`, post),
+}
