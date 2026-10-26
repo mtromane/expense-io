@@ -67,6 +67,11 @@ jobs:
 
   parity:
     needs: changes
+    # Rôle sans privilège pris par l'application dans chaque transaction scopée
+    # (RLS effective, créé par les migrations). Pas dans baseline-proof : la
+    # baseline ne connaît ni cette variable ni la migration qui crée le rôle.
+    env:
+      APP_DB_ROLE: expense_app
     if: (needs.changes.outputs.code == 'true' || github.event_name != 'pull_request') && github.event.pull_request.draft != true
     runs-on: ubuntu-latest
     services:
@@ -96,6 +101,11 @@ jobs:
 
   defects:
     needs: changes
+    # Rôle sans privilège pris par l'application dans chaque transaction scopée
+    # (RLS effective, créé par les migrations). Pas dans baseline-proof : la
+    # baseline ne connaît ni cette variable ni la migration qui crée le rôle.
+    env:
+      APP_DB_ROLE: expense_app
     if: (needs.changes.outputs.code == 'true' || github.event_name != 'pull_request') && github.event.pull_request.draft != true
     runs-on: ubuntu-latest
     services:
