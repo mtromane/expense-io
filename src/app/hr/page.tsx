@@ -1,4 +1,4 @@
-import { auth } from '@/lib/auth'
+import { auth } from '@/modules/identity'
 import { AdminConsole } from '@/components/AdminConsole'
 
 export default async function HrPage() {

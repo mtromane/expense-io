@@ -1,4 +1,4 @@
-import { getPool } from '@/lib/db'
+import { getPool } from '@/modules/shared/infrastructure/db'
 import type { CompanyUser } from '../domain/CompanyUser'
 import type { OrganizationRepository } from '../ports/OrganizationRepository'
 

@@ -1,4 +1,4 @@
-import { auth } from '@/lib/auth'
+import { auth } from '@/modules/identity'
 import { PendingApprovalsPanel } from '@/components/PendingApprovalsPanel'
 
 export default async function ManagerPage() {

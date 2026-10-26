@@ -1,5 +1,5 @@
 import type { UserRole } from '@/domain/User'
-import { auth } from '@/lib/auth'
+import { getActor } from '@/modules/identity'
 import type { Actor } from '../domain/Actor'
 import { errorBody, errorResponse } from './errors'
 
@@ -47,16 +47,15 @@ export function route<P extends Record<string, string> = Record<string, never>>(
     const requestId = requestIdOf(request)
     const path = new URL(request.url).pathname
     try {
-      const session = await auth()
-      const user = session?.user
-      if (!user?.id || (access.role && user.role !== access.role)) {
+      const actor = await getActor()
+      if (!actor || (access.role && actor.role !== access.role)) {
         return withRequestId(errorBody('Unauthorized', access.deniedStatus), requestId)
       }
       const params = ((await segment?.params) ?? {}) as P
       if ('id' in params && !UUID_PATTERN.test(params.id)) {
         return withRequestId(errorBody('Not found', 404), requestId)
       }
-      const response = await handler({ request, actor: { id: user.id, role: user.role }, params, requestId })
+      const response = await handler({ request, actor, params, requestId })
       return withRequestId(response, requestId)
     } catch (error) {
       return errorResponse(error, { requestId, method: request.method, path })

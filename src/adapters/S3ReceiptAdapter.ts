@@ -1,4 +1,4 @@
-import { deleteReceipt, getReceiptUrl, uploadReceipt } from '@/lib/storage'
+import { deleteReceipt, getReceiptUrl, uploadReceipt } from '@/modules/shared/infrastructure/s3ReceiptStorage'
 import type { ReceiptStoragePort } from '@/ports/ReceiptStoragePort'
 
 export class S3ReceiptAdapter implements ReceiptStoragePort {

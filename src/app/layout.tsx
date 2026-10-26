@@ -3,7 +3,7 @@ import type { ReactNode } from 'react'
 import { Geist, Geist_Mono } from 'next/font/google'
 import Link from 'next/link'
 import './globals.css'
-import { auth } from '@/lib/auth'
+import { auth } from '@/modules/identity'
 import { logout } from '@/app/actions/auth'
 import { NavItem } from '@/components/NavItem'
 

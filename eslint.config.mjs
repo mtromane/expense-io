@@ -2,9 +2,9 @@ import { defineConfig, globalIgnores } from "eslint/config";
 import nextVitals from "eslint-config-next/core-web-vitals";
 import nextTs from "eslint-config-next/typescript";
 
-// Règles d'architecture (ADR-002, D5) : avertissement pendant la migration,
-// bloquantes une fois tous les modules en place.
-const ARCHITECTURE_LEVEL = "warn";
+// Règles d'architecture (ADR-002, ADR-005) : bloquantes depuis que tous les
+// modules sont en place (étape 8).
+const ARCHITECTURE_LEVEL = "error";
 
 const INFRASTRUCTURE_PACKAGES = [
   { group: ["pg", "pg/*"], message: "Accès base réservé à infrastructure/ (port + adapter)." },
@@ -19,6 +19,12 @@ const INFRASTRUCTURE_PACKAGES = [
 const MODULE_INTERNALS = {
   regex: "^@/modules/(?!shared/)[^/]+/.+",
   message: "Importer un module par son index (@/modules/<module>), jamais ses fichiers internes.",
+};
+
+// src/lib ne contient plus que des façades figées par les unitaires de la team Tests.
+const LEGACY_LIB = {
+  group: ["@/lib/*"],
+  message: "src/lib ne contient que des façades historiques : importer le module (@/modules/<module>).",
 };
 
 const eslintConfig = defineConfig([
@@ -38,6 +44,13 @@ const eslintConfig = defineConfig([
     "perf-results/**",
     "coverage/**",
   ]),
+  {
+    // Adapters et assemblage des modules : pas de retour vers les façades de src/lib.
+    files: ["src/modules/**"],
+    rules: {
+      "no-restricted-imports": [ARCHITECTURE_LEVEL, { patterns: [LEGACY_LIB] }],
+    },
+  },
   {
     // Domaine et cas d'usage : aucune dépendance d'infrastructure ni de framework.
     files: [
@@ -75,6 +88,12 @@ const eslintConfig = defineConfig([
             { group: ["pg", "pg/*", "@/lib/db"], message: "Pas de SQL dans un contrôleur : passer par un cas d'usage." },
             { group: ["@aws-sdk/*", "@/lib/storage"], message: "Stockage des reçus : passer par un module." },
             { group: ["tesseract.js", "@/lib/ocr"], message: "OCR : passer par le module receipt-scan." },
+            { group: ["bcryptjs"], message: "Mots de passe : passer par le module identity." },
+            {
+              group: ["@/modules/shared/infrastructure", "@/modules/shared/infrastructure/*"],
+              message: "Pas d'accès base ni de SDK dans un contrôleur : passer par un cas d'usage.",
+            },
+            LEGACY_LIB,
             MODULE_INTERNALS,
           ],
         },

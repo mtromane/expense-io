@@ -1,6 +1,6 @@
 import type { PoolClient } from 'pg'
 import { ExpenseNote } from '@/domain/ExpenseNote'
-import { withUserScope } from '@/lib/db'
+import { withUserScope } from '@/modules/shared/infrastructure/db'
 import { toExpenseNote, type ExpenseNoteRecord } from '@/modules/shared/infrastructure/expenseNoteRecord'
 import type { ApprovalScope } from '../domain/ApprovalPolicy'
 import type { ApprovalRepository, ApprovalTransaction } from '../ports/ApprovalRepository'
