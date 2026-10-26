@@ -61,6 +61,14 @@ export function s3Config(): S3Config {
   }
 }
 
+/**
+ * Rôle PostgreSQL sans privilège pris dans chaque transaction scopée, pour que
+ * la RLS s'applique (ADR-006). Créé par la migration d'isolation.
+ */
+export function appDbRole(): string {
+  return optional('APP_DB_ROLE', 'expense_app')
+}
+
 /** Variables sans lesquelles le serveur refuse de démarrer. */
 export function assertServerConfig(): void {
   databaseUrl()

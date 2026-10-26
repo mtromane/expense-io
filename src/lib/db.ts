@@ -1,5 +1,5 @@
 import { Pool, types, type PoolClient } from 'pg'
-import { databaseUrl } from '@/config'
+import { appDbRole, databaseUrl } from '@/config'
 
 // OID 1082 = date. Garde la chaîne "YYYY-MM-DD" brute renvoyée par Postgres
 // plutôt qu'un objet Date JS calé sur le fuseau local.
@@ -17,10 +17,11 @@ export function getPool(): Pool {
 }
 
 /**
- * Pose le contexte utilisateur pour la durée de la transaction — l'isolation
- * entre utilisateurs et entre entreprises est garantie par PostgreSQL (Row
- * Level Security, voir migrations/), ce helper ne fait qu'exposer l'id
- * courant aux policies.
+ * Transaction dans le contexte d'un utilisateur : l'identifiant courant est
+ * exposé aux policies RLS et la transaction passe sur le rôle sans privilège
+ * APP_DB_ROLE, pour que ces policies s'appliquent (le compte de DATABASE_URL
+ * est superuser). Les deux réglages sont locaux à la transaction et posés en
+ * une seule instruction : aucun aller-retour ajouté.
  */
 export async function withUserScope<T>(
   userId: string,
@@ -30,7 +31,10 @@ export async function withUserScope<T>(
   const client = await pool.connect()
   try {
     await client.query('BEGIN')
-    await client.query("SELECT set_config('app.current_user_id', $1, true)", [userId])
+    await client.query("SELECT set_config('app.current_user_id', $1, true), set_config('role', $2, true)", [
+      userId,
+      appDbRole(),
+    ])
     const result = await fn(client)
     await client.query('COMMIT')
     return result

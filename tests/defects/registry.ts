@@ -21,7 +21,7 @@ export const DEFECTS = {
   'SEC-06': { title: 'Clés de reçu séquentielles et prévisibles', fixed: true },
   'SEC-07': { title: 'Type de reçu validé sur le MIME déclaré par le client', fixed: true },
   'SEC-08': { title: 'Suggestion OCR sans limite de taille', fixed: true },
-  'SEC-09': { title: 'RLS inopérante (rôle de base superuser)', fixed: false },
+  'SEC-09': { title: 'RLS inopérante (rôle de base superuser)', fixed: true },
   'ROB-01': { title: 'Création de note non atomique (S3 hors transaction)', fixed: true },
   'BUG-01': { title: 'Date affichée décalée d’un jour en fuseau négatif', fixed: false },
 } satisfies Record<string, { title: string; fixed: boolean }>
