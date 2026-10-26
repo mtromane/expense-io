@@ -3,6 +3,7 @@ export {
   presentExpenseNote,
   type CompanyUserDto,
   type ExpenseNoteDto,
+  type HrUserDto,
   type ReceiptUrlDto,
   type SuggestionDto,
 } from './presenters'

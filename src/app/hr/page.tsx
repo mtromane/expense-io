@@ -1,19 +1,10 @@
-import { auth } from '@/modules/identity'
+import { forbidden } from 'next/navigation'
 import { AdminConsole } from '@/components/AdminConsole'
+import { getActor } from '@/modules/identity'
 
 export default async function HrPage() {
-  const session = await auth()
-
-  if (session?.user.role !== 'hr_admin') {
-    return (
-      <main className="flex flex-col items-center gap-2 py-16 text-center">
-        <h1 className="text-xl font-semibold">Accès réservé aux RH</h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400">
-          Cette page n&apos;est visible que par les utilisateurs de rôle hr_admin.
-        </p>
-      </main>
-    )
-  }
+  // Mauvais rôle : page « Accès réservé » (forbidden.tsx) servie en 403 (D19, ADR-019).
+  if ((await getActor())?.role !== 'hr_admin') forbidden()
 
   return <AdminConsole />
 }

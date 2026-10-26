@@ -4,6 +4,7 @@
  */
 import type { Actor } from '@/modules/shared/domain'
 import { makeAuthenticate } from './application/authenticate'
+import { makeResolveActor } from './application/resolveActor'
 import { makeSignup } from './application/signup'
 import { makeAuthJs } from './infrastructure/authjs'
 import { BcryptPasswordHasher } from './infrastructure/BcryptPasswordHasher'
@@ -19,8 +20,9 @@ export const signup = makeSignup({ users, hasher })
 export const authenticate = makeAuthenticate({ users, hasher })
 export const { handlers, auth, signIn, signOut } = makeAuthJs(authenticate)
 
-/** Acteur de la session courante, ou null sans session. */
+const resolveActor = makeResolveActor({ users })
+
+/** Acteur de la session courante, avec son rôle actuel (relu en base), ou null sans session. */
 export async function getActor(): Promise<Actor | null> {
-  const user = (await auth())?.user
-  return user?.id ? { id: user.id, role: user.role } : null
+  return resolveActor((await auth())?.user?.id)
 }

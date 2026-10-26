@@ -25,17 +25,17 @@ export const DEFECTS = {
   'ROB-01': { title: 'Création de note non atomique (S3 hors transaction)', fixed: true },
   'BUG-01': { title: 'Date affichée décalée d’un jour en fuseau négatif', fixed: true },
   // Défauts métier tranchés le 2026-10-26 (docs/audit/21-decisions-architecture.md, D12 à D19).
-  'AUTHZ-01': { title: 'Mauvais rôle sur /api/manager/* → 401 au lieu de 403 (D12)', fixed: false },
-  'AUTHZ-02': { title: 'Anonyme sur /api/hr/* → 403 au lieu de 401 (D12)', fixed: false },
-  'AUTHZ-03': { title: 'Page « Accès réservé » servie en 200 au lieu de 403 (D19)', fixed: false },
-  'MET-01': { title: 'Inscription acceptée sur un domaine de messagerie public (D16)', fixed: false },
-  'MET-03': { title: 'Notes d’une RH validables par personne (D13)', fixed: false },
-  'MET-04': { title: 'Cycle hiérarchique accepté (D18)', fixed: false },
-  'ROLE-01': { title: 'Aucun moyen de nommer ou rétrograder un manager (D14)', fixed: false },
-  'ROLE-02': { title: 'Rétrogradation d’un manager qui a encore des subordonnés (D14)', fixed: false },
-  'ROLE-03': { title: 'Changement de rôle sans effet avant reconnexion (D14, V-19)', fixed: false },
-  'API-01': { title: 'Messages d’erreur de l’API en partie en français (D15)', fixed: false },
-  'UI-01': { title: '« Mes notes » : total sans détail par statut, rejetées comprises (D17)', fixed: false },
+  'AUTHZ-01': { title: 'Mauvais rôle sur /api/manager/* → 401 au lieu de 403 (D12)', fixed: true },
+  'AUTHZ-02': { title: 'Anonyme sur /api/hr/* → 403 au lieu de 401 (D12)', fixed: true },
+  'AUTHZ-03': { title: 'Page « Accès réservé » servie en 200 au lieu de 403 (D19)', fixed: true },
+  'MET-01': { title: 'Inscription acceptée sur un domaine de messagerie public (D16)', fixed: true },
+  'MET-03': { title: 'Notes d’une RH validables par personne (D13)', fixed: true },
+  'MET-04': { title: 'Cycle hiérarchique accepté (D18)', fixed: true },
+  'ROLE-01': { title: 'Aucun moyen de nommer ou rétrograder un manager (D14)', fixed: true },
+  'ROLE-02': { title: 'Rétrogradation d’un manager qui a encore des subordonnés (D14)', fixed: true },
+  'ROLE-03': { title: 'Changement de rôle sans effet avant reconnexion (D14, V-19)', fixed: true },
+  'API-01': { title: 'Messages d’erreur de l’API en partie en français (D15)', fixed: true },
+  'UI-01': { title: '« Mes notes » : total sans détail par statut, rejetées comprises (D17)', fixed: true },
 } satisfies Record<string, { title: string; fixed: boolean }>
 
 export type DefectId = keyof typeof DEFECTS

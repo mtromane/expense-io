@@ -4,14 +4,11 @@ import type { Actor } from '../domain/Actor'
 import { errorBody, errorResponse } from './errors'
 
 /**
- * Accès à une route. `deniedStatus` est la réponse à un appel sans session ou
- * avec le mauvais rôle : 401 sur /api/manager/* et /api/expense-notes, 403 sur
- * /api/hr/*. Cette incohérence fait partie du contrat actuel (D12 non tranchée) :
- * la corriger revient à changer une valeur ici.
+ * Accès à une route : sans session → 401, session sans le rôle exigé → 403
+ * (D12, ADR-012 ; l'application d'origine mélangeait les deux).
  */
 export interface Access {
   role?: UserRole
-  deniedStatus: 401 | 403
 }
 
 export interface RouteContext<P> {
@@ -48,9 +45,9 @@ export function route<P extends Record<string, string> = Record<string, never>>(
     const path = new URL(request.url).pathname
     try {
       const actor = await getActor()
-      if (!actor || (access.role && actor.role !== access.role)) {
-        return withRequestId(errorBody('Unauthorized', access.deniedStatus), requestId)
-      }
+      if (!actor) return withRequestId(errorBody('Unauthorized', 401), requestId)
+      // Même message qu'à l'origine sur les 403 de /api/hr/* : seul le code change.
+      if (access.role && actor.role !== access.role) return withRequestId(errorBody('Unauthorized', 403), requestId)
       const params = ((await segment?.params) ?? {}) as P
       if ('id' in params && !UUID_PATTERN.test(params.id)) {
         return withRequestId(errorBody('Not found', 404), requestId)

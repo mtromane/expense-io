@@ -1,4 +1,5 @@
 import type { UserRole } from '@/domain/User'
+import type { Actor } from '@/modules/shared/domain'
 import { getPool } from '@/modules/shared/infrastructure/db'
 import type { NewUser, UserCredentials, UserRepository } from '../ports/UserRepository'
 
@@ -15,6 +16,11 @@ export class PgUserRepository implements UserRepository {
     )
     const row = result.rows[0]
     return row ? { id: row.id, email: row.email, passwordHash: row.password_hash, role: row.role } : null
+  }
+
+  async findActor(id: string): Promise<Actor | null> {
+    const result = await getPool().query<Actor>('SELECT id, role FROM users WHERE id = $1', [id])
+    return result.rows[0] ?? null
   }
 
   async emailExists(email: string): Promise<boolean> {

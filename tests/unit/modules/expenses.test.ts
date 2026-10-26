@@ -126,7 +126,7 @@ describe('submitExpenseNote', () => {
   it('contenu non conforme au type déclaré → 400 type refusé, rien n’est téléversé (SEC-07)', async () => {
     const { submit, receipts } = harness()
     await expect(submit(command(file(new Uint8Array(Buffer.from('texte')), 'image/png')))).rejects.toEqual(
-      new InvalidInputError('Type de fichier non autorisé pour le reçu')
+      new InvalidInputError('Receipt file type not allowed')
     )
     expect(receipts.upload).not.toHaveBeenCalled()
   })
@@ -134,12 +134,12 @@ describe('submitExpenseNote', () => {
   it('fichier de plus de 10 Mo refusé sans être lu', async () => {
     const { submit } = harness()
     const big = file(PNG, 'image/png', 10 * 1024 * 1024 + 1)
-    await expect(submit(command(big))).rejects.toEqual(new InvalidInputError('Fichier trop volumineux'))
+    await expect(submit(command(big))).rejects.toEqual(new InvalidInputError('File too large'))
     expect(big.read).not.toHaveBeenCalled()
   })
 
-  it('reçu absent → Champs invalides', async () => {
+  it('reçu absent → Invalid fields', async () => {
     const { submit } = harness()
-    await expect(submit(command(null))).rejects.toEqual(new InvalidInputError('Champs invalides'))
+    await expect(submit(command(null))).rejects.toEqual(new InvalidInputError('Invalid fields'))
   })
 })

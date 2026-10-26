@@ -41,12 +41,12 @@ Toute la configuration vient de l'environnement (`.env.example`) et passe par `s
 
 | Sujet | Mesure |
 |---|---|
-| Authentification | Auth.js, mots de passe bcrypt (coût 12), même réponse pour un email inconnu et un mot de passe faux |
-| Autorisation | garde unique `route()` : session, rôle, identifiant d'URL validé. Les pages `/manager` et `/hr` affichent « Accès réservé » si le rôle ne convient pas |
+| Authentification | Auth.js, mots de passe bcrypt (coût 12), même réponse pour un email inconnu et un mot de passe faux ; inscription refusée sur les domaines de messagerie publics (D16) |
+| Autorisation | garde unique `route()` : `401` sans session, `403` sans le rôle (D12), identifiant d'URL validé. Le rôle est relu en base à chaque requête : un changement de rôle s'applique sans reconnexion. Les pages `/manager` et `/hr` affichent « Accès réservé » en `403` si le rôle ne convient pas (D19) |
 | Isolation entre entreprises | repositories bornés à l'acteur, plus une RLS PostgreSQL effective (`SET LOCAL ROLE` vers `APP_DB_ROLE`), avec `company_id` recopié par trigger |
 | Ressource hors périmètre | `404`, identique à une ressource inexistante (son existence n'est pas révélée) |
 | Reçus | clé opaque (UUID), type vérifié sur la signature du fichier, 10 Mo au plus, URL présignée de 5 minutes |
-| Erreurs | `{ "error": "..." }` sans stack ni chemin interne. Le détail est journalisé côté serveur (SEC-05) |
+| Erreurs | `{ "error": "..." }` en anglais (D15), sans stack ni chemin interne. Le détail est journalisé côté serveur (SEC-05). L'écran affiche les messages en français |
 | Injection SQL | requêtes paramétrées, tri par liste blanche (SEC-01) |
 
 ## 5. Exploitation

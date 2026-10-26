@@ -128,6 +128,9 @@ export default function ExpensesPage() {
   }
 
   const total = notes.reduce((sum, note) => sum + note.amount, 0)
+  // Total par statut (D17, ADR-017) : affiché sous le total existant, inchangé.
+  const totalOf = (status: string) =>
+    notes.filter((note) => note.status === status).reduce((sum, note) => sum + note.amount, 0)
 
   return (
     <main className="flex flex-col gap-8">
@@ -138,6 +141,11 @@ export default function ExpensesPage() {
             ? `${notes.length} note${notes.length > 1 ? 's' : ''} · ${formatCurrency(total)} au total`
             : 'Soumets ta première note de frais ci-dessous.'}
         </p>
+        {notes.length > 0 && (
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            {`En attente : ${formatCurrency(totalOf('pending'))} · Approuvées : ${formatCurrency(totalOf('approved'))} · Rejetées : ${formatCurrency(totalOf('rejected'))}`}
+          </p>
+        )}
       </div>
 
       <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">

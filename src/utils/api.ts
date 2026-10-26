@@ -1,6 +1,7 @@
 import type {
   CompanyUserDto,
   ExpenseNoteDto,
+  HrUserDto,
   ReceiptUrlDto,
   SuggestionDto,
 } from '@/modules/shared/http/presenters'
@@ -14,14 +15,34 @@ export type ApiResult<T> = { ok: true; data: T } | { ok: false; error?: string }
 
 export type Decision = 'approve' | 'reject'
 
+/**
+ * Messages de l'API (en anglais depuis D15, ADR-015) affichés en français à
+ * l'écran. Les trois premiers reprennent mot pour mot les textes affichés
+ * avant la décision : l'écran ne change pas. Les autres messages de l'API
+ * (`Already decided`, `Invalid manager`…) étaient déjà affichés tels quels.
+ */
+const SCREEN_MESSAGES: Record<string, string> = {
+  'Invalid fields': 'Champs invalides',
+  'Receipt file type not allowed': 'Type de fichier non autorisé pour le reçu',
+  'File too large': 'Fichier trop volumineux',
+  'Manager has direct reports': 'Ce manager a encore des subordonnés : réaffectez-les d’abord.',
+}
+
 async function request<T>(url: string, init?: RequestInit): Promise<ApiResult<T>> {
   const response = await fetch(url, init)
   if (response.ok) {
     return { ok: true, data: (await response.json()) as T }
   }
   const body = await response.json().catch(() => null)
-  return { ok: false, error: typeof body?.error === 'string' ? body.error : undefined }
+  const error = typeof body?.error === 'string' ? body.error : undefined
+  return { ok: false, error: error && (SCREEN_MESSAGES[error] ?? error) }
 }
+
+const putJson = (body: unknown): RequestInit => ({
+  method: 'PUT',
+  headers: { 'content-type': 'application/json' },
+  body: JSON.stringify(body),
+})
 
 const post = { method: 'POST' }
 
@@ -43,11 +64,10 @@ export const managerApi = {
 export const hrApi = {
   listUsers: () => request<CompanyUserDto[]>('/api/hr/users'),
   assignManager: (userId: string, managerId: string | null) =>
-    request<CompanyUserDto>(`/api/hr/users/${userId}/manager`, {
-      method: 'PUT',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ managerId }),
-    }),
+    request<CompanyUserDto>(`/api/hr/users/${userId}/manager`, putJson({ managerId })),
+  changeRole: (userId: string, role: CompanyUserDto['role']) =>
+    request<CompanyUserDto>(`/api/hr/users/${userId}/role`, putJson({ role })),
+  me: () => request<HrUserDto>('/api/hr/me'),
   listPending: () => request<ExpenseNoteDto[]>('/api/hr/expense-notes'),
   receiptUrl: (id: string) => request<ReceiptUrlDto>(`/api/hr/expense-notes/${id}/receipt-url`),
   decide: (id: string, decision: Decision) =>

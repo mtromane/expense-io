@@ -1,5 +1,5 @@
 import { ConflictError, InvalidInputError, NotFoundError, type Actor } from '@/modules/shared/domain'
-import { INVALID_MANAGER, isSelfAssignment, type CompanyUser } from '../domain/CompanyUser'
+import { INVALID_MANAGER, isSelfAssignment, type CompanyUser, type HrUser } from '../domain/CompanyUser'
 import type { OrganizationRepository } from '../ports/OrganizationRepository'
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -21,17 +21,23 @@ function managerIdOf(input: unknown): string | null {
 }
 
 /**
- * Rattache (ou détache) un employé ou un manager de l'entreprise de la RH.
- * Le manager choisi doit être un manager de la même entreprise (SEC-03).
+ * Rattache (ou détache) un employé ou un manager de l'entreprise de la RH, ou
+ * la RH elle-même (son manager valide alors ses notes : D13, ADR-013). Le
+ * manager choisi doit être un manager de la même entreprise (SEC-03), et le
+ * rattachement ne doit pas créer de cycle hiérarchique (D18, MET-04).
  */
 export function makeAssignManager(deps: { organization: OrganizationRepository }) {
-  return async ({ actor, userId, input }: AssignManagerCommand): Promise<CompanyUser> => {
-    const member = await deps.organization.findMember(actor.id, userId)
+  return async ({ actor, userId, input }: AssignManagerCommand): Promise<CompanyUser | HrUser> => {
+    const member =
+      userId === actor.id
+        ? await deps.organization.findHr(actor.id)
+        : await deps.organization.findMember(actor.id, userId)
     if (!member) throw new NotFoundError()
     const managerId = managerIdOf(input)
     if (managerId !== null) {
       if (isSelfAssignment(userId, managerId)) throw new ConflictError(INVALID_MANAGER)
       if (!(await deps.organization.isManagerOfCompany(actor.id, managerId))) throw new ConflictError(INVALID_MANAGER)
+      if (await deps.organization.isAboveInHierarchy(userId, managerId)) throw new ConflictError(INVALID_MANAGER)
     }
     return deps.organization.setManager(userId, managerId)
   }

@@ -74,7 +74,9 @@ test('MET-03 la RH choisit son manager depuis la console RH',
     expectDefect('MET-03')
     const select = page.getByRole('combobox', { name: 'Manager qui valide mes notes de frais' })
     await expect(select).toBeVisible({ timeout: 5_000 }) // absent : échec attendu, pas un dépassement de délai
+    const saved = page.waitForResponse((r) => r.request().method() === 'PUT' && r.url().includes('/manager'))
     await select.selectOption({ label: 'Manager C' })
+    expect((await saved).status()).toBe(200)
     await page.reload()
     await expect(page.getByRole('combobox', { name: 'Manager qui valide mes notes de frais' })).toHaveValue(actor('mgrC').id)
   })
@@ -127,10 +129,13 @@ test('ROLE-01 menu de rôle dans la console RH',
     await loginUI(page, credentialsOf(actor('hrC')))
     await page.goto('/hr')
     expectDefect('ROLE-01')
-    const select = page.getByRole('combobox', { name: `Rôle de ${target.name}` })
-    await expect(select).toBeVisible({ timeout: 5_000 }) // absent : échec attendu, pas un dépassement de délai
-    await select.selectOption('manager')
-    await expect(page.getByRole('row').filter({ hasText: target.email }).getByRole('cell').nth(1)).toHaveText('manager')
+    // Un bouton et non un second menu : la ligne garde un seul combobox (celui du manager).
+    const row = page.getByRole('row').filter({ hasText: target.email })
+    const promote = row.getByRole('button', { name: 'Nommer manager' })
+    await expect(promote).toBeVisible({ timeout: 5_000 }) // absent : échec attendu, pas un dépassement de délai
+    await promote.click()
+    await expect(row.getByRole('cell').nth(1)).toHaveText('manager')
+    await expect(row.getByRole('button', { name: 'Rétrograder en employé' })).toBeVisible()
     const hr = await loginAs('hrC')
     await hr.put(`/api/hr/users/${target.id}/role`, { data: { role: 'employee' } })
     await hr.dispose()

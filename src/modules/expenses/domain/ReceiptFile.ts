@@ -1,6 +1,6 @@
 import { InvalidInputError } from '@/modules/shared/domain'
 
-export const RECEIPT_TYPE_REFUSED = 'Type de fichier non autorisé pour le reçu'
+export const RECEIPT_TYPE_REFUSED = 'Receipt file type not allowed'
 
 export type ReceiptType = 'image/png' | 'image/jpeg' | 'image/webp' | 'application/pdf'
 

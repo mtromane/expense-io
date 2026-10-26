@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import type { CompanyUserDto, ExpenseNoteDto } from '@/modules/shared/http/presenters'
+import type { CompanyUserDto, ExpenseNoteDto, HrUserDto } from '@/modules/shared/http/presenters'
 import { hrApi, type Decision } from '@/utils/api'
 import { formatCurrency, formatDate } from '@/utils/format'
 
@@ -13,6 +13,7 @@ export function AdminConsole() {
   const [usersLoading, setUsersLoading] = useState(true)
   const [usersError, setUsersError] = useState<string | null>(null)
   const [savingId, setSavingId] = useState<string | null>(null)
+  const [me, setMe] = useState<HrUserDto | null>(null)
 
   const [notes, setNotes] = useState<ExpenseNoteDto[]>([])
   const [notesLoading, setNotesLoading] = useState(true)
@@ -20,12 +21,13 @@ export function AdminConsole() {
   const [decidingId, setDecidingId] = useState<string | null>(null)
 
   const loadUsers = useCallback(async () => {
-    const result = await hrApi.listUsers()
+    const [result, profile] = await Promise.all([hrApi.listUsers(), hrApi.me()])
     if (result.ok) {
       setUsers(result.data)
     } else {
       setUsersError("Impossible de charger l'annuaire.")
     }
+    if (profile.ok) setMe(profile.data)
     setUsersLoading(false)
   }, [])
 
@@ -57,6 +59,19 @@ export function AdminConsole() {
       await loadUsers()
     } else {
       setUsersError(result.error ?? "Échec de l'assignation.")
+    }
+  }
+
+  async function handleRoleChange(user: CompanyUserDto) {
+    setSavingId(user.id)
+    setUsersError(null)
+    const result = await hrApi.changeRole(user.id, user.role === 'manager' ? 'employee' : 'manager')
+    setSavingId(null)
+
+    if (result.ok) {
+      await loadUsers()
+    } else {
+      setUsersError(result.error ?? 'Échec du changement de rôle.')
     }
   }
 
@@ -93,6 +108,34 @@ export function AdminConsole() {
         </p>
       </div>
 
+      {me && (
+        <section className="rounded-xl border border-gray-200 bg-white px-6 py-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+          <h2 className="text-base font-semibold">Validation de mes notes de frais</h2>
+          <div className="mt-3 flex flex-wrap items-center gap-3 text-sm">
+            <label htmlFor="my-manager">Manager qui valide mes notes de frais</label>
+            <select
+              id="my-manager"
+              value={me.managerId ?? ''}
+              disabled={savingId === me.id}
+              onChange={(event) => handleManagerChange(me.id, event.target.value)}
+              className={selectClass}
+            >
+              <option value="">— aucun —</option>
+              {managers.map((manager) => (
+                <option key={manager.id} value={manager.id}>
+                  {manager.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          {!me.managerId && (
+            <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+              Sans manager, vos notes de frais restent en attente : vous ne pouvez pas les valider vous-même.
+            </p>
+          )}
+        </section>
+      )}
+
       <section className="rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
         <h2 className="border-b border-gray-200 px-6 py-4 text-base font-semibold dark:border-gray-800">
           Organigramme ({users.length})
@@ -118,6 +161,7 @@ export function AdminConsole() {
                   <th className="px-6 py-3 font-medium">Nom</th>
                   <th className="px-6 py-3 font-medium">Rôle</th>
                   <th className="px-6 py-3 font-medium">Manager</th>
+                  <th className="px-6 py-3 font-medium">Changer le rôle</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
@@ -144,6 +188,16 @@ export function AdminConsole() {
                             </option>
                           ))}
                       </select>
+                    </td>
+                    <td className="px-6 py-3 whitespace-nowrap">
+                      <button
+                        type="button"
+                        disabled={savingId === user.id}
+                        onClick={() => handleRoleChange(user)}
+                        className="text-sm font-medium text-brand-600 hover:underline disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {user.role === 'manager' ? 'Rétrograder en employé' : 'Nommer manager'}
+                      </button>
                     </td>
                   </tr>
                 ))}

@@ -4,8 +4,10 @@ Inscription, connexion et acteur de la session courante.
 
 | Couche | Fichier | Rôle |
 |---|---|---|
+| domain | `PublicEmailDomains.ts` | domaines de messagerie publics refusés à l'inscription (D16, MET-01) |
 | domain | `SignupForm.ts` | validation du formulaire d'inscription, entreprise déduite du domaine de l'email, rôle du nouvel inscrit (premier du domaine : `hr_admin`, sinon `employee`) |
 | application | `signup.ts` | crée l'entreprise si besoin, puis le compte avec son mot de passe haché |
+| application | `resolveActor.ts` | acteur d'une session : le jeton identifie l'utilisateur, son **rôle est relu en base** (V-19, D14) |
 | application | `authenticate.ts` | vérifie des identifiants ; renvoie `null` aussi bien pour un email inconnu que pour un mot de passe faux |
 | ports | `UserRepository.ts`, `PasswordHasher.ts` | comptes et entreprises ; hachage |
 | infrastructure | `PgUserRepository.ts` | Postgres, hors transaction (aucun acteur avant la connexion ; `users` et `companies` ne sont pas soumises à la RLS) |
@@ -14,7 +16,7 @@ Inscription, connexion et acteur de la session courante.
 
 API publique (`index.ts`) : `signup`, `authenticate`, `getActor`, et les fonctions Auth.js `auth`, `handlers`, `signIn`, `signOut`.
 
-- `getActor()` sert à la garde `route()` (`shared/http`) : c'est l'acteur `{ id, role }` de la session, ou `null`.
+- `getActor()` sert à la garde `route()` (`shared/http`) et aux pages `/manager` et `/hr` : c'est l'acteur `{ id, role }` de la session, avec son rôle actuel lu en base, ou `null`. Une promotion prend donc effet sans reconnexion.
 - La server action `src/app/actions/auth.ts` appelle `signup` puis `signIn` (connexion automatique) ; elle ne contient plus de SQL.
 - `src/proxy.ts` (pages protégées) utilise `auth` de ce module.
 

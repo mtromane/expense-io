@@ -37,7 +37,7 @@ C'est une fabrique `make<CasDUsage>(deps)` qui reçoit ses ports et renvoie une 
 | Erreur | Réponse HTTP (par `route()`) |
 |---|---|
 | `NotFoundError` | `404 {"error":"Not found"}` : absent **ou hors périmètre** (même réponse) |
-| `InvalidInputError(message)` | `400 {"error": message}` |
+| `InvalidInputError(message)` | `400 {"error": message}` (message en anglais, défaut `Invalid fields` : D15) |
 | `ConflictError(message)` | `409 {"error": message}` |
 | autre | `500` générique, détail journalisé |
 
@@ -64,17 +64,17 @@ export const assignManager = makeAssignManager({ organization })
 
 ## 7. Route (`src/app/api/**/route.ts`)
 
-C'est un contrôleur fin : la garde, la lecture de la requête, l'appel au cas d'usage, le presenter. Le rôle se contrôle uniquement dans `route()`, jamais dans le handler :
+C'est un contrôleur fin : la garde, la lecture de la requête, l'appel au cas d'usage, le presenter. Le rôle se contrôle uniquement dans `route()`, jamais dans le handler (`401` sans session, `403` sans le rôle ; rôle relu en base) :
 
 ```ts
-export const PUT = route<{ id: string }>({ role: 'hr_admin', deniedStatus: 403 }, async ({ request, actor, params }) => {
+export const PUT = route<{ id: string }>({ role: 'hr_admin' }, async ({ request, actor, params }) => {
   const input = await request.json().catch(() => undefined)
   const user = await assignManager({ actor, userId: params.id, input })
-  return Response.json(user satisfies CompanyUserDto)
+  return Response.json(user)
 })
 ```
 
-Pour l'interface, on passe par `src/utils/api.ts` (client typé), en **ajoutant** les textes sans jamais renommer les existants.
+Pour l'interface, on passe par `src/utils/api.ts` (client typé, qui traduit en français les messages de l'API qu'il affiche), en **ajoutant** les textes sans jamais renommer les existants. Dans une ligne de tableau, on n'ajoute pas un second menu déroulant : les tests ciblent `row.getByRole('combobox')`. On préfère un bouton.
 
 ## 8. Contrat
 

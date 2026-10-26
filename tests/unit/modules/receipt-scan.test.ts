@@ -64,12 +64,12 @@ describe('suggestFromReceipt', () => {
     const read = vi.fn()
     await expect(
       makeSuggestFromReceipt({ scanner })({ declaredType: 'image/png', size: 10 * 1024 * 1024 + 1, read })
-    ).rejects.toEqual(new InvalidInputError('Fichier trop volumineux'))
+    ).rejects.toEqual(new InvalidInputError('File too large'))
     expect(read).not.toHaveBeenCalled()
   })
 
-  it('reçu absent → Champs invalides', async () => {
-    await expect(makeSuggestFromReceipt({ scanner })(null)).rejects.toEqual(new InvalidInputError('Champs invalides'))
+  it('reçu absent → Invalid fields', async () => {
+    await expect(makeSuggestFromReceipt({ scanner })(null)).rejects.toEqual(new InvalidInputError('Invalid fields'))
   })
 
   it('image lisible → montant et date', async () => {

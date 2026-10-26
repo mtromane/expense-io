@@ -71,7 +71,7 @@ Règle de dépendance, **vérifiée par `npm run lint` (en erreur)** :
 - les routes, pages et composants passent par les modules, jamais par la base, S3 ou l'OCR ;
 - `src/lib/` n'existe plus : tout le code vit dans les modules (règle vérifiée par ESLint).
 
-Où placer quoi : règle métier pure → `domain/` ; cas d'usage `make<CasDUsage>(deps)` → `application/` ; interface d'accès bornée à l'acteur → `ports/` ; SQL, S3, SDK → `infrastructure/` ; assemblage → `index.ts` ; contrôle de rôle → `route({ role, deniedStatus })`, jamais dans le handler. Les notes de frais se lisent et s'écrivent dans `withUserScope` (RLS).
+Où placer quoi : règle métier pure → `domain/` ; cas d'usage `make<CasDUsage>(deps)` → `application/` ; interface d'accès bornée à l'acteur → `ports/` ; SQL, S3, SDK → `infrastructure/` ; assemblage → `index.ts` ; contrôle de rôle → `route({ role })` (401 sans session, 403 sans le rôle), jamais dans le handler ; le rôle est relu en base à chaque requête. Les notes de frais se lisent et s'écrivent dans `withUserScope` (RLS).
 
 ## Ajouter une fonctionnalité
 

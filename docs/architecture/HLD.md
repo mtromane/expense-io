@@ -4,7 +4,7 @@ Vue d'ensemble de l'application après la refonte. Le détail de chaque module e
 
 ## 1. Le système
 
-Expense.io gère les notes de frais d'une entreprise. Un **employé** soumet une note avec son reçu. Son **manager** direct la valide ou la rejette. Les notes des managers racine (sans manager) vont à la **RH** de l'entreprise, qui gère aussi l'organigramme. Chaque entreprise est isolée des autres et se déduit du domaine de l'email à l'inscription.
+Expense.io gère les notes de frais d'une entreprise. Un **employé** soumet une note avec son reçu. Son **manager** direct la valide ou la rejette. Les notes des managers racine (sans manager) vont à la **RH** de l'entreprise, qui gère aussi l'organigramme : elle nomme les managers, rattache chacun à son manager, et se rattache elle-même à un manager qui valide ses propres notes. Chaque entreprise est isolée des autres et se déduit du domaine de l'email à l'inscription (domaines de messagerie publics refusés). Décisions métier : ADR-012 à ADR-019.
 
 ```mermaid
 flowchart LR
@@ -23,7 +23,7 @@ Un seul déploiement, découpé en modules métier qui ne se parlent que par leu
 | Module | Responsabilité | Cas d'usage | Ports (sortie) | Adapters |
 |---|---|---|---|---|
 | [`identity`](../../src/modules/identity/README.md) | inscription, connexion, acteur de la session | `signup`, `authenticate`, `getActor` | `UserRepository`, `PasswordHasher` | Postgres, bcrypt, Auth.js |
-| [`organization`](../../src/modules/organization/README.md) | annuaire de l'entreprise, rattachement à un manager | `listDirectory`, `assignManager` | `OrganizationRepository` | Postgres |
+| [`organization`](../../src/modules/organization/README.md) | annuaire de l'entreprise, rattachement à un manager, rôles, fiche RH | `listDirectory`, `assignManager`, `changeRole`, `getHrProfile` | `OrganizationRepository` | Postgres |
 | [`expenses`](../../src/modules/expenses/README.md) | soumettre et consulter ses notes et leurs reçus | `submitExpenseNote`, `listMyExpenseNotes`, `getMyReceiptUrl` | `ExpenseTransaction`, `ReceiptStoragePort` | Postgres (RLS), S3 |
 | [`approval`](../../src/modules/approval/README.md) | qui voit et tranche quelle note, décision atomique | `listPendingNotes`, `decideExpenseNote`, `getReceiptUrlForApprover` | `ApprovalTransaction`, `ReceiptStoragePort` | Postgres (RLS), S3 |
 | [`receipt-scan`](../../src/modules/receipt-scan/README.md) | suggestion de montant et de date par OCR | `suggestFromReceipt` | `ReceiptScanner` | Tesseract (pool de workers) |

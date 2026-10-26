@@ -33,7 +33,7 @@ function parseDate(raw: unknown): string {
 /**
  * Champs d'une nouvelle note : montant décimal positif tenant dans
  * numeric(10, 2) (ROB-03c, ROB-03d), date `YYYY-MM-DD` réelle (ROB-03b),
- * description non vide. Toute violation → 400 « Champs invalides ».
+ * description non vide. Toute violation → 400 « Invalid fields ».
  */
 export function parseNewExpenseNote(input: { amount: unknown; expenseDate: unknown; description: unknown }): NewExpenseNoteFields {
   const amount = parseAmount(input.amount)

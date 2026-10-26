@@ -27,6 +27,15 @@ export interface CompanyUserDto {
   managerId: string | null
 }
 
+/** Fiche de la RH connectée (GET /api/hr/me) : son manager valide ses notes (D13). */
+export interface HrUserDto {
+  id: string
+  name: string
+  email: string
+  role: 'hr_admin'
+  managerId: string | null
+}
+
 /** Suggestion OCR : champs absents quand rien n'est reconnu. */
 export interface SuggestionDto {
   amount?: number

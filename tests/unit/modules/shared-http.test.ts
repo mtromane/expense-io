@@ -32,34 +32,37 @@ beforeEach(() => {
 })
 
 describe('route() : session et rôle', () => {
-  it('sans session → statut de refus de la route, handler jamais appelé', async () => {
+  it('sans session → 401, avec ou sans rôle exigé, handler jamais appelé (D12)', async () => {
     const handler = okHandler()
-    for (const deniedStatus of [401, 403] as const) {
-      const response = await call(route({ deniedStatus }, handler), {})
-      expect(response.status).toBe(deniedStatus)
+    for (const access of [{}, { role: 'manager' as const }, { role: 'hr_admin' as const }]) {
+      const response = await call(route(access, handler), {})
+      expect(response.status).toBe(401)
       expect(await response.json()).toEqual({ error: 'Unauthorized' })
     }
     expect(handler).not.toHaveBeenCalled()
   })
 
-  it('mauvais rôle → refus, handler jamais appelé', async () => {
+  it('session sans le rôle exigé → 403, handler jamais appelé (D12)', async () => {
     session.actor = EMPLOYEE
     const handler = okHandler()
-    const response = await call(route({ role: 'manager', deniedStatus: 401 }, handler), {})
-    expect(response.status).toBe(401)
+    for (const role of ['manager', 'hr_admin'] as const) {
+      const response = await call(route({ role }, handler), {})
+      expect(response.status).toBe(403)
+      expect(await response.json()).toEqual({ error: 'Unauthorized' })
+    }
     expect(handler).not.toHaveBeenCalled()
   })
 
   it('bon rôle → handler appelé avec l’acteur de la session', async () => {
     session.actor = MANAGER
-    const response = await call(route({ role: 'manager', deniedStatus: 401 }, okHandler()), {})
+    const response = await call(route({ role: 'manager' }, okHandler()), {})
     expect(response.status).toBe(200)
     expect(await response.json()).toEqual({ actor: MANAGER })
   })
 
   it('sans rôle exigé → toute session passe', async () => {
     session.actor = EMPLOYEE
-    expect((await call(route({ deniedStatus: 401 }, okHandler()), {})).status).toBe(200)
+    expect((await call(route({}, okHandler()), {})).status).toBe(200)
   })
 })
 
@@ -68,7 +71,7 @@ describe('route() : identifiant d’URL (ROB-03a)', () => {
     session.actor = MANAGER
     const handler = okHandler()
     for (const id of ['abc', '1', `${NOTE_ID}x`, "' OR 1=1 --"]) {
-      const response = await call(route<{ id: string }>({ deniedStatus: 401 }, handler), { id })
+      const response = await call(route<{ id: string }>({}, handler), { id })
       expect(response.status).toBe(404)
       expect(await response.json()).toEqual({ error: 'Not found' })
     }
@@ -78,7 +81,7 @@ describe('route() : identifiant d’URL (ROB-03a)', () => {
   it('UUID valide → transmis au handler', async () => {
     session.actor = MANAGER
     const handler = vi.fn(async ({ params }: { params: { id: string } }) => Response.json(params))
-    const response = await call(route<{ id: string }>({ deniedStatus: 401 }, handler), { id: NOTE_ID })
+    const response = await call(route<{ id: string }>({}, handler), { id: NOTE_ID })
     expect(await response.json()).toEqual({ id: NOTE_ID })
   })
 })
@@ -87,13 +90,13 @@ describe('route() : erreurs traduites', () => {
   const cases = [
     ['NotFoundError', new NotFoundError(), 404, 'Not found'],
     ['ConflictError', new ConflictError('Already decided'), 409, 'Already decided'],
-    ['InvalidInputError', new InvalidInputError(), 400, 'Champs invalides'],
-    ['InvalidInputError avec message', new InvalidInputError('Fichier trop volumineux'), 400, 'Fichier trop volumineux'],
+    ['InvalidInputError', new InvalidInputError(), 400, 'Invalid fields'],
+    ['InvalidInputError avec message', new InvalidInputError('File too large'), 400, 'File too large'],
   ] as const
   for (const [name, error, status, message] of cases) {
     it(`${name} → ${status} { error: "${message}" }`, async () => {
       session.actor = EMPLOYEE
-      const response = await call(route({ deniedStatus: 401 }, async () => { throw error }), {})
+      const response = await call(route({}, async () => { throw error }), {})
       expect(response.status).toBe(status)
       expect(await response.json()).toEqual({ error: message })
     })
@@ -103,7 +106,7 @@ describe('route() : erreurs traduites', () => {
     session.actor = EMPLOYEE
     const logged = vi.spyOn(console, 'error').mockImplementation(() => {})
     const response = await call(
-      route({ deniedStatus: 401 }, async () => {
+      route({}, async () => {
         throw new Error('relation "expense_notes" does not exist at /app/src/x.ts:12')
       }),
       {}
@@ -119,16 +122,16 @@ describe('route() : erreurs traduites', () => {
 describe('route() : corrélation', () => {
   it('reprend un x-request-id valide, y compris sur une erreur', async () => {
     session.actor = EMPLOYEE
-    const ok = await call(route({ deniedStatus: 401 }, okHandler()), {}, { 'x-request-id': 'req-42' })
+    const ok = await call(route({}, okHandler()), {}, { 'x-request-id': 'req-42' })
     expect(ok.headers.get('x-request-id')).toBe('req-42')
-    const failed = await call(route({ deniedStatus: 401 }, async () => { throw new NotFoundError() }), {}, { 'x-request-id': 'req-43' })
+    const failed = await call(route({}, async () => { throw new NotFoundError() }), {}, { 'x-request-id': 'req-43' })
     expect(failed.headers.get('x-request-id')).toBe('req-43')
   })
 
   it('en génère un si l’en-tête est absent ou invalide', async () => {
     session.actor = EMPLOYEE
     for (const headers of [{}, { 'x-request-id': 'a b<script>' }] as HeadersInit[]) {
-      const response = await call(route({ deniedStatus: 401 }, okHandler()), {}, headers)
+      const response = await call(route({}, okHandler()), {}, headers)
       expect(response.headers.get('x-request-id')).toMatch(/^[0-9a-f-]{36}$/)
     }
   })

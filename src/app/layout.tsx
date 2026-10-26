@@ -3,7 +3,7 @@ import type { ReactNode } from 'react'
 import { Geist, Geist_Mono } from 'next/font/google'
 import Link from 'next/link'
 import './globals.css'
-import { auth } from '@/modules/identity'
+import { auth, getActor } from '@/modules/identity'
 import { logout } from '@/app/actions/auth'
 import { NavItem } from '@/components/NavItem'
 
@@ -24,6 +24,8 @@ export const metadata: Metadata = {
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
   const session = await auth()
+  // Rôle actuel (relu en base) : une promotion fait apparaître le menu sans reconnexion.
+  const role = session?.user ? (await getActor())?.role : undefined
 
   return (
     <html lang="fr" className={`${geistSans.variable} ${geistMono.variable}`}>
@@ -38,10 +40,10 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
             </Link>
             {session?.user && (
               <form action={logout} className="flex items-center gap-3">
-                {session.user.role === 'manager' && (
+                {role === 'manager' && (
                   <NavItem href="/manager" label="Manager" />
                 )}
-                {session.user.role === 'hr_admin' && (
+                {role === 'hr_admin' && (
                   <NavItem href="/hr" label="RH" />
                 )}
                 <span className="hidden text-sm text-gray-500 sm:inline dark:text-gray-400">

@@ -19,9 +19,9 @@ export class ConflictError extends Error {
   }
 }
 
-/** Entrée refusée ; le message est celui renvoyé au client. */
+/** Entrée refusée ; le message est celui renvoyé au client (en anglais : D15, ADR-015). */
 export class InvalidInputError extends Error {
-  constructor(message = 'Champs invalides') {
+  constructor(message = 'Invalid fields') {
     super(message)
     this.name = 'InvalidInputError'
   }

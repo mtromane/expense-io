@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { makeAuthenticate } from '@/modules/identity/application/authenticate'
+import { makeResolveActor } from '@/modules/identity/application/resolveActor'
 import { makeSignup } from '@/modules/identity/application/signup'
+import { PUBLIC_DOMAIN_REFUSED } from '@/modules/identity/domain/PublicEmailDomains'
 import { EMAIL_TAKEN, INVALID_SIGNUP } from '@/modules/identity/domain/SignupForm'
 import type { PasswordHasher } from '@/modules/identity/ports/PasswordHasher'
 import type { NewUser, UserCredentials, UserRepository } from '@/modules/identity/ports/UserRepository'
@@ -19,6 +21,11 @@ class InMemoryUsers implements UserRepository {
   async findCredentials(email: string): Promise<UserCredentials | null> {
     const user = this.users.find((u) => u.email === email)
     return user ? { id: user.id, email: user.email, passwordHash: user.passwordHash, role: user.role } : null
+  }
+
+  async findActor(id: string) {
+    const user = this.users.find((u) => u.id === id)
+    return user ? { id: user.id, role: user.role } : null
   }
 
   async emailExists(email: string) {
@@ -94,6 +101,22 @@ describe('signup', () => {
   }
 })
 
+describe('signup : domaines publics (D16, MET-01)', () => {
+  for (const email of ['alice@gmail.com', 'bob@Outlook.FR', 'carole@orange.fr']) {
+    it(`${email} refusé, rien n’est créé`, async () => {
+      const { users, signup } = setup()
+      expect(await signup({ ...FORM, email })).toEqual({ ok: false, error: PUBLIC_DOMAIN_REFUSED })
+      expect(users.users).toHaveLength(0)
+      expect(users.companies.size).toBe(0)
+    })
+  }
+
+  it('un domaine d’entreprise reste accepté', async () => {
+    const { signup } = setup()
+    expect((await signup({ ...FORM, email: 'alice@acme-gmail.com' })).ok).toBe(true)
+  })
+})
+
 describe('authenticate', () => {
   it('renvoie l’acteur pour des identifiants valides', async () => {
     const { signup, authenticate } = setup()
@@ -110,5 +133,24 @@ describe('authenticate', () => {
     await signup(FORM)
     expect(await authenticate('inconnu@acme.io', 'motdepasse1')).toBeNull()
     expect(await authenticate('alice@Acme.io', 'mauvais-mot')).toBeNull()
+  })
+})
+
+describe('resolveActor (V-19, D14)', () => {
+  it('rôle relu en base : un changement de rôle s’applique sans reconnexion', async () => {
+    const { users, signup } = setup()
+    await signup(FORM)
+    const resolveActor = makeResolveActor({ users })
+    expect(await resolveActor('user-1')).toEqual({ id: 'user-1', role: 'hr_admin' })
+    users.users[0].role = 'employee'
+    expect(await resolveActor('user-1')).toEqual({ id: 'user-1', role: 'employee' })
+  })
+
+  it('sans session ou compte supprimé → aucun acteur', async () => {
+    const { users } = setup()
+    const resolveActor = makeResolveActor({ users })
+    expect(await resolveActor(null)).toBeNull()
+    expect(await resolveActor(undefined)).toBeNull()
+    expect(await resolveActor('inconnu')).toBeNull()
   })
 })
