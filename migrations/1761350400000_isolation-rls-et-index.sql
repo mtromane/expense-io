@@ -19,13 +19,19 @@ CREATE TRIGGER expense_notes_set_company
   BEFORE INSERT ON expense_notes
   FOR EACH ROW EXECUTE FUNCTION expense_notes_set_company();
 
--- 2. Index des listes : employé (ses notes par date), manager et RH (notes en attente).
+-- 2. Index des listes : employé (ses notes par date), manager et RH (notes en
+--    attente), rattachés d'un manager (calculés par les policies).
+CREATE INDEX users_manager_idx ON users (manager_id);
 CREATE INDEX expense_notes_user_created_idx ON expense_notes (user_id, created_at);
 CREATE INDEX expense_notes_pending_user_idx ON expense_notes (user_id, created_at) WHERE status = 'pending';
 CREATE INDEX expense_notes_pending_company_idx ON expense_notes (company_id, created_at) WHERE status = 'pending';
 
--- 3. Policies réécrites : sous-requêtes non corrélées (calculées une fois par
---    requête, compatibles avec les index) ; la RH est limitée à son entreprise.
+-- 3. Policies réécrites ; la RH est limitée à son entreprise. Chaque sous-requête
+--    est calculée une fois par requête, et `user_id = ANY (ARRAY(...))` sert de
+--    condition d'index : la RLS empêche d'utiliser la jointure de la requête
+--    applicative comme condition d'index, seules les policies le peuvent. Avec
+--    `user_id IN (SELECT ...)`, la liste manager lisait toutes les notes en
+--    attente puis les filtrait (x200 sur 193 000 notes).
 CREATE FUNCTION app_current_user_id() RETURNS uuid
 LANGUAGE sql STABLE AS $$
   SELECT nullif(current_setting('app.current_user_id', true), '')::uuid
@@ -39,27 +45,27 @@ DROP POLICY expense_notes_hr_root_manager_select ON expense_notes;
 DROP POLICY expense_notes_hr_root_manager_update ON expense_notes;
 
 CREATE POLICY expense_notes_owner_select ON expense_notes
-  FOR SELECT USING (user_id = app_current_user_id());
+  FOR SELECT USING (user_id = (SELECT app_current_user_id()));
 
 CREATE POLICY expense_notes_owner_insert ON expense_notes
-  FOR INSERT WITH CHECK (user_id = app_current_user_id());
+  FOR INSERT WITH CHECK (user_id = (SELECT app_current_user_id()));
 
 CREATE POLICY expense_notes_manager_select ON expense_notes
-  FOR SELECT USING (user_id IN (SELECT id FROM users WHERE manager_id = app_current_user_id()));
+  FOR SELECT USING (user_id = ANY (ARRAY(SELECT id FROM users WHERE manager_id = (SELECT app_current_user_id()))));
 
 CREATE POLICY expense_notes_manager_update ON expense_notes
-  FOR UPDATE USING (user_id IN (SELECT id FROM users WHERE manager_id = app_current_user_id()));
+  FOR UPDATE USING (user_id = ANY (ARRAY(SELECT id FROM users WHERE manager_id = (SELECT app_current_user_id()))));
 
 CREATE POLICY expense_notes_hr_root_manager_select ON expense_notes
   FOR SELECT USING (
-    company_id = (SELECT company_id FROM users WHERE id = app_current_user_id() AND role = 'hr_admin')
-    AND user_id IN (SELECT id FROM users WHERE role = 'manager' AND manager_id IS NULL)
+    company_id = (SELECT company_id FROM users WHERE id = (SELECT app_current_user_id()) AND role = 'hr_admin')
+    AND user_id = ANY (ARRAY(SELECT id FROM users WHERE role = 'manager' AND manager_id IS NULL))
   );
 
 CREATE POLICY expense_notes_hr_root_manager_update ON expense_notes
   FOR UPDATE USING (
-    company_id = (SELECT company_id FROM users WHERE id = app_current_user_id() AND role = 'hr_admin')
-    AND user_id IN (SELECT id FROM users WHERE role = 'manager' AND manager_id IS NULL)
+    company_id = (SELECT company_id FROM users WHERE id = (SELECT app_current_user_id()) AND role = 'hr_admin')
+    AND user_id = ANY (ARRAY(SELECT id FROM users WHERE role = 'manager' AND manager_id IS NULL))
   );
 
 -- 4. Rôle applicatif sans privilège, pris dans chaque transaction scopée
@@ -115,6 +121,7 @@ CREATE POLICY expense_notes_hr_root_manager_update ON expense_notes
 DROP INDEX expense_notes_pending_company_idx;
 DROP INDEX expense_notes_pending_user_idx;
 DROP INDEX expense_notes_user_created_idx;
+DROP INDEX users_manager_idx;
 DROP TRIGGER expense_notes_set_company ON expense_notes;
 DROP FUNCTION expense_notes_set_company();
 ALTER TABLE expense_notes DROP COLUMN company_id;
