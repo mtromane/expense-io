@@ -19,7 +19,7 @@ Cocher chaque ligne. Une seule case vide = migration non terminée.
 
 ### 2.1 Rien n'a été perdu (parité)
 
-- [ ] Les **253 tests `@parity`** passent : `npx playwright test --grep @parity`.
+- [ ] Les **231 tests `@parity`** passent (253 avant que D12 ne fasse passer 22 cellules de la matrice en défauts) : `npx playwright test --grep @parity`.
 - [ ] Toutes les réponses de l'API sont conformes au contrat **`docs/api/openapi.yaml`** : c'est vérifié automatiquement sur chaque réponse obtenue par les tests (schémas stricts, codes HTTP documentés).
 - [ ] Aucun test `@parity` n'a été modifié, sauf changement de comportement **voulu** (§2.3), justifié dans la PR et validé par la team Tests.
 - [ ] Le **contrat** ci-dessous est intact (il est vérifié par les tests, mais c'est lui qui compte) :
