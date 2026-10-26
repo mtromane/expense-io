@@ -7,7 +7,7 @@ import { beforeAll, describe, expect, it, vi } from 'vitest'
  * tests/e2e/guards.spec.ts.
  */
 
-vi.mock('@/lib/auth', () => ({
+vi.mock('@/modules/identity', () => ({
   auth: (handler: unknown) => handler,
 }))
 

@@ -69,7 +69,7 @@ Règle de dépendance, **vérifiée par `npm run lint` (en erreur)** :
 - `domain/`, `application/` et `ports/` n'importent ni `pg`, ni `@aws-sdk/*`, ni `tesseract.js`, ni `bcryptjs`, ni Next.js / Auth.js, ni `@/lib/*`, ni `shared/http`, ni `shared/infrastructure` ;
 - un module s'importe par son `index.ts`, jamais par ses fichiers internes ;
 - les routes, pages et composants passent par les modules, jamais par la base, S3 ou l'OCR ;
-- `src/lib/*` ne contient que des façades figées par les unitaires de la team Tests : ne pas y ajouter de code, ne pas les importer (seule exception : `src/proxy.ts`, remplacé par `tests/unit/proxy.test.ts`).
+- `src/lib/` n'existe plus : tout le code vit dans les modules (règle vérifiée par ESLint).
 
 Où placer quoi : règle métier pure → `domain/` ; cas d'usage `make<CasDUsage>(deps)` → `application/` ; interface d'accès bornée à l'acteur → `ports/` ; SQL, S3, SDK → `infrastructure/` ; assemblage → `index.ts` ; contrôle de rôle → `route({ role, deniedStatus })`, jamais dans le handler. Les notes de frais se lisent et s'écrivent dans `withUserScope` (RLS).
 

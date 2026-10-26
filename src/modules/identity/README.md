@@ -16,7 +16,7 @@ API publique (`index.ts`) : `signup`, `authenticate`, `getActor`, et les fonctio
 
 - `getActor()` sert à la garde `route()` (`shared/http`) : c'est l'acteur `{ id, role }` de la session, ou `null`.
 - La server action `src/app/actions/auth.ts` appelle `signup` puis `signIn` (connexion automatique) ; elle ne contient plus de SQL.
-- `src/lib/auth.ts` réexporte ce module. Il est gardé parce que `tests/unit/proxy.test.ts` remplace ce chemin.
+- `src/proxy.ts` (pages protégées) utilise `auth` de ce module.
 
 Messages du contrat (formulaire) : `INVALID_SIGNUP`, `EMAIL_TAKEN`.
 

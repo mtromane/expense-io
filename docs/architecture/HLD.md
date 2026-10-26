@@ -29,7 +29,7 @@ Un seul déploiement, découpé en modules métier qui ne se parlent que par leu
 | [`receipt-scan`](../../src/modules/receipt-scan/README.md) | suggestion de montant et de date par OCR | `suggestFromReceipt` | `ReceiptScanner` | Tesseract (pool de workers) |
 | [`shared`](../../src/modules/shared/README.md) | socle commun | garde HTTP `route()`, erreurs typées, presenters, transaction scopée, logger | — | — |
 
-`src/domain/` (entités `ExpenseNote` et `User`), `src/ports/` et `src/adapters/` sont les couches historiques, ranimées et branchées ([ADR-004](adr/ADR-004-ranimer-le-domaine.md)) : les modules s'en servent. `src/lib/` ne contient plus que des façades qui réexportent les modules. Elles sont gardées parce que les unitaires de la team Tests importent ces chemins.
+`src/domain/` (entités `ExpenseNote` et `User`), `src/ports/` et `src/adapters/` sont les couches historiques, ranimées et branchées ([ADR-004](adr/ADR-004-ranimer-le-domaine.md)) : les modules s'en servent. L'ancien `src/lib/` a été vidé dans les modules puis supprimé.
 
 ## 4. Règle de dépendance
 

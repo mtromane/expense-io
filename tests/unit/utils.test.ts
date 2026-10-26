@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { respondError } from '@/lib/errors'
+import { errorResponse as respondError } from '@/modules/shared/http/errors'
 import { formatCurrency, formatDate, truncate } from '@/utils/format'
 import { isNonEmptyString, isPositiveAmount, isValidEmail } from '@/utils/validators'
 

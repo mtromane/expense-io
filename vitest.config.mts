@@ -16,7 +16,7 @@ export default defineConfig({
     unstubEnvs: true,
     coverage: {
       provider: 'v8',
-      include: ['src/lib/**', 'src/domain/**', 'src/utils/**', 'src/proxy.ts', 'src/modules/**', 'src/config.ts'],
+      include: ['src/domain/**', 'src/utils/**', 'src/proxy.ts', 'src/modules/**', 'src/config.ts'],
       reporter: ['text', 'html', 'json-summary'],
       reportsDirectory: 'coverage',
     },

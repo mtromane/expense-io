@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 /**
- * Stockage des reçus (src/lib/storage.ts) : URL présignée (durée de vie
+ * Stockage des reçus (src/modules/shared/infrastructure/s3ReceiptStorage.ts) : URL présignée (durée de vie
  * courte), variables d'environnement de .env.example réellement prises en
  * compte, client S3 réutilisé. Signature calculée localement : aucun appel
  * réseau. Le format de la clé (`receiptKeyFor`) n'est pas figé ici : SEC-06
@@ -15,7 +15,7 @@ async function loadStorage(env: Record<string, string> = {}) {
   vi.stubEnv('S3_SECRET_ACCESS_KEY', 'test-secret')
   for (const [name, value] of Object.entries(env)) vi.stubEnv(name, value)
   vi.resetModules()
-  const storage = await import('@/lib/storage')
+  const storage = await import('@/modules/shared/infrastructure/s3ReceiptStorage')
   const { S3Client, PutObjectCommand } = await import('@aws-sdk/client-s3')
   return { storage, S3Client, PutObjectCommand }
 }

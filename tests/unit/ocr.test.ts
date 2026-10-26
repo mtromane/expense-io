@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 /**
- * Règles d'extraction de la suggestion OCR (src/lib/ocr.ts).
+ * Règles d'extraction de la suggestion OCR (module receipt-scan).
  *
  * Tesseract est simulé : le test fournit le texte « reconnu », ce qui isole
  * les règles montant / date du moteur. Les deux API de tesseract.js sont
@@ -33,7 +33,7 @@ vi.mock('tesseract.js', () => {
   return { ...api, default: api }
 })
 
-type SuggestFields = typeof import('@/lib/ocr').suggestFields
+type SuggestFields = typeof import('@/modules/receipt-scan').suggestFromImage
 let suggestFields: SuggestFields
 
 const PNG = { data: Buffer.from('image'), mimeType: 'image/png' }
@@ -53,7 +53,7 @@ beforeEach(async () => {
   // Module neuf à chaque test : un worker mis en cache par une version
   // optimisée ne fuit pas d'un test à l'autre.
   vi.resetModules()
-  ;({ suggestFields } = await import('@/lib/ocr'))
+  ;({ suggestFromImage: suggestFields } = await import('@/modules/receipt-scan'))
 })
 
 describe('OCR — montant', () => {

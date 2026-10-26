@@ -1,9 +1,9 @@
 import { types, type Pool } from 'pg'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { getPool, withUserScope } from '@/lib/db'
+import { getPool, withUserScope } from '@/modules/shared/infrastructure/db'
 
 /**
- * Accès base (src/lib/db.ts) : portée utilisateur transactionnelle et pool
+ * Accès base (src/modules/shared/infrastructure/db.ts) : portée utilisateur transactionnelle et pool
  * unique. Le pool est remplacé par un faux via `global.__pgPool` : aucun
  * Postgres requis. Ces garanties comptent pour les optimisations d'accès aux
  * données (PERF-02, pool, requêtes regroupées) :

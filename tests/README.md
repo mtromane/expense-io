@@ -36,11 +36,11 @@ Une fois l'environnement prêt : `npx playwright test <fichier> --no-deps`.
 ## Tests unitaires (Vitest)
 
 ```bash
-npm run test:unit            # environ 115 tests, moins d'une seconde
+npm run test:unit            # environ 190 tests, quelques secondes
 npm run test:unit:coverage   # + couverture (rapport HTML dans coverage/)
 ```
 
-Fichiers `tests/unit/*.test.ts` (Playwright ne lit que les `*.spec.ts`).
+Fichiers `tests/unit/**/*.test.ts` (Playwright ne lit que les `*.spec.ts`).
 Aucun service requis : base, S3 et Tesseract sont simulés.
 
 | Fichier | Ce qui est figé | Optimisation surveillée |
@@ -49,7 +49,13 @@ Aucun service requis : base, S3 et Tesseract sont simulés.
 | `db.test.ts` | `withUserScope` : transaction, contexte utilisateur **local** à la transaction, connexion toujours rendue ; pool unique ; dates SQL en chaîne | requêtes regroupées, pool |
 | `storage.test.ts` | URL présignée (bucket, clé, 5 min), variables `S3_*`, client S3 réutilisé, erreurs propagées | adaptateurs de stockage |
 | `proxy.test.ts` | pages protégées → `/login` sans session | middleware |
-| `domain.test.ts`, `utils.test.ts` | règles du domaine (`src/domain/`, `src/utils/`, pas encore branchés) et `respondError` | nouveau domaine |
+| `domain.test.ts`, `utils.test.ts` | règles du domaine (`src/domain/`, `src/utils/`) et traduction des erreurs (`errorResponse`) | domaine ranimé |
+| `modules/approval.test.ts` | `ApprovalPolicy` (qui valide quoi), décision : hors périmètre → 404, déjà tranchée ou concurrente → 409 ; reçu valideur borné (SEC-02) | décision atomique (ROB-02) |
+| `modules/expenses.test.ts` | tri par liste blanche (SEC-01), saisie (ROB-03b/c/d), signature du reçu (SEC-07), clé opaque et compensation S3 (SEC-06, ROB-01) | — |
+| `modules/organization.test.ts` | rattachement borné à l'entreprise (SEC-03), corps invalide sans écriture (ROB-03e) | — |
+| `modules/receipt-scan.test.ts` | pool Tesseract : réutilisation, taille bornée, délai ; limite de 10 Mo (SEC-08) | PERF-01 |
+| `modules/identity.test.ts` | inscription (entreprise du domaine, premier inscrit RH, doublon, formulaire invalide), mot de passe jamais en clair, connexion | — |
+| `modules/shared-http.test.ts` | garde `route()` : session et rôle, id non-UUID → 404 (ROB-03a), erreurs traduites sans stack (SEC-05), `x-request-id` ; presenter du contrat | — |
 
 Tesseract est simulé dans ses deux API (`createWorker` et `createScheduler`),
 pour que les tests survivent à la réutilisation du worker. Les tests

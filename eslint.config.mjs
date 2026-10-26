@@ -21,10 +21,10 @@ const MODULE_INTERNALS = {
   message: "Importer un module par son index (@/modules/<module>), jamais ses fichiers internes.",
 };
 
-// src/lib ne contient plus que des façades figées par les unitaires de la team Tests.
+// src/lib a été vidé puis supprimé (étape 8) : le code vit dans les modules.
 const LEGACY_LIB = {
-  group: ["@/lib/*"],
-  message: "src/lib ne contient que des façades historiques : importer le module (@/modules/<module>).",
+  group: ["@/lib", "@/lib/*"],
+  message: "src/lib n'existe plus : importer le module (@/modules/<module>).",
 };
 
 const eslintConfig = defineConfig([
@@ -45,7 +45,7 @@ const eslintConfig = defineConfig([
     "coverage/**",
   ]),
   {
-    // Adapters et assemblage des modules : pas de retour vers les façades de src/lib.
+    // Adapters et assemblage des modules : pas de retour vers src/lib.
     files: ["src/modules/**"],
     rules: {
       "no-restricted-imports": [ARCHITECTURE_LEVEL, { patterns: [LEGACY_LIB] }],
@@ -85,9 +85,9 @@ const eslintConfig = defineConfig([
         ARCHITECTURE_LEVEL,
         {
           patterns: [
-            { group: ["pg", "pg/*", "@/lib/db"], message: "Pas de SQL dans un contrôleur : passer par un cas d'usage." },
-            { group: ["@aws-sdk/*", "@/lib/storage"], message: "Stockage des reçus : passer par un module." },
-            { group: ["tesseract.js", "@/lib/ocr"], message: "OCR : passer par le module receipt-scan." },
+            { group: ["pg", "pg/*"], message: "Pas de SQL dans un contrôleur : passer par un cas d'usage." },
+            { group: ["@aws-sdk/*"], message: "Stockage des reçus : passer par un module." },
+            { group: ["tesseract.js"], message: "OCR : passer par le module receipt-scan." },
             { group: ["bcryptjs"], message: "Mots de passe : passer par le module identity." },
             {
               group: ["@/modules/shared/infrastructure", "@/modules/shared/infrastructure/*"],
