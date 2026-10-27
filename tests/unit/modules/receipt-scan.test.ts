@@ -68,13 +68,18 @@ describe('TesseractWorkerPool', () => {
   })
 
   it('délai dépassé : la place n’est rendue qu’une fois le worker arrêté (jamais plus de workers vivants que la taille)', async () => {
-    const pool = new TesseractWorkerPool({ size: 1, timeoutMs: 20 })
-    engine.state.delayMs = 100
-    engine.state.terminateDelayMs = 50
-    const first = pool.recognizeText(Buffer.from('img'))
-    const second = pool.recognizeText(Buffer.from('img'))
-    await expect(first).rejects.toThrow(/interrompue/)
-    await expect(second).rejects.toThrow(/interrompue/)
+    // Chronologie : la 1re reconnaissance expire à 100 ms, son worker s'arrête à 120 ms.
+    // La 2e requête arrive à 80 ms et peut attendre jusqu'à 180 ms : elle obtient la place
+    // à 120 ms (après l'arrêt) ; si la place était rendue dès 100 ms, deux workers vivraient.
+    const pool = new TesseractWorkerPool({ size: 1, timeoutMs: 100 })
+    engine.state.delayMs = 300
+    engine.state.terminateDelayMs = 20
+    const first = pool.recognizeText(Buffer.from('img')).then(() => 'ok', (error: Error) => error.message)
+    await new Promise((resolve) => setTimeout(resolve, 80))
+    const second = pool.recognizeText(Buffer.from('img')).then(() => 'ok', (error: Error) => error.message)
+    expect(await first).toMatch(/Reconnaissance OCR interrompue/)
+    expect(await second).toMatch(/Reconnaissance OCR interrompue/) // a bien obtenu une place, puis expiré à son tour
+    expect(engine.createWorker).toHaveBeenCalledTimes(2)
     expect(engine.state.maxLive).toBe(1)
   })
 })
