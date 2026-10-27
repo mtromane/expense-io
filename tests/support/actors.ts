@@ -28,6 +28,10 @@ export type ActorKey =
   | 'sessionC'
   | 'promoteUiC'
   | 'totalsC'
+  | 'raceMgrC'
+  | 'raceEmpC'
+  | 'cycleMgrC1'
+  | 'cycleMgrC2'
 
 export interface Actor {
   key: ActorKey

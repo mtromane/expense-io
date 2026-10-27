@@ -10,7 +10,8 @@ Annuaire de l'entreprise, rattachement à un manager, rôle des membres et fiche
 | application | `changeRole.ts` | nomme un employé manager ou rétrograde un manager (D14) ; rétrogradation refusée s'il a encore des subordonnés (`409 Manager has direct reports`) |
 | application | `getHrProfile.ts` | fiche de la RH connectée, dont son manager (D13) |
 | ports | `OrganizationRepository.ts` | toutes les méthodes prennent l'identifiant de la RH : la requête est bornée à son entreprise |
-| infrastructure | `PgOrganizationRepository.ts` | Postgres, une requête par lecture ; cycle détecté par une requête récursive qui remonte la chaîne des managers |
+| ports | `OrganizationTransaction` | changement d'organigramme exécuté seul pour son entreprise : vérifications et écriture ne se croisent jamais |
+| infrastructure | `PgOrganizationRepository.ts` | Postgres, une requête par lecture ; cycle détecté par une requête récursive qui remonte la chaîne des managers ; `pgOrganizationTransaction` : transaction avec verrou consultatif par entreprise (`pg_advisory_xact_lock`) pour le rattachement et le changement de rôle |
 
 API publique : `listDirectory`, `assignManager`, `changeRole`, `getHrProfile`, types `CompanyUser`, `HrUser`.
 

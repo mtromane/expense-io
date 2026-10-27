@@ -1,6 +1,6 @@
 import { ConflictError, InvalidInputError, NotFoundError, type Actor } from '@/modules/shared/domain'
 import { INVALID_MANAGER, isSelfAssignment, type CompanyUser, type HrUser } from '../domain/CompanyUser'
-import type { OrganizationRepository } from '../ports/OrganizationRepository'
+import type { OrganizationTransaction } from '../ports/OrganizationRepository'
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -24,21 +24,21 @@ function managerIdOf(input: unknown): string | null {
  * Rattache (ou détache) un employé ou un manager de l'entreprise de la RH, ou
  * la RH elle-même (son manager valide alors ses notes : D13, ADR-013). Le
  * manager choisi doit être un manager de la même entreprise (SEC-03), et le
- * rattachement ne doit pas créer de cycle hiérarchique (D18, MET-04).
+ * rattachement ne doit pas créer de cycle hiérarchique (D18, MET-04), y
+ * compris face à un rattachement simultané (transaction de l'organigramme).
  */
-export function makeAssignManager(deps: { organization: OrganizationRepository }) {
-  return async ({ actor, userId, input }: AssignManagerCommand): Promise<CompanyUser | HrUser> => {
-    const member =
-      userId === actor.id
-        ? await deps.organization.findHr(actor.id)
-        : await deps.organization.findMember(actor.id, userId)
-    if (!member) throw new NotFoundError()
-    const managerId = managerIdOf(input)
-    if (managerId !== null) {
-      if (isSelfAssignment(userId, managerId)) throw new ConflictError(INVALID_MANAGER)
-      if (!(await deps.organization.isManagerOfCompany(actor.id, managerId))) throw new ConflictError(INVALID_MANAGER)
-      if (await deps.organization.isAboveInHierarchy(userId, managerId)) throw new ConflictError(INVALID_MANAGER)
-    }
-    return deps.organization.setManager(userId, managerId)
-  }
+export function makeAssignManager(deps: { transaction: OrganizationTransaction }) {
+  return ({ actor, userId, input }: AssignManagerCommand): Promise<CompanyUser | HrUser> =>
+    deps.transaction.run(actor.id, async (organization) => {
+      const member =
+        userId === actor.id ? await organization.findHr(actor.id) : await organization.findMember(actor.id, userId)
+      if (!member) throw new NotFoundError()
+      const managerId = managerIdOf(input)
+      if (managerId !== null) {
+        if (isSelfAssignment(userId, managerId)) throw new ConflictError(INVALID_MANAGER)
+        if (!(await organization.isManagerOfCompany(actor.id, managerId))) throw new ConflictError(INVALID_MANAGER)
+        if (await organization.isAboveInHierarchy(userId, managerId)) throw new ConflictError(INVALID_MANAGER)
+      }
+      return organization.setManager(userId, managerId)
+    })
 }

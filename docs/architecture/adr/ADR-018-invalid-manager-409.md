@@ -14,3 +14,4 @@ Garder `409 {"error":"Invalid manager"}` (conflit avec l'état de l'organigramme
 
 ## Conséquences
 * Une requête récursive (remontée de la chaîne hiérarchique) au rattachement d'un manager : opération rare, coût négligeable.
+* Deux rattachements simultanés qui formeraient un cycle : la vérification et l'écriture s'exécutent dans une transaction verrouillée par entreprise, le second est refusé (test de concurrence MET-04).

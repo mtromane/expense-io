@@ -4,7 +4,7 @@ import { makeAssignManager } from '@/modules/organization/application/assignMana
 import { makeChangeRole } from '@/modules/organization/application/changeRole'
 import { makeGetHrProfile } from '@/modules/organization/application/getHrProfile'
 import type { AssignableRole, CompanyUser, HrUser } from '@/modules/organization/domain/CompanyUser'
-import type { OrganizationRepository } from '@/modules/organization/ports/OrganizationRepository'
+import type { OrganizationRepository, OrganizationTransaction } from '@/modules/organization/ports/OrganizationRepository'
 import { ConflictError, InvalidInputError, NotFoundError, type Actor } from '@/modules/shared/domain'
 
 /**
@@ -102,30 +102,41 @@ function organization() {
 
 const member = (org: InMemoryOrganization, id: string) => org.members.find((m) => m.id === id)!
 
+/** Transaction de l'organigramme en mémoire : exécute le travail et note pour quelle RH. */
+function inTransaction(org: InMemoryOrganization): OrganizationTransaction & { hrIds: string[] } {
+  return {
+    hrIds: [],
+    run(hrId, work) {
+      this.hrIds.push(hrId)
+      return work(org)
+    },
+  }
+}
+
 describe('assignManager', () => {
   it('rattache un employé à un manager de la même entreprise', async () => {
     const org = organization()
     member(org, EMP).managerId = null
-    const user = await makeAssignManager({ organization: org })({ actor: HR_A, userId: EMP, input: { managerId: MGR_A } })
+    const user = await makeAssignManager({ transaction: inTransaction(org) })({ actor: HR_A, userId: EMP, input: { managerId: MGR_A } })
     expect(user.managerId).toBe(MGR_A)
   })
 
   it('managerId null ou absent → manager retiré', async () => {
     const org = organization()
-    expect((await makeAssignManager({ organization: org })({ actor: HR_A, userId: EMP, input: {} })).managerId).toBeNull()
+    expect((await makeAssignManager({ transaction: inTransaction(org) })({ actor: HR_A, userId: EMP, input: {} })).managerId).toBeNull()
   })
 
   it('manager d’une autre entreprise → Invalid manager, rien n’est écrit (SEC-03)', async () => {
     const org = organization()
     await expect(
-      makeAssignManager({ organization: org })({ actor: HR_A, userId: EMP, input: { managerId: MGR_B } })
+      makeAssignManager({ transaction: inTransaction(org) })({ actor: HR_A, userId: EMP, input: { managerId: MGR_B } })
     ).rejects.toEqual(new ConflictError('Invalid manager'))
     expect(org.writes).toBe(0)
   })
 
   it('soi-même comme manager → Invalid manager', async () => {
     await expect(
-      makeAssignManager({ organization: organization() })({ actor: HR_A, userId: MGR_A, input: { managerId: MGR_A } })
+      makeAssignManager({ transaction: inTransaction(organization()) })({ actor: HR_A, userId: MGR_A, input: { managerId: MGR_A } })
     ).rejects.toEqual(new ConflictError('Invalid manager'))
   })
 
@@ -133,7 +144,7 @@ describe('assignManager', () => {
     const org = organization()
     // SUB_MGR_A est rattaché à MGR_A : rattacher MGR_A à SUB_MGR_A fermerait la boucle.
     await expect(
-      makeAssignManager({ organization: org })({ actor: HR_A, userId: MGR_A, input: { managerId: SUB_MGR_A } })
+      makeAssignManager({ transaction: inTransaction(org) })({ actor: HR_A, userId: MGR_A, input: { managerId: SUB_MGR_A } })
     ).rejects.toEqual(new ConflictError('Invalid manager'))
     expect(org.writes).toBe(0)
   })
@@ -143,19 +154,19 @@ describe('assignManager', () => {
     member(org, EMP).role = 'manager'
     member(org, EMP).managerId = SUB_MGR_A // MGR_A → SUB_MGR_A → EMP
     await expect(
-      makeAssignManager({ organization: org })({ actor: HR_A, userId: MGR_A, input: { managerId: EMP } })
+      makeAssignManager({ transaction: inTransaction(org) })({ actor: HR_A, userId: MGR_A, input: { managerId: EMP } })
     ).rejects.toEqual(new ConflictError('Invalid manager'))
   })
 
   it('la RH se rattache elle-même à un manager de son entreprise (D13, MET-03)', async () => {
     const org = organization()
-    const hr = await makeAssignManager({ organization: org })({ actor: HR_A, userId: HR_A.id, input: { managerId: MGR_A } })
+    const hr = await makeAssignManager({ transaction: inTransaction(org) })({ actor: HR_A, userId: HR_A.id, input: { managerId: MGR_A } })
     expect(hr).toEqual({ id: HR_A.id, name: 'RH A', email: 'rh@a.test', role: 'hr_admin', managerId: MGR_A })
   })
 
   it('la RH ne peut pas se rattacher à un manager d’une autre entreprise', async () => {
     await expect(
-      makeAssignManager({ organization: organization() })({ actor: HR_A, userId: HR_A.id, input: { managerId: MGR_B } })
+      makeAssignManager({ transaction: inTransaction(organization()) })({ actor: HR_A, userId: HR_A.id, input: { managerId: MGR_B } })
     ).rejects.toEqual(new ConflictError('Invalid manager'))
   })
 
@@ -167,7 +178,7 @@ describe('assignManager', () => {
   ] as const) {
     it(`${name} → Invalid fields, manager conservé (ROB-03e)`, async () => {
       const org = organization()
-      await expect(makeAssignManager({ organization: org })({ actor: HR_A, userId: EMP, input })).rejects.toBeInstanceOf(
+      await expect(makeAssignManager({ transaction: inTransaction(org) })({ actor: HR_A, userId: EMP, input })).rejects.toBeInstanceOf(
         InvalidInputError
       )
       expect(org.writes).toBe(0)
@@ -177,7 +188,7 @@ describe('assignManager', () => {
 
   it('utilisateur hors entreprise → NotFound', async () => {
     await expect(
-      makeAssignManager({ organization: organization() })({ actor: HR_A, userId: MGR_B, input: { managerId: null } })
+      makeAssignManager({ transaction: inTransaction(organization()) })({ actor: HR_A, userId: MGR_B, input: { managerId: null } })
     ).rejects.toBeInstanceOf(NotFoundError)
   })
 })
@@ -186,27 +197,27 @@ describe('changeRole (D14)', () => {
   it('nomme un employé manager (ROLE-01)', async () => {
     const org = organization()
     member(org, EMP).managerId = null
-    const user = await makeChangeRole({ organization: org })({ actor: HR_A, userId: EMP, input: { role: 'manager' } })
+    const user = await makeChangeRole({ transaction: inTransaction(org) })({ actor: HR_A, userId: EMP, input: { role: 'manager' } })
     expect(user).toMatchObject({ id: EMP, role: 'manager' })
   })
 
   it('rétrograde un manager sans subordonné', async () => {
     const org = organization()
-    const user = await makeChangeRole({ organization: org })({ actor: HR_A, userId: SUB_MGR_A, input: { role: 'employee' } })
+    const user = await makeChangeRole({ transaction: inTransaction(org) })({ actor: HR_A, userId: SUB_MGR_A, input: { role: 'employee' } })
     expect(user).toMatchObject({ id: SUB_MGR_A, role: 'employee' })
   })
 
   it('manager qui a encore des subordonnés → 409, rien n’est écrit (ROLE-02)', async () => {
     const org = organization()
     await expect(
-      makeChangeRole({ organization: org })({ actor: HR_A, userId: MGR_A, input: { role: 'employee' } })
+      makeChangeRole({ transaction: inTransaction(org) })({ actor: HR_A, userId: MGR_A, input: { role: 'employee' } })
     ).rejects.toEqual(new ConflictError('Manager has direct reports'))
     expect(org.writes).toBe(0)
   })
 
   it('rôle inchangé → aucune écriture', async () => {
     const org = organization()
-    await makeChangeRole({ organization: org })({ actor: HR_A, userId: EMP, input: { role: 'employee' } })
+    await makeChangeRole({ transaction: inTransaction(org) })({ actor: HR_A, userId: EMP, input: { role: 'employee' } })
     expect(org.writes).toBe(0)
   })
 
@@ -218,7 +229,7 @@ describe('changeRole (D14)', () => {
   ] as const) {
     it(`${name} → Invalid fields, rien n’est écrit`, async () => {
       const org = organization()
-      await expect(makeChangeRole({ organization: org })({ actor: HR_A, userId: EMP, input })).rejects.toBeInstanceOf(
+      await expect(makeChangeRole({ transaction: inTransaction(org) })({ actor: HR_A, userId: EMP, input })).rejects.toBeInstanceOf(
         InvalidInputError
       )
       expect(org.writes).toBe(0)
@@ -228,9 +239,19 @@ describe('changeRole (D14)', () => {
   it('utilisateur d’une autre entreprise, ou la RH elle-même → NotFound', async () => {
     for (const userId of [MGR_B, HR_A.id]) {
       await expect(
-        makeChangeRole({ organization: organization() })({ actor: HR_A, userId, input: { role: 'manager' } })
+        makeChangeRole({ transaction: inTransaction(organization()) })({ actor: HR_A, userId, input: { role: 'manager' } })
       ).rejects.toBeInstanceOf(NotFoundError)
     }
+  })
+})
+
+describe('transaction de l’organigramme', () => {
+  it('rattachement et changement de rôle s’exécutent dans la transaction de l’entreprise de la RH', async () => {
+    const org = organization()
+    const transaction = inTransaction(org)
+    await makeAssignManager({ transaction })({ actor: HR_A, userId: EMP, input: { managerId: null } })
+    await makeChangeRole({ transaction })({ actor: HR_A, userId: EMP, input: { role: 'manager' } })
+    expect(transaction.hrIds).toEqual([HR_A.id, HR_A.id])
   })
 })
 

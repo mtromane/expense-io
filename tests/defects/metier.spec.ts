@@ -156,6 +156,62 @@ test('ROLE-02 rétrograder un manager qui a encore des subordonnés → 409',
     }
   })
 
+// Concurrence (revue de la PR #6) : deux changements d'organigramme simultanés
+// ne doivent jamais aboutir tous les deux quand l'un invalide l'autre.
+const RACE_ROUNDS = 10
+
+test('ROLE-02 rétrogradation et rattachement simultanés : une seule des deux opérations aboutit',
+  { tag: ['@defect', '@ROLE-02'] }, async () => {
+    const hr = await loginAs('hrC')
+    const mgr = actor('raceMgrC')
+    const roleUrl = `/api/hr/users/${mgr.id}/role`
+    const managerUrl = `/api/hr/users/${actor('raceEmpC').id}/manager`
+    const reset = async () => {
+      await hr.put(managerUrl, { data: { managerId: null } })
+      await hr.put(roleUrl, { data: { role: 'manager' } })
+    }
+    expectDefect('ROLE-02')
+    try {
+      for (let round = 0; round < RACE_ROUNDS; round++) {
+        const [demote, attach] = await Promise.all([
+          hr.put(roleUrl, { data: { role: 'employee' } }),
+          hr.put(managerUrl, { data: { managerId: mgr.id } }),
+        ])
+        // Rattaché d'abord → rétrogradation refusée ; rétrogradé d'abord → rattachement refusé.
+        expect([demote.status(), attach.status()].sort()).toEqual([200, 409])
+        const users = (await (await hr.get('/api/hr/users')).json()) as CompanyUser[]
+        const orphaned = users.some((u) => u.managerId === mgr.id) && users.find((u) => u.id === mgr.id)?.role !== 'manager'
+        expect(orphaned).toBe(false)
+        await reset()
+      }
+    } finally {
+      await reset()
+      await hr.dispose()
+    }
+  })
+
+test('MET-04 deux rattachements simultanés qui formeraient un cycle : un seul aboutit',
+  { tag: ['@defect', '@MET-04'] }, async () => {
+    const hr = await loginAs('hrC')
+    const [first, second] = [actor('cycleMgrC1').id, actor('cycleMgrC2').id]
+    const reset = () =>
+      Promise.all([first, second].map((id) => hr.put(`/api/hr/users/${id}/manager`, { data: { managerId: null } })))
+    expectDefect('MET-04')
+    try {
+      for (let round = 0; round < RACE_ROUNDS; round++) {
+        const results = await Promise.all([
+          hr.put(`/api/hr/users/${first}/manager`, { data: { managerId: second } }),
+          hr.put(`/api/hr/users/${second}/manager`, { data: { managerId: first } }),
+        ])
+        expect(results.map((r) => r.status()).sort()).toEqual([200, 409])
+        await reset()
+      }
+    } finally {
+      await reset()
+      await hr.dispose()
+    }
+  })
+
 test('ROLE-03 un changement de rôle prend effet sans reconnexion',
   { tag: ['@defect', '@ROLE-03'] }, async () => {
     const hr = await loginAs('hrC')

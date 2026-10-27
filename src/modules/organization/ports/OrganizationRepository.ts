@@ -17,3 +17,13 @@ export interface OrganizationRepository {
   setManager(userId: string, managerId: string | null): Promise<CompanyUser | HrUser>
   setRole(userId: string, role: AssignableRole): Promise<CompanyUser>
 }
+
+/**
+ * Changement d'organigramme d'une entreprise : exécuté seul, jamais en même
+ * temps qu'un autre changement de la même entreprise. Les vérifications
+ * (cycle, subordonnés, rôle du manager) et l'écriture ne peuvent donc pas se
+ * croiser entre deux requêtes simultanées.
+ */
+export interface OrganizationTransaction {
+  run<T>(hrId: string, work: (organization: OrganizationRepository) => Promise<T>): Promise<T>
+}

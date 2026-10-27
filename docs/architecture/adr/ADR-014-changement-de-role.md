@@ -18,4 +18,5 @@ Le rôle manager n'était attribuable que par le seed ou en SQL : une entreprise
 
 ## Conséquences
 * Une requête SQL de plus par requête authentifiée (lecture du rôle par clé primaire) : coût mesuré par `make test-perf`.
+* Rétrogradation et rattachement simultanés : le changement de rôle et le rattachement s'exécutent dans une transaction verrouillée par entreprise (`pg_advisory_xact_lock`) ; l'un des deux est refusé, jamais les deux acceptés (test de concurrence ROLE-02).
 * Un utilisateur supprimé ou d'un rôle inconnu perd l'accès immédiatement.

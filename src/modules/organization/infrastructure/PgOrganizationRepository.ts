@@ -1,6 +1,7 @@
+import type { PoolClient } from 'pg'
 import { getPool } from '@/modules/shared/infrastructure/db'
 import type { AssignableRole, CompanyUser, HrUser } from '../domain/CompanyUser'
-import type { OrganizationRepository } from '../ports/OrganizationRepository'
+import type { OrganizationRepository, OrganizationTransaction } from '../ports/OrganizationRepository'
 
 interface UserRecord {
   id: string
@@ -27,12 +28,19 @@ const COMPANY_OF = '(SELECT company_id FROM users WHERE id = $1)'
 const MAX_HIERARCHY_DEPTH = 100
 
 /**
- * Requêtes hors transaction, comme avant la refacto : une requête par lecture,
- * aucun aller-retour ajouté (la table users n'est pas soumise à la RLS).
+ * Lectures hors transaction, comme avant la refacto : une requête par lecture,
+ * aucun aller-retour ajouté (la table users n'est pas soumise à la RLS). Les
+ * changements passent par `pgOrganizationTransaction`, sur sa connexion.
  */
 export class PgOrganizationRepository implements OrganizationRepository {
+  constructor(private readonly client?: PoolClient) {}
+
+  private get db(): Pick<PoolClient, 'query'> {
+    return this.client ?? getPool()
+  }
+
   async listDirectory(hrId: string): Promise<CompanyUser[]> {
-    const result = await getPool().query<UserRecord>(
+    const result = await this.db.query<UserRecord>(
       `SELECT ${COLUMNS} FROM users
        WHERE role IN ('employee', 'manager')
          AND company_id = ${COMPANY_OF}
@@ -43,7 +51,7 @@ export class PgOrganizationRepository implements OrganizationRepository {
   }
 
   async findMember(hrId: string, userId: string): Promise<CompanyUser | null> {
-    const result = await getPool().query<UserRecord>(
+    const result = await this.db.query<UserRecord>(
       `SELECT ${COLUMNS} FROM users
        WHERE id = $2 AND role IN ('employee', 'manager') AND company_id = ${COMPANY_OF}`,
       [hrId, userId]
@@ -52,7 +60,7 @@ export class PgOrganizationRepository implements OrganizationRepository {
   }
 
   async findHr(hrId: string): Promise<HrUser | null> {
-    const result = await getPool().query<UserRecord>(
+    const result = await this.db.query<UserRecord>(
       `SELECT ${COLUMNS} FROM users WHERE id = $1 AND role = 'hr_admin'`,
       [hrId]
     )
@@ -60,7 +68,7 @@ export class PgOrganizationRepository implements OrganizationRepository {
   }
 
   async isManagerOfCompany(hrId: string, managerId: string): Promise<boolean> {
-    const result = await getPool().query(
+    const result = await this.db.query(
       `SELECT 1 FROM users WHERE id = $2 AND role = 'manager' AND company_id = ${COMPANY_OF}`,
       [hrId, managerId]
     )
@@ -69,7 +77,7 @@ export class PgOrganizationRepository implements OrganizationRepository {
 
   async isAboveInHierarchy(userId: string, managerId: string): Promise<boolean> {
     // Remonte la chaîne des managers à partir de `managerId` ; `userId` y figure → cycle.
-    const result = await getPool().query(
+    const result = await this.db.query(
       `WITH RECURSIVE chain (id, manager_id, depth) AS (
          SELECT id, manager_id, 0 FROM users WHERE id = $1
          UNION ALL
@@ -84,12 +92,12 @@ export class PgOrganizationRepository implements OrganizationRepository {
   }
 
   async hasDirectReports(managerId: string): Promise<boolean> {
-    const result = await getPool().query('SELECT 1 FROM users WHERE manager_id = $1 LIMIT 1', [managerId])
+    const result = await this.db.query('SELECT 1 FROM users WHERE manager_id = $1 LIMIT 1', [managerId])
     return (result.rowCount ?? 0) > 0
   }
 
   async setManager(userId: string, managerId: string | null): Promise<CompanyUser | HrUser> {
-    const result = await getPool().query<UserRecord>(
+    const result = await this.db.query<UserRecord>(
       `UPDATE users SET manager_id = $1 WHERE id = $2
        RETURNING ${COLUMNS}`,
       [managerId, userId]
@@ -98,11 +106,37 @@ export class PgOrganizationRepository implements OrganizationRepository {
   }
 
   async setRole(userId: string, role: AssignableRole): Promise<CompanyUser> {
-    const result = await getPool().query<UserRecord>(
+    const result = await this.db.query<UserRecord>(
       `UPDATE users SET role = $1 WHERE id = $2 AND role IN ('employee', 'manager')
        RETURNING ${COLUMNS}`,
       [role, userId]
     )
     return toCompanyUser(result.rows[0])
   }
+}
+
+/**
+ * Transaction verrouillée par entreprise (verrou consultatif PostgreSQL, levé
+ * au COMMIT) : deux changements d'organigramme de la même entreprise
+ * s'exécutent l'un après l'autre, chacun relisant l'état laissé par l'autre.
+ */
+export const pgOrganizationTransaction: OrganizationTransaction = {
+  async run(hrId, work) {
+    const client = await getPool().connect()
+    try {
+      await client.query('BEGIN')
+      await client.query(
+        "SELECT pg_advisory_xact_lock(hashtext('organization:' || company_id::text)) FROM users WHERE id = $1",
+        [hrId]
+      )
+      const result = await work(new PgOrganizationRepository(client))
+      await client.query('COMMIT')
+      return result
+    } catch (error) {
+      await client.query('ROLLBACK')
+      throw error
+    } finally {
+      client.release()
+    }
+  },
 }

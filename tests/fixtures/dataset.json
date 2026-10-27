@@ -41,7 +41,11 @@
         { "key": "promoteC", "name": "Promote C", "role": "employee" },
         { "key": "sessionC", "name": "Session C", "role": "employee" },
         { "key": "promoteUiC", "name": "Promote UI C", "role": "employee" },
-        { "key": "totalsC", "name": "Totals C", "role": "employee", "manager": "mgrC" }
+        { "key": "totalsC", "name": "Totals C", "role": "employee", "manager": "mgrC" },
+        { "key": "raceMgrC", "name": "Race Manager C", "role": "manager" },
+        { "key": "raceEmpC", "name": "Race Employee C", "role": "employee" },
+        { "key": "cycleMgrC1", "name": "Cycle Manager C1", "role": "manager" },
+        { "key": "cycleMgrC2", "name": "Cycle Manager C2", "role": "manager" }
       ]
     }
   ]
