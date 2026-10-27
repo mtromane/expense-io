@@ -1,5 +1,5 @@
 import type { PoolClient } from 'pg'
-import { getPool } from '@/modules/shared/infrastructure/db'
+import { getPool, withTransaction } from '@/modules/shared/infrastructure/db'
 import type { AssignableRole, CompanyUser, HrUser } from '../domain/CompanyUser'
 import type { OrganizationRepository, OrganizationTransaction } from '../ports/OrganizationRepository'
 
@@ -121,22 +121,12 @@ export class PgOrganizationRepository implements OrganizationRepository {
  * s'exécutent l'un après l'autre, chacun relisant l'état laissé par l'autre.
  */
 export const pgOrganizationTransaction: OrganizationTransaction = {
-  async run(hrId, work) {
-    const client = await getPool().connect()
-    try {
-      await client.query('BEGIN')
+  run: (hrId, work) =>
+    withTransaction(async (client) => {
       await client.query(
         "SELECT pg_advisory_xact_lock(hashtext('organization:' || company_id::text)) FROM users WHERE id = $1",
         [hrId]
       )
-      const result = await work(new PgOrganizationRepository(client))
-      await client.query('COMMIT')
-      return result
-    } catch (error) {
-      await client.query('ROLLBACK')
-      throw error
-    } finally {
-      client.release()
-    }
-  },
+      return work(new PgOrganizationRepository(client))
+    }),
 }

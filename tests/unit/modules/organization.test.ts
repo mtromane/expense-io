@@ -19,6 +19,7 @@ const EMP = '11111111-1111-4111-8111-111111111111'
 const MGR_A = '22222222-2222-4222-8222-222222222222'
 const MGR_B = '33333333-3333-4333-8333-333333333333'
 const SUB_MGR_A = '55555555-5555-4555-8555-555555555555'
+const ROOT_MGR_A = '66666666-6666-4666-8666-666666666666'
 
 interface Member {
   id: string
@@ -96,6 +97,7 @@ function organization() {
     { id: EMP, name: 'Emp', email: 'emp@a.test', role: 'employee', managerId: MGR_A, company: 'A' },
     { id: MGR_A, name: 'Mgr A', email: 'mgr@a.test', role: 'manager', managerId: null, company: 'A' },
     { id: SUB_MGR_A, name: 'Sous-mgr A', email: 'sub@a.test', role: 'manager', managerId: MGR_A, company: 'A' },
+    { id: ROOT_MGR_A, name: 'Racine A', email: 'racine@a.test', role: 'manager', managerId: null, company: 'A' },
     { id: MGR_B, name: 'Mgr B', email: 'mgr@b.test', role: 'manager', managerId: null, company: 'B' },
   ])
 }
@@ -213,6 +215,12 @@ describe('changeRole (D14)', () => {
       makeChangeRole({ transaction: inTransaction(org) })({ actor: HR_A, userId: MGR_A, input: { role: 'employee' } })
     ).rejects.toEqual(new ConflictError('Manager has direct reports'))
     expect(org.writes).toBe(0)
+  })
+
+  it('manager racine sans subordonné : rétrogradé (ses notes iront à la RH, MET-02)', async () => {
+    const org = organization()
+    const user = await makeChangeRole({ transaction: inTransaction(org) })({ actor: HR_A, userId: ROOT_MGR_A, input: { role: 'employee' } })
+    expect(user).toMatchObject({ id: ROOT_MGR_A, role: 'employee', managerId: null })
   })
 
   it('rôle inchangé → aucune écriture', async () => {

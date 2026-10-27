@@ -1,5 +1,5 @@
 import { listMyExpenseNotes, submitExpenseNote } from '@/modules/expenses'
-import { assertBodyFitsReceipt, presentExpenseNote, receiptFrom, route } from '@/modules/shared/http'
+import { presentExpenseNote, readReceiptForm, receiptFrom, route } from '@/modules/shared/http'
 
 export const GET = route({}, async ({ request, actor }) => {
   const sort = new URL(request.url).searchParams.get('sort')
@@ -8,8 +8,7 @@ export const GET = route({}, async ({ request, actor }) => {
 })
 
 export const POST = route({}, async ({ request, actor }) => {
-  assertBodyFitsReceipt(request)
-  const form = await request.formData()
+  const form = await readReceiptForm(request)
   const note = await submitExpenseNote({
     actor,
     amount: form.get('amount'),

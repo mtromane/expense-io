@@ -1,8 +1,6 @@
-import { ConflictError, InvalidInputError, NotFoundError, type Actor } from '@/modules/shared/domain'
+import { ConflictError, InvalidInputError, isUuid, NotFoundError, type Actor } from '@/modules/shared/domain'
 import { INVALID_MANAGER, isSelfAssignment, type CompanyUser, type HrUser } from '../domain/CompanyUser'
 import type { OrganizationTransaction } from '../ports/OrganizationRepository'
-
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 export interface AssignManagerCommand {
   actor: Actor
@@ -16,7 +14,7 @@ function managerIdOf(input: unknown): string | null {
   if (typeof input !== 'object' || input === null || Array.isArray(input)) throw new InvalidInputError()
   const managerId = (input as { managerId?: unknown }).managerId ?? null
   if (managerId === null) return null
-  if (typeof managerId !== 'string' || !UUID_PATTERN.test(managerId)) throw new InvalidInputError()
+  if (!isUuid(managerId)) throw new InvalidInputError()
   return managerId
 }
 

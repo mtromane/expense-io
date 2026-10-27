@@ -1,6 +1,6 @@
 import type { UserRole } from '@/domain/User'
-import { getActor } from '@/modules/identity'
-import type { Actor } from '../domain/Actor'
+import { getActor, getSessionActor } from '@/modules/identity'
+import { isUuid, type Actor, type Identified } from '../domain'
 import { errorBody, errorResponse } from './errors'
 
 /**
@@ -11,16 +11,17 @@ export interface Access {
   role?: UserRole
 }
 
-export interface RouteContext<P> {
+export interface RouteContext<P, A extends Identified = Actor> {
   request: Request
-  actor: Actor
+  actor: A
   params: P
   requestId: string
 }
 
-type Handler<P> = (context: RouteContext<P>) => Promise<Response>
+type Handler<P, A extends Identified> = (context: RouteContext<P, A>) => Promise<Response>
+type RouteHandler<P> = (request: Request, segment: { params: Promise<P> }) => Promise<Response>
+type Params = Record<string, string>
 
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const REQUEST_ID_PATTERN = /^[\w-]{1,64}$/
 
 function requestIdOf(request: Request): string {
@@ -39,20 +40,32 @@ function withRequestId(response: Response, requestId: string): Response {
  * réponse qu'une note inexistante), traitement attendu dans le `try` et
  * erreurs traduites sans fuite d'information.
  */
-export function route<P extends Record<string, string> = Record<string, never>>(access: Access, handler: Handler<P>) {
-  return async (request: Request, segment: { params: Promise<P> }): Promise<Response> => {
+/** Route réservée à un rôle : l'acteur porte son rôle actuel, relu en base (une requête). */
+export function route<P extends Params = Record<string, never>>(
+  access: { role: UserRole },
+  handler: Handler<P, Actor>
+): RouteHandler<P>
+/** Route ouverte à toute session : seul l'identifiant du jeton est fourni, sans requête SQL. */
+export function route<P extends Params = Record<string, never>>(
+  access: Record<string, never>,
+  handler: Handler<P, Identified>
+): RouteHandler<P>
+export function route<P extends Params>(access: Access, handler: Handler<P, Actor>): RouteHandler<P> {
+  return async (request, segment) => {
     const requestId = requestIdOf(request)
     const path = new URL(request.url).pathname
     try {
-      const actor = await getActor()
+      // Rôle exigé : rôle actuel relu en base (une requête). Sinon, identifiant du jeton seul (aucune requête).
+      const actor = access.role ? await getActor() : await getSessionActor()
       if (!actor) return withRequestId(errorBody('Unauthorized', 401), requestId)
       // Même message qu'à l'origine sur les 403 de /api/hr/* : seul le code change.
-      if (access.role && actor.role !== access.role) return withRequestId(errorBody('Unauthorized', 403), requestId)
+      if (access.role && (actor as Actor).role !== access.role) return withRequestId(errorBody('Unauthorized', 403), requestId)
       const params = ((await segment?.params) ?? {}) as P
-      if ('id' in params && !UUID_PATTERN.test(params.id)) {
+      if ('id' in params && !isUuid(params.id)) {
         return withRequestId(errorBody('Not found', 404), requestId)
       }
-      const response = await handler({ request, actor, params, requestId })
+      // Sans rôle exigé, la surcharge ne promet au handler que `Identified`.
+      const response = await handler({ request, actor: actor as Actor, params, requestId })
       return withRequestId(response, requestId)
     } catch (error) {
       return errorResponse(error, { requestId, method: request.method, path })

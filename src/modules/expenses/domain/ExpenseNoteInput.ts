@@ -14,9 +14,10 @@ export interface NewExpenseNoteFields {
 function parseAmount(raw: unknown): number {
   if (typeof raw !== 'string' || !AMOUNT_PATTERN.test(raw.trim())) throw new InvalidInputError()
   const amount = Number(raw.trim())
-  // Le montant est stocké à 2 décimales (arrondi par la base, comportement conservé).
+  // Le montant est stocké à 2 décimales (arrondi par la base, comportement conservé) :
+  // c'est la valeur stockée qui doit être positive (0.004 serait enregistré à 0,00).
   const stored = Math.round(amount * 100) / 100
-  if (!(amount > 0) || stored > MAX_AMOUNT) throw new InvalidInputError()
+  if (!(stored > 0) || stored > MAX_AMOUNT) throw new InvalidInputError()
   return amount
 }
 

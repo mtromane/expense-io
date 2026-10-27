@@ -8,4 +8,4 @@ export {
   type SuggestionDto,
 } from './presenters'
 export { route, type Access, type RouteContext } from './route'
-export { assertBodyFitsReceipt, receiptFrom } from './receipt'
+export { readReceiptForm, receiptFrom } from './receipt'

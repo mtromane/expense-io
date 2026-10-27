@@ -9,7 +9,7 @@ import type { ApprovalRepository, ApprovalTransaction } from '../ports/ApprovalR
 function scopeCondition(scope: ApprovalScope, placeholder: string): string {
   return scope.kind === 'direct-reports'
     ? `u.manager_id = ${placeholder}`
-    : `u.role = 'manager' AND u.manager_id IS NULL
+    : `u.role IN ('manager', 'employee') AND u.manager_id IS NULL
          AND en.company_id = (SELECT company_id FROM users WHERE id = ${placeholder})`
 }
 

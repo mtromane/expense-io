@@ -16,7 +16,9 @@ Inscription, connexion et acteur de la session courante.
 
 API publique (`index.ts`) : `signup`, `authenticate`, `getActor`, et les fonctions Auth.js `auth`, `handlers`, `signIn`, `signOut`.
 
-- `getActor()` sert à la garde `route()` (`shared/http`) et aux pages `/manager` et `/hr` : c'est l'acteur `{ id, role }` de la session, avec son rôle actuel lu en base, ou `null`. Une promotion prend donc effet sans reconnexion.
+- `getActor()` sert aux contrôles de rôle (garde `route({ role })`, pages `/manager` et `/hr`, menu) : c'est l'acteur `{ id, role }` avec son rôle actuel lu en base, ou `null`, mémorisé par rendu (`cache()`). Une promotion prend donc effet sans reconnexion.
+- `getSessionActor()` sert aux routes sans rôle exigé : identifiant du jeton seul, sans requête.
+- `getSession()` : session décodée une fois par rendu (layout, page d'accueil).
 - La server action `src/app/actions/auth.ts` appelle `signup` puis `signIn` (connexion automatique) ; elle ne contient plus de SQL.
 - `src/proxy.ts` (pages protégées) utilise `auth` de ce module.
 

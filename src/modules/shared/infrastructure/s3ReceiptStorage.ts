@@ -17,19 +17,20 @@ function getClient(): S3Client {
   return client
 }
 
-const BUCKET = s3Config().bucket
+/** Bucket lu à chaque appel, comme le reste de la configuration (src/config.ts). */
+const bucket = () => s3Config().bucket
 
 export async function uploadReceipt(key: string, body: Buffer, contentType: string): Promise<void> {
   await getClient().send(
-    new PutObjectCommand({ Bucket: BUCKET, Key: key, Body: body, ContentType: contentType })
+    new PutObjectCommand({ Bucket: bucket(), Key: key, Body: body, ContentType: contentType })
   )
 }
 
 export async function getReceiptUrl(key: string, expiresInSeconds = 300): Promise<string> {
-  const command = new GetObjectCommand({ Bucket: BUCKET, Key: key })
+  const command = new GetObjectCommand({ Bucket: bucket(), Key: key })
   return getSignedUrl(getClient(), command, { expiresIn: expiresInSeconds })
 }
 
 export async function deleteReceipt(key: string): Promise<void> {
-  await getClient().send(new DeleteObjectCommand({ Bucket: BUCKET, Key: key }))
+  await getClient().send(new DeleteObjectCommand({ Bucket: bucket(), Key: key }))
 }

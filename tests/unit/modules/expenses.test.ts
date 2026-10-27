@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { ExpenseNote } from '@/domain/ExpenseNote'
 import { makeSubmitExpenseNote, type IncomingReceipt } from '@/modules/expenses/application/submitExpenseNote'
 import { parseNewExpenseNote } from '@/modules/expenses/domain/ExpenseNoteInput'
-import { detectReceiptType } from '@/modules/expenses/domain/ReceiptFile'
+import { detectReceiptType, isReceiptType } from '@/modules/expenses/domain/ReceiptFile'
 import { parseSortOrder } from '@/modules/expenses/domain/SortOrder'
 import type { ExpenseNoteRepository, ExpenseTransaction } from '@/modules/expenses/ports/ExpenseNoteRepository'
 import { InvalidInputError, type Actor } from '@/modules/shared/domain'
@@ -43,7 +43,7 @@ describe('parseNewExpenseNote (ROB-03b à d)', () => {
   it('plus grand montant stockable accepté', () => {
     expect(parseNewExpenseNote({ ...valid, amount: '99999999.99' }).amount).toBe(99999999.99)
   })
-  for (const amount of ['12abc', '100000000', '0', '-5', '', '1e3', '12,50']) {
+  for (const amount of ['12abc', '100000000', '0', '-5', '', '1e3', '12,50', '0.004']) {
     it(`montant « ${amount} » refusé`, () => {
       expect(() => parseNewExpenseNote({ ...valid, amount })).toThrow(InvalidInputError)
     })
@@ -58,6 +58,13 @@ describe('parseNewExpenseNote (ROB-03b à d)', () => {
   })
   it('description vide refusée', () => {
     expect(() => parseNewExpenseNote({ ...valid, description: '   ' })).toThrow(InvalidInputError)
+  })
+})
+
+describe('isReceiptType', () => {
+  it('seuls les quatre types autorisés, jamais une propriété héritée', () => {
+    for (const type of ['image/png', 'image/jpeg', 'image/webp', 'application/pdf']) expect(isReceiptType(type)).toBe(true)
+    for (const type of ['image/gif', 'constructor', 'toString', '__proto__', 'hasOwnProperty']) expect(isReceiptType(type)).toBe(false)
   })
 })
 

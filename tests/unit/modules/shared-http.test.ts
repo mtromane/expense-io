@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import type { Actor } from '@/modules/shared/domain'
+import type { Actor, Identified } from '@/modules/shared/domain'
 import { ConflictError, InvalidInputError, NotFoundError } from '@/modules/shared/domain'
 import { ExpenseNote } from '@/domain/ExpenseNote'
 
@@ -11,9 +11,14 @@ import { ExpenseNote } from '@/domain/ExpenseNote'
  */
 
 const session = vi.hoisted(() => ({ actor: null as Actor | null }))
-vi.mock('@/modules/identity', () => ({ getActor: async () => session.actor }))
+// getActor : rôle relu en base (routes à rôle) ; getSessionActor : jeton seul (routes sans rôle).
+const identity = vi.hoisted(() => ({ getActor: 0, getSessionActor: 0 }))
+vi.mock('@/modules/identity', () => ({
+  getActor: async () => (identity.getActor++, session.actor),
+  getSessionActor: async () => (identity.getSessionActor++, session.actor),
+}))
 
-const { route, presentExpenseNote, INTERNAL_ERROR_MESSAGE } = await import('@/modules/shared/http')
+const { route, presentExpenseNote, readReceiptForm, INTERNAL_ERROR_MESSAGE } = await import('@/modules/shared/http')
 
 const EMPLOYEE: Actor = { id: 'u-emp', role: 'employee' }
 const MANAGER: Actor = { id: 'u-mgr', role: 'manager' }
@@ -24,18 +29,20 @@ function call<P extends Record<string, string>>(handler: ReturnType<typeof route
 }
 
 function okHandler() {
-  return vi.fn(async ({ actor }: { actor: Actor }) => Response.json({ actor }))
+  return vi.fn(async ({ actor }: { actor: Identified }) => Response.json({ actor }))
 }
 
 beforeEach(() => {
   session.actor = null
+  identity.getActor = 0
+  identity.getSessionActor = 0
 })
 
 describe('route() : session et rôle', () => {
   it('sans session → 401, avec ou sans rôle exigé, handler jamais appelé (D12)', async () => {
     const handler = okHandler()
-    for (const access of [{}, { role: 'manager' as const }, { role: 'hr_admin' as const }]) {
-      const response = await call(route(access, handler), {})
+    for (const guarded of [route({}, handler), route({ role: 'manager' }, handler), route({ role: 'hr_admin' }, handler)]) {
+      const response = await call(guarded, {})
       expect(response.status).toBe(401)
       expect(await response.json()).toEqual({ error: 'Unauthorized' })
     }
@@ -60,9 +67,22 @@ describe('route() : session et rôle', () => {
     expect(await response.json()).toEqual({ actor: MANAGER })
   })
 
-  it('sans rôle exigé → toute session passe', async () => {
+  it('sans rôle exigé → toute session passe, sans relire le rôle en base', async () => {
     session.actor = EMPLOYEE
     expect((await call(route({}, okHandler()), {})).status).toBe(200)
+    expect(identity).toEqual({ getActor: 0, getSessionActor: 1 })
+  })
+
+  it('sans rôle exigé → le handler ne reçoit que l’identifiant (pas de rôle périmé)', async () => {
+    session.actor = { id: EMPLOYEE.id } as Actor // ce que renvoie getSessionActor
+    const response = await call(route({}, okHandler()), {})
+    expect(await response.json()).toEqual({ actor: { id: EMPLOYEE.id } })
+  })
+
+  it('rôle exigé → rôle relu en base (ROLE-03)', async () => {
+    session.actor = MANAGER
+    await call(route({ role: 'manager' }, okHandler()), {})
+    expect(identity).toEqual({ getActor: 1, getSessionActor: 0 })
   })
 })
 
@@ -158,5 +178,53 @@ describe('presentExpenseNote', () => {
 
   it('note sans date de création : refusée plutôt que hors contrat', () => {
     expect(() => presentExpenseNote(new ExpenseNote(props))).toThrow()
+  })
+})
+
+describe('readReceiptForm (SEC-08)', () => {
+  const LIMIT = 10 * 1024 * 1024 + 64 * 1024
+  const CHUNK = 1024 * 1024
+
+  /** Corps envoyé en flux (Transfer-Encoding: chunked) : pas de Content-Length. */
+  function streamed(totalBytes: number) {
+    let sent = 0
+    const body = new ReadableStream<Uint8Array>({
+      pull(controller) {
+        if (sent >= totalBytes) return controller.close()
+        const size = Math.min(CHUNK, totalBytes - sent)
+        sent += size
+        controller.enqueue(new Uint8Array(size))
+      },
+    }, { highWaterMark: 0 }) // aucun morceau produit tant que le lecteur ne le demande pas
+    const request = new Request('http://localhost:3000/api/expense-notes', {
+      method: 'POST',
+      headers: { 'content-type': 'multipart/form-data; boundary=x' },
+      body,
+      duplex: 'half',
+    } as RequestInit)
+    return { request, sent: () => sent }
+  }
+
+  it('corps sans Content-Length plus gros que la limite → File too large, sans lire tout le flux', async () => {
+    const { request, sent } = streamed(200 * CHUNK)
+    expect(request.headers.get('content-length')).toBeNull()
+    await expect(readReceiptForm(request)).rejects.toEqual(new InvalidInputError('File too large'))
+    expect(sent()).toBeLessThanOrEqual(LIMIT + 2 * CHUNK)
+  })
+
+  it('Content-Length au-delà de la limite → refusé avant toute lecture', async () => {
+    const { request } = streamed(CHUNK)
+    const declared = new Request(request, { headers: { 'content-type': 'multipart/form-data; boundary=x', 'content-length': String(LIMIT + 1) } })
+    await expect(readReceiptForm(declared)).rejects.toEqual(new InvalidInputError('File too large'))
+    expect(declared.bodyUsed).toBe(false) // corps jamais consommé
+  })
+
+  it('formulaire normal → champs et fichier relus', async () => {
+    const form = new FormData()
+    form.set('amount', '12.50')
+    form.set('receipt', new File([new Uint8Array([1, 2, 3])], 'r.png', { type: 'image/png' }))
+    const parsed = await readReceiptForm(new Request('http://localhost:3000/api/expense-notes', { method: 'POST', body: form }))
+    expect(parsed.get('amount')).toBe('12.50')
+    expect((parsed.get('receipt') as File).size).toBe(3)
   })
 })

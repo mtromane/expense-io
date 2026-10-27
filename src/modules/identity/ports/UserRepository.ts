@@ -28,5 +28,14 @@ export interface UserRepository {
    * vrai seulement pour l'appel qui l'a créée (création concurrente sûre).
    */
   claimCompany(name: string, emailDomain: string): Promise<{ companyId: string; created: boolean }>
-  createUser(user: NewUser): Promise<void>
+  /** Crée le compte ; false si l'email est déjà pris (inscription simultanée), sans rien écrire. */
+  createUser(user: NewUser): Promise<boolean>
+}
+
+/**
+ * Inscription d'un seul tenant : entreprise et premier compte sont créés
+ * ensemble ou pas du tout (pas d'entreprise sans RH si le compte échoue).
+ */
+export interface SignupTransaction {
+  run<T>(work: (users: UserRepository) => Promise<T>): Promise<T>
 }

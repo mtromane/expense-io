@@ -5,7 +5,7 @@ import { makeSignup } from '@/modules/identity/application/signup'
 import { PUBLIC_DOMAIN_REFUSED } from '@/modules/identity/domain/PublicEmailDomains'
 import { EMAIL_TAKEN, INVALID_SIGNUP } from '@/modules/identity/domain/SignupForm'
 import type { PasswordHasher } from '@/modules/identity/ports/PasswordHasher'
-import type { NewUser, UserCredentials, UserRepository } from '@/modules/identity/ports/UserRepository'
+import type { NewUser, SignupTransaction, UserCredentials, UserRepository } from '@/modules/identity/ports/UserRepository'
 
 /**
  * Cas d'usage signup et authenticate avec des comptes en mémoire et un
@@ -40,8 +40,29 @@ class InMemoryUsers implements UserRepository {
     return { companyId: id, created: true }
   }
 
+  /** Emails pris entre la vérification et l'insertion (inscription simultanée). */
+  takenAtInsert = new Set<string>()
+
   async createUser(user: NewUser) {
+    if (this.takenAtInsert.has(user.email) || this.users.some((u) => u.email === user.email)) return false
     this.users.push({ ...user, id: `user-${this.users.length + 1}` })
+    return true
+  }
+}
+
+/** Transaction en mémoire : tout ce que le travail a écrit est annulé s'il échoue. */
+function transactionOver(users: InMemoryUsers): SignupTransaction {
+  return {
+    async run(work) {
+      const snapshot = { companies: new Map(users.companies), users: [...users.users] }
+      try {
+        return await work(users)
+      } catch (error) {
+        users.companies = snapshot.companies
+        users.users = snapshot.users
+        throw error
+      }
+    },
   }
 }
 
@@ -52,7 +73,11 @@ const hasher: PasswordHasher = {
 
 function setup() {
   const users = new InMemoryUsers()
-  return { users, signup: makeSignup({ users, hasher }), authenticate: makeAuthenticate({ users, hasher }) }
+  return {
+    users,
+    signup: makeSignup({ users, hasher, transaction: transactionOver(users) }),
+    authenticate: makeAuthenticate({ users, hasher }),
+  }
 }
 
 const FORM = { name: '  Alice ', email: 'alice@Acme.io', password: 'motdepasse1' }
@@ -84,6 +109,14 @@ describe('signup', () => {
     await signup(FORM)
     expect(await signup({ ...FORM, name: 'Autre' })).toEqual({ ok: false, error: EMAIL_TAKEN })
     expect(users.users).toHaveLength(1)
+  })
+
+  it('email pris par une inscription simultanée : message « compte existant », aucune entreprise orpheline', async () => {
+    const { users, signup } = setup()
+    users.takenAtInsert.add('alice@Acme.io')
+    expect(await signup(FORM)).toEqual({ ok: false, error: EMAIL_TAKEN })
+    expect(users.companies.size).toBe(0)
+    expect(users.users).toHaveLength(0)
   })
 
   for (const [label, input] of [

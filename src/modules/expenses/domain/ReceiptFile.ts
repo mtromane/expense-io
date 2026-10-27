@@ -12,7 +12,7 @@ export const EXTENSION_BY_TYPE: Record<ReceiptType, string> = {
 }
 
 export function isReceiptType(value: string): value is ReceiptType {
-  return value in EXTENSION_BY_TYPE
+  return Object.hasOwn(EXTENSION_BY_TYPE, value)
 }
 
 function startsWith(bytes: Uint8Array, signature: number[], offset = 0): boolean {

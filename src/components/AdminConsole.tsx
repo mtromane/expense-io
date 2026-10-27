@@ -211,6 +211,9 @@ export function AdminConsole() {
         <h2 className="border-b border-gray-200 px-6 py-4 text-base font-semibold dark:border-gray-800">
           Notes des managers racine en attente ({notes.length})
         </h2>
+        <p className="px-6 pt-3 text-xs text-gray-500 dark:text-gray-400">
+          Comprend aussi les notes des employés sans manager.
+        </p>
         {notesError && (
           <p role="alert" className="mx-6 mt-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950 dark:text-red-300">
             {notesError}

@@ -22,6 +22,8 @@ function roleOf(input: unknown): AssignableRole {
  * manager qui a encore des subordonnés ne peut pas être rétrogradé : la RH
  * les réaffecte d'abord (sinon leurs notes n'auraient plus de valideur, M-08),
  * y compris face à un rattachement simultané (transaction de l'organigramme).
+ * Un manager sans manager peut l'être : employé sans manager, ses notes vont
+ * à la RH (MET-02).
  */
 export function makeChangeRole(deps: { transaction: OrganizationTransaction }) {
   return ({ actor, userId, input }: ChangeRoleCommand): Promise<CompanyUser> =>

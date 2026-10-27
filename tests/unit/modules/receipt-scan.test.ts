@@ -79,6 +79,29 @@ describe('TesseractWorkerPool', () => {
   })
 })
 
+describe('TesseractWorkerPool : délais (revue PR #6)', () => {
+  it('création de worker bloquée : erreur après le délai, et la requête suivante n’attend pas indéfiniment', async () => {
+    const pool = new TesseractWorkerPool({ size: 1, timeoutMs: 30 })
+    engine.createWorker.mockImplementationOnce(() => new Promise(() => undefined))
+    await expect(pool.recognizeText(Buffer.from('img'))).rejects.toThrow(/interrompue/)
+    // La place reste occupée par la création bloquée : l'attente expire au lieu de durer toujours.
+    await expect(pool.recognizeText(Buffer.from('img'))).rejects.toThrow(/interrompue/)
+  })
+
+  it('création lente qui aboutit après le délai : le worker est arrêté puis la place rendue', async () => {
+    const pool = new TesseractWorkerPool({ size: 1, timeoutMs: 20 })
+    engine.createWorker.mockImplementationOnce(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 60))
+      engine.state.live++
+      return { recognize: engine.recognize, terminate: engine.terminate }
+    })
+    await expect(pool.recognizeText(Buffer.from('img'))).rejects.toThrow(/interrompue/)
+    await new Promise((resolve) => setTimeout(resolve, 80))
+    expect(engine.terminate).toHaveBeenCalledTimes(1)
+    expect(await pool.recognizeText(Buffer.from('img'))).toBe('TOTAL 12,50')
+  })
+})
+
 describe('suggestFromReceipt', () => {
   const scanner = { recognizeText: vi.fn(async () => 'TOTAL 12,50\n12/03/2026') }
 

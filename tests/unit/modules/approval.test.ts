@@ -68,9 +68,9 @@ function transactionOver(repo: ApprovalRepository): ApprovalTransaction & { acto
 }
 
 describe('ApprovalPolicy', () => {
-  it('manager → ses rattachés directs ; RH → managers racine de son entreprise ; employé → rien', () => {
+  it('manager → ses rattachés directs ; RH → managers et employés sans manager de son entreprise (MET-02) ; employé → rien', () => {
     expect(approvalScopeOf(MANAGER)).toEqual({ kind: 'direct-reports', managerId: 'mgr-1' })
-    expect(approvalScopeOf(HR)).toEqual({ kind: 'company-root-managers', hrId: 'hr-1' })
+    expect(approvalScopeOf(HR)).toEqual({ kind: 'company-without-manager', hrId: 'hr-1' })
     expect(approvalScopeOf(EMPLOYEE)).toBeNull()
   })
 })

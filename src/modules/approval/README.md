@@ -4,7 +4,7 @@ Qui voit et tranche quelle note, et la décision elle-même.
 
 | Couche | Fichier | Rôle |
 |---|---|---|
-| domain | `ApprovalPolicy.ts` | **la** règle de périmètre : un manager voit les notes de ses rattachés directs, une RH celles des managers racine de son entreprise |
+| domain | `ApprovalPolicy.ts` | **la** règle de périmètre : un manager voit les notes de ses rattachés directs, une RH celles des managers **et des employés** sans manager de son entreprise (MET-02 : aucune note sans valideur), jamais les siennes |
 | application | `listPendingNotes.ts` | notes en attente du périmètre, par date de création croissante |
 | application | `decideExpenseNote.ts` | approuve ou rejette ; note hors périmètre → `404`, déjà tranchée → `409 Already decided` |
 | application | `getReceiptUrlForApprover.ts` | reçu d'une note du périmètre (SEC-02) |

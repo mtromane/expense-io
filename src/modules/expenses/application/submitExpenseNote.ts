@@ -3,7 +3,7 @@ import {
   InvalidInputError,
   MAX_RECEIPT_BYTES,
   RECEIPT_TOO_LARGE,
-  type Actor,
+  type Identified,
   type IncomingReceipt,
 } from '@/modules/shared/domain'
 import type { ReceiptStoragePort } from '@/ports/ReceiptStoragePort'
@@ -14,7 +14,7 @@ import type { ExpenseTransaction } from '../ports/ExpenseNoteRepository'
 export type { IncomingReceipt }
 
 export interface SubmitExpenseNoteCommand {
-  actor: Actor
+  actor: Identified
   amount: unknown
   expenseDate: unknown
   description: unknown

@@ -3,7 +3,7 @@ import type { ReactNode } from 'react'
 import { Geist, Geist_Mono } from 'next/font/google'
 import Link from 'next/link'
 import './globals.css'
-import { auth, getActor } from '@/modules/identity'
+import { getActor, getSession } from '@/modules/identity'
 import { logout } from '@/app/actions/auth'
 import { NavItem } from '@/components/NavItem'
 
@@ -23,7 +23,7 @@ export const metadata: Metadata = {
 }
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
-  const session = await auth()
+  const session = await getSession()
   // Rôle actuel (relu en base) : une promotion fait apparaître le menu sans reconnexion.
   const role = session?.user ? (await getActor())?.role : undefined
 

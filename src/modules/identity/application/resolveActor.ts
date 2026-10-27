@@ -2,10 +2,10 @@ import type { Actor } from '@/modules/shared/domain'
 import type { UserRepository } from '../ports/UserRepository'
 
 /**
- * Acteur d'une session : le jeton ne sert qu'à identifier l'utilisateur, son
- * rôle est relu en base (V-19, ADR-014). Une promotion ou une rétrogradation
- * prend effet à la requête suivante, sans reconnexion ; un compte supprimé
- * perd l'accès immédiatement.
+ * Acteur d'une session pour un contrôle de rôle : le jeton ne sert qu'à
+ * identifier l'utilisateur, son rôle est relu en base (V-19, ADR-014). Une
+ * promotion ou une rétrogradation prend effet à la requête suivante, sans
+ * reconnexion ; un compte supprimé perd l'accès aux routes et pages à rôle.
  */
 export function makeResolveActor(deps: { users: UserRepository }) {
   return async (sessionUserId: string | null | undefined): Promise<Actor | null> =>
