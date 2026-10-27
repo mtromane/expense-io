@@ -1,3 +1,4 @@
 {"sha":"d5e31b3","date":"2026-10-13T08:54:27.354Z","mode":"ab","runs":3,"duration":"15s","ratios":{"P-EMP":1.005,"P-MGR":0.988,"P-HR":1.011,"P-USERS":0.97,"P-CREATE":0.976,"P-OCR":1.021,"P-MIX":1.012,"P-LOGIN":0.967}}
 {"sha":"d354ae2","date":"2026-10-13T09:01:28.012Z","mode":"ab","runs":3,"duration":"15s","ratios":{"P-EMP":1.044,"P-MGR":0.895,"P-HR":0.833,"P-USERS":0.987,"P-CREATE":0.966,"P-OCR":0.98,"P-MIX":1.034,"P-LOGIN":0.993}}
 {"sha":"6bebb01","date":"2026-10-27T19:29:03.006Z","mode":"ab","runs":3,"duration":"15s","ratios":{"P-EMP":0.776,"P-MGR":0.63,"P-HR":0.176,"P-USERS":0.969,"P-CREATE":1.02,"P-OCR":0.033,"P-MIX":0.51,"P-LOGIN":1.001}}
+{"sha":"6bebb01","date":"2026-10-27T19:45:38.043Z","mode":"ab","runs":3,"duration":"15s","ratios":{"P-EMP":0.778,"P-MGR":0.599,"P-HR":0.18,"P-USERS":0.906,"P-CREATE":1.008,"P-OCR":0.033,"P-MIX":0.487,"P-LOGIN":0.983}}
