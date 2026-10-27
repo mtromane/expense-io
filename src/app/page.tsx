@@ -1,9 +1,9 @@
 import Link from 'next/link'
-import { getSession } from '@/modules/identity'
+import { currentSession } from '@/app/current-user'
 import { redirect } from 'next/navigation'
 
 export default async function Home() {
-  const session = await getSession()
+  const session = await currentSession()
   if (session?.user) {
     redirect('/expenses')
   }

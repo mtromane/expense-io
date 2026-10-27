@@ -18,6 +18,6 @@ Le rôle manager n'était attribuable que par le seed ou en SQL : une entreprise
 * Détacher les subordonnés à la rétrogradation : leurs notes en attente changeraient de valideur sans que la RH l'ait voulu.
 
 ## Conséquences
-* Une requête SQL de plus (lecture du rôle par clé primaire) seulement sur les routes et pages à rôle, mémorisée par rendu (`cache()` de React) ; aucune sur les routes employé. Coût mesuré par `make test-perf`.
+* Une requête SQL de plus (lecture du rôle par clé primaire) seulement sur les routes et pages à rôle, mémorisée par rendu pour les pages (`cache()` de React, `src/app/current-user.ts`) ; aucune sur les routes employé. Coût mesuré par `make test-perf` : aucune régression.
 * Rétrogradation et rattachement simultanés : le changement de rôle et le rattachement s'exécutent dans une transaction verrouillée par entreprise (`pg_advisory_xact_lock`) ; l'un des deux est refusé, jamais les deux acceptés (test de concurrence ROLE-02).
 * Sur les routes et pages à rôle, un utilisateur supprimé ou d'un rôle inconnu perd l'accès immédiatement. Les routes sans rôle exigé se fient au jeton seul, comme l'application d'origine (l'application ne permet pas de supprimer un compte).

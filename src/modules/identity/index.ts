@@ -2,7 +2,6 @@
  * Module identity : inscription, connexion et acteur de la session courante.
  * API publique et assemblage des adapters (Postgres, bcrypt, Auth.js).
  */
-import { cache } from 'react'
 import type { Actor, Identified } from '@/modules/shared/domain'
 import { makeAuthenticate } from './application/authenticate'
 import { makeResolveActor } from './application/resolveActor'
@@ -23,8 +22,8 @@ export const { handlers, auth, signIn, signOut } = makeAuthJs(authenticate)
 
 const resolveActor = makeResolveActor({ users })
 
-/** Session courante, décodée une seule fois par rendu (layout et page la partagent). */
-export const getSession = cache(() => auth())
+/** Session courante (jeton Auth.js décodé). */
+export const getSession = () => auth()
 
 /**
  * Identifiant de l'utilisateur d'après le jeton de session, sans requête SQL :
@@ -38,6 +37,9 @@ export async function getSessionActor(): Promise<Identified | null> {
 
 /**
  * Acteur avec son rôle actuel, relu en base (V-19, ADR-014) : pour tout
- * contrôle de rôle. Une seule lecture par rendu.
+ * contrôle de rôle. Pas de cache() ici : une route de l'API ne le lit qu'une
+ * fois par requête. Le rendu des pages passe par src/app/current-user.ts.
  */
-export const getActor = cache(async (): Promise<Actor | null> => resolveActor((await getSession())?.user?.id))
+export async function getActor(): Promise<Actor | null> {
+  return resolveActor((await getSession())?.user?.id)
+}
