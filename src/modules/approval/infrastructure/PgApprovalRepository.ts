@@ -5,12 +5,21 @@ import { toExpenseNote, type ExpenseNoteRecord } from '@/modules/shared/infrastr
 import type { ApprovalScope } from '../domain/ApprovalPolicy'
 import type { ApprovalRepository, ApprovalTransaction } from '../ports/ApprovalRepository'
 
-/** Condition SQL du périmètre ; `$scope` désigne l'identifiant du valideur. */
+/**
+ * Condition SQL du périmètre sur la note `en` ; `placeholder` désigne
+ * l'identifiant du valideur. Les auteurs du périmètre sont calculés une fois
+ * (`ARRAY(...)`), puis les notes lues par l'index (user_id, created_at) : même
+ * forme que les policies RLS, sans jointure (la jointure faisait passer la
+ * liste RH de 3,5 à 6 ms sur la base de perf après MET-02).
+ */
 function scopeCondition(scope: ApprovalScope, placeholder: string): string {
   return scope.kind === 'direct-reports'
-    ? `u.manager_id = ${placeholder}`
-    : `u.role IN ('manager', 'employee') AND u.manager_id IS NULL
-         AND en.company_id = (SELECT company_id FROM users WHERE id = ${placeholder})`
+    ? `en.user_id = ANY (ARRAY(SELECT id FROM users WHERE manager_id = ${placeholder}))`
+    : `en.user_id = ANY (ARRAY(
+         SELECT id FROM users
+         WHERE manager_id IS NULL AND role IN ('manager', 'employee')
+           AND company_id = (SELECT company_id FROM users WHERE id = ${placeholder})
+       ))`
 }
 
 function scopeOwner(scope: ApprovalScope): string {
@@ -23,7 +32,6 @@ export class PgApprovalRepository implements ApprovalRepository {
   async listPending(scope: ApprovalScope): Promise<ExpenseNote[]> {
     const result = await this.client.query<ExpenseNoteRecord>(
       `SELECT en.* FROM expense_notes en
-       JOIN users u ON u.id = en.user_id
        WHERE ${scopeCondition(scope, '$1')} AND en.status = 'pending'
        ORDER BY en.created_at ASC`,
       [scopeOwner(scope)]
@@ -34,7 +42,6 @@ export class PgApprovalRepository implements ApprovalRepository {
   async findInScope(scope: ApprovalScope, noteId: string): Promise<ExpenseNote | null> {
     const result = await this.client.query<ExpenseNoteRecord>(
       `SELECT en.* FROM expense_notes en
-       JOIN users u ON u.id = en.user_id
        WHERE en.id = $1 AND ${scopeCondition(scope, '$2')}`,
       [noteId, scopeOwner(scope)]
     )
