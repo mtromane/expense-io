@@ -1,7 +1,7 @@
 # 21 · Décisions d'architecture à prendre en équipe : pour et contre
 
 * Pour qui : l'équipe, en séance de décision. Une décision par section, à trancher puis à reporter dans l'ADR correspondante.
-* **D12 à D19 tranchées le 2026-10-26** (voir la ligne « Décision » de chaque section et ADR-012 à ADR-019).
+* **D12 à D19 : choix arrêtés le 2026-10-26 par Maxence Larche, à valider explicitement par l'équipe avant la fusion de la PR #6** (voir la ligne « Choix » de chaque section et ADR-012 à ADR-019). D13, D15 et D17 s'écartent de la recommandation ; D15 change des messages du contrat (exception de la règle 5 d'`AGENTS.md`).
 * Source : §9 de [20-audit-architecture-arla.md](20-audit-architecture-arla.md), complété des décisions implicites que le jury risque de poser en question.
 * Grille utilisée (cours ARLA) : délai, coût, maturité de l'équipe, sécurité, performance (0 au barème si plus lent), contrat figé par les tests, valeur pour la soutenance.
 * Les points métier (`MET-01` à `MET-09`, lot 8) sont désormais dans le périmètre : le métier doit être totalement fonctionnel. Inventaire complet dans [22-comportements-a-corriger.md](22-comportements-a-corriger.md) ; seuls ceux qui demandent un choix figurent ici (D12 à D19).
@@ -21,14 +21,14 @@
 | D9 | Exécution du worker (si outbox un jour) | script séparé / `after()` / les deux | les deux | avec D8 |
 | D10 | Fonctionnalité du live coding | sans objet : imposée par les professeurs | préparer `AGENTS.md` en fin de migration | fin de migration |
 | D11 | Types de réponse | générés depuis OpenAPI / écrits à la main | à la main d'abord | faible |
-| D12 | Incohérence 401 / 403 | conserver / corriger | **Tranchée le 2026-10-26 : corriger** (401 non connecté, 403 mauvais rôle) | [ADR-012](../architecture/adr/ADR-012-codes-401-403.md) |
-| D13 | Qui valide les notes d'une RH (`M-01.1`) | autre RH / manager rattaché / les deux / interdire | **Tranchée : manager rattaché** (pas de seconde RH) | [ADR-013](../architecture/adr/ADR-013-validation-des-notes-rh.md) |
-| D14 | Changement de rôle (`M-02`, `M-08`) | nouvelle route / route existante étendue / implicite | **Tranchée : nouvelle route** (employé ↔ manager), rétrogradation refusée s'il reste des subordonnés | [ADR-014](../architecture/adr/ADR-014-changement-de-role.md) |
-| D15 | Langue des messages d'erreur (`B-06`) | écran seul / API / codes stables | **Tranchée : API entièrement en anglais**, écran inchangé | [ADR-015](../architecture/adr/ADR-015-messages-api-en-anglais.md) |
-| D16 | Domaines publics (`M-03`) | liste de refus / accepter / invitation | **Tranchée : liste de refus** | [ADR-016](../architecture/adr/ADR-016-domaines-publics.md) |
-| D17 | Total « Mes notes » (`M-04`) | hors rejetées / par statut | **Tranchée : total par statut** (ajouté, texte existant conservé) | [ADR-017](../architecture/adr/ADR-017-total-par-statut.md) |
-| D18 | Code de `Invalid manager` | 409 / 422 | **Tranchée : garder 409**, aussi pour les cycles | [ADR-018](../architecture/adr/ADR-018-invalid-manager-409.md) |
-| D19 | Statut de la page « Accès réservé » | 200 / 403 | **Tranchée : 403** | [ADR-019](../architecture/adr/ADR-019-acces-reserve-403.md) |
+| D12 | Incohérence 401 / 403 | conserver / corriger | **Choix : corriger** (401 non connecté, 403 mauvais rôle) | [ADR-012](../architecture/adr/ADR-012-codes-401-403.md) |
+| D13 | Qui valide les notes d'une RH (`M-01.1`) | autre RH / manager rattaché / les deux / interdire | **Choix : manager rattaché** (écart avec la recommandation) (pas de seconde RH) | [ADR-013](../architecture/adr/ADR-013-validation-des-notes-rh.md) |
+| D14 | Changement de rôle (`M-02`, `M-08`) | nouvelle route / route existante étendue / implicite | **Choix : nouvelle route** (employé ↔ manager), rétrogradation refusée s'il reste des subordonnés | [ADR-014](../architecture/adr/ADR-014-changement-de-role.md) |
+| D15 | Langue des messages d'erreur (`B-06`) | écran seul / API / codes stables | **Choix : API entièrement en anglais** (écart avec la recommandation), écran inchangé | [ADR-015](../architecture/adr/ADR-015-messages-api-en-anglais.md) |
+| D16 | Domaines publics (`M-03`) | liste de refus / accepter / invitation | **Choix : liste de refus** | [ADR-016](../architecture/adr/ADR-016-domaines-publics.md) |
+| D17 | Total « Mes notes » (`M-04`) | hors rejetées / par statut | **Choix : total par statut** (écart avec la recommandation) (ajouté, texte existant conservé) | [ADR-017](../architecture/adr/ADR-017-total-par-statut.md) |
+| D18 | Code de `Invalid manager` | 409 / 422 | **Choix : garder 409**, aussi pour les cycles | [ADR-018](../architecture/adr/ADR-018-invalid-manager-409.md) |
+| D19 | Statut de la page « Accès réservé » | 200 / 403 | **Choix : 403** | [ADR-019](../architecture/adr/ADR-019-acces-reserve-403.md) |
 
 ---
 
@@ -161,7 +161,7 @@ Contexte : mauvais rôle donne `401` sur `/api/manager/*`, anonyme donne `403` s
 
 Recommandation : **corriger**, en passant les cellules concernées en défauts (`fixed: false`) avant le correctif, pour garder le cycle rouge → vert.
 
-**Décision (2026-10-26) :** 401 si non connecté, 403 si connecté sans le rôle, sur toutes les routes `/api/manager/*` et `/api/hr/*`. Défauts `AUTHZ-01` et `AUTHZ-02`.
+**Choix (2026-10-26, à valider en équipe) :** 401 si non connecté, 403 si connecté sans le rôle, sur toutes les routes `/api/manager/*` et `/api/hr/*`. Défauts `AUTHZ-01` et `AUTHZ-02`.
 
 ## D13 · Qui valide les notes d'une RH (`M-01.1`)
 
@@ -176,7 +176,7 @@ Contexte : une entreprise n'a qu'une RH aujourd'hui. Elle ne peut ni se valider 
 
 Recommandation : **rattachement à un manager**, avec « autre RH » ajouté si `M-02` permet de nommer plusieurs RH. Dans tous les cas, jamais d'auto validation.
 
-**Décision (2026-10-26) :** la RH peut être rattachée à un manager de son entreprise, qui valide ses notes comme celles d'un employé ; jamais d'auto-validation. Pas de seconde RH (la route de rôle de D14 se limite à employé ↔ manager). Défaut `MET-03`.
+**Choix (2026-10-26, à valider en équipe) :** la RH peut être rattachée à un manager de son entreprise, qui valide ses notes comme celles d'un employé ; jamais d'auto-validation. Pas de seconde RH (la route de rôle de D14 se limite à employé ↔ manager). Défaut `MET-03`.
 
 ## D14 · Forme du changement de rôle (`M-02`, `M-08`)
 
@@ -195,7 +195,7 @@ Pour la rétrogradation d'un manager qui a des subordonnés (`M-08`) :
 
 Recommandation : **nouvelle route** et **refus** de la rétrogradation tant qu'il reste des subordonnés. Traiter `V-19` en même temps (relire le rôle en base à chaque requête, ou raccourcir la session), sinon une promotion n'a d'effet qu'après reconnexion.
 
-**Décision (2026-10-26) :** nouvelle route `PUT /api/hr/users/:id/role` (`employee` ↔ `manager`) et menu de rôle dans la console RH ; rétrogradation d'un manager qui a encore des subordonnés refusée (`409`). Le rôle est relu en base à chaque requête (`V-19`) : une promotion prend effet sans reconnexion. Défauts `ROLE-01` à `ROLE-03`.
+**Choix (2026-10-26, à valider en équipe) :** nouvelle route `PUT /api/hr/users/:id/role` (`employee` ↔ `manager`) et menu de rôle dans la console RH ; rétrogradation refusée (`409`) d'un manager qui a encore des subordonnés ; un manager sans manager rétrogradé voit ses notes aller à la RH (`MET-02`, sans arbitrage dans le doc 22). Le rôle est relu en base pour tout contrôle de rôle (`V-19`) : une promotion prend effet sans reconnexion. Défauts `ROLE-01` à `ROLE-03`.
 
 ## D15 · Langue des messages d'erreur (`B-06`, `V-15.2`)
 
@@ -207,7 +207,7 @@ Recommandation : **nouvelle route** et **refus** de la rétrogradation tant qu'i
 
 Recommandation : **traduire à l'écran**, sauf indication contraire du professeur.
 
-**Décision (2026-10-26) :** tous les messages d'erreur de l'**API** passent en anglais (`Invalid fields`, `Receipt file type not allowed`, `File too large`), cohérents avec `Not found`, `Already decided`, `Invalid manager`. L'**écran** garde ses textes actuels. Défaut `API-01`.
+**Choix (2026-10-26, à valider en équipe) :** tous les messages d'erreur de l'**API** passent en anglais (`Invalid fields`, `Receipt file type not allowed`, `File too large`), cohérents avec `Not found`, `Already decided`, `Invalid manager`. L'**écran** garde ses textes actuels. Défaut `API-01`.
 
 ## D16 · Domaines de messagerie publics (`M-03`, `MET-01`)
 
@@ -219,7 +219,7 @@ Recommandation : **traduire à l'écran**, sauf indication contraire du professe
 
 Recommandation : **liste de refus**, message explicite, en ajout (aucun texte existant modifié).
 
-**Décision (2026-10-26) :** inscription refusée sur une liste de domaines de messagerie publics, avec un message explicite ajouté au formulaire. Défaut `MET-01`.
+**Choix (2026-10-26, à valider en équipe) :** inscription refusée sur une liste de domaines de messagerie publics, avec un message explicite ajouté au formulaire. Défaut `MET-01`.
 
 ## D17 · Total « Mes notes » (`M-04`)
 
@@ -230,7 +230,7 @@ Recommandation : **liste de refus**, message explicite, en ajout (aucun texte ex
 
 Recommandation : **exclure les rejetées**, sans changer le format du texte.
 
-**Décision (2026-10-26) :** total par statut (en attente, approuvées, rejetées) **ajouté** sous le total existant, dont le texte ne change pas. Défaut `UI-01`.
+**Choix (2026-10-26, à valider en équipe) :** total par statut (en attente, approuvées, rejetées) **ajouté** sous le total existant, dont le texte ne change pas. Défaut `UI-01`.
 
 ## D18 · Code de `Invalid manager` (`B-05`)
 
@@ -241,7 +241,7 @@ Recommandation : **exclure les rejetées**, sans changer le format du texte.
 
 Recommandation : **garder `409`** et l'utiliser aussi pour les cycles (`V-04.2`).
 
-**Décision (2026-10-26) :** garder `409 Invalid manager`, et l'utiliser aussi pour refuser un cycle hiérarchique (`V-04.2`). Défaut `MET-04`.
+**Choix (2026-10-26, à valider en équipe) :** garder `409 Invalid manager`, et l'utiliser aussi pour refuser un cycle hiérarchique (`V-04.2`). Défaut `MET-04`.
 
 ## D19 · Statut de la page « Accès réservé » (`B-04`)
 
@@ -252,7 +252,7 @@ Recommandation : **garder `409`** et l'utiliser aussi pour les cycles (`V-04.2`)
 
 Recommandation : **`403` si Next.js le permet sans changer le rendu**, sinon garder `200` et l'assumer. Faible priorité.
 
-**Décision (2026-10-26) :** même page et même texte, statut `403` (`forbidden()` de Next.js). Défaut `AUTHZ-03`.
+**Choix (2026-10-26, à valider en équipe) :** même page et même texte, statut `403` (`forbidden()` de Next.js). Défaut `AUTHZ-03`.
 
 ---
 

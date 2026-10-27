@@ -19,7 +19,7 @@ Le numéro de l'ADR reprend celui de la décision (ADR-002 = D2). Chacune appliq
 | [ADR-010](ADR-010-live-coding.md) | D10 · fonctionnalité du live coding | sans objet, préparer `AGENTS.md` |
 | [ADR-011](ADR-011-types-de-reponse.md) | D11 · types de réponse | écrits à la main |
 
-Décisions métier D12 à D19, **tranchées par l'équipe le 2026-10-26** :
+Décisions métier D12 à D19 : **choix arrêtés le 2026-10-26 par Maxence Larche, en attente de validation explicite de l'équipe** (condition de fusion de la PR #6). D13, D15 et D17 s'écartent de la recommandation du document 21 :
 
 | ADR | Décision | Choix |
 |---|---|---|

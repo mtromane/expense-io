@@ -4,7 +4,7 @@ Vue d'ensemble de l'application après la refonte. Le détail de chaque module e
 
 ## 1. Le système
 
-Expense.io gère les notes de frais d'une entreprise. Un **employé** soumet une note avec son reçu. Son **manager** direct la valide ou la rejette. Les notes des managers racine (sans manager) vont à la **RH** de l'entreprise, qui gère aussi l'organigramme : elle nomme les managers, rattache chacun à son manager, et se rattache elle-même à un manager qui valide ses propres notes. Chaque entreprise est isolée des autres et se déduit du domaine de l'email à l'inscription (domaines de messagerie publics refusés). Décisions métier : ADR-012 à ADR-019.
+Expense.io gère les notes de frais d'une entreprise. Un **employé** soumet une note avec son reçu. Son **manager** direct la valide ou la rejette. Les notes de quiconque n'a pas de manager (manager racine ou employé) vont à la **RH** de l'entreprise, qui gère aussi l'organigramme : elle nomme les managers, rattache chacun à son manager, et se rattache elle-même à un manager qui valide ses propres notes. Chaque entreprise est isolée des autres et se déduit du domaine de l'email à l'inscription (domaines de messagerie publics refusés). Décisions métier : ADR-012 à ADR-019.
 
 ```mermaid
 flowchart LR

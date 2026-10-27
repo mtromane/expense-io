@@ -158,7 +158,7 @@ paths:
 
   /api/hr/expense-notes:
     get:
-      summary: Notes en attente des managers racine de l'entreprise (tri created_at ASC)
+      summary: Notes en attente des managers et employés sans manager de l'entreprise (MET-02 ; tri created_at ASC)
       responses:
         '200': { $ref: '#/components/responses/NoteList' }
         '401': { $ref: '#/components/responses/Error' }

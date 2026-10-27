@@ -1,6 +1,6 @@
 # ADR-017 · Total « Mes notes » détaillé par statut
 
-* Statut : Acceptée (équipe, 2026-10-26)
+* Statut : Proposée. Choix arrêté le 2026-10-26 par Maxence Larche ; **validation explicite de l'équipe requise avant fusion** (revue de la PR #6)
 * Décision source : D17 (`M-04` ; défaut `UI-01`)
 
 ## Contexte

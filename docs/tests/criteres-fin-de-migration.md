@@ -80,7 +80,8 @@ Décisions D12 à D19 tranchées le 2026-10-26, suivies par ces défauts du regi
 |---|---|---|
 | AUTHZ-01, AUTHZ-02 | D12 | `403` connecté sans le rôle sur `/api/manager/*`, `401` anonyme sur `/api/hr/*` |
 | MET-03 | D13 | la RH se rattache à un manager (`GET /api/hr/me`, `PUT /api/hr/users/{son id}/manager`) qui valide ses notes ; jamais d'auto-validation |
-| ROLE-01, ROLE-02, ROLE-03 | D14 | `PUT /api/hr/users/:id/role` (employé ↔ manager) et menu de rôle ; rétrogradation avec subordonnés → `409 Manager has direct reports` ; effet sans reconnexion |
+| ROLE-01 à ROLE-03 | D14 | `PUT /api/hr/users/:id/role` (employé ↔ manager) et boutons de rôle ; rétrogradation avec subordonnés → `409 Manager has direct reports` ; effet sans reconnexion |
+| MET-02 | doc 22 (sans arbitrage) | notes d'un employé sans manager validées par la RH de l'entreprise, comme celles des managers racine |
 | API-01 | D15 | messages de l'API en anglais (`Invalid fields`, `Receipt file type not allowed`, `File too large`), écran inchangé |
 | MET-01 | D16 | inscription refusée sur un domaine de messagerie public |
 | UI-01 | D17 | « Mes notes » : total par statut ajouté sous le total existant |
