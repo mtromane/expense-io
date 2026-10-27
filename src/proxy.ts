@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { auth } from '@/lib/auth'
+import { auth } from '@/modules/identity'
 
 const PROTECTED_PREFIXES = ['/expenses', '/manager', '/hr']
 

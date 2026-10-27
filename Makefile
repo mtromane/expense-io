@@ -3,7 +3,7 @@ SHELL := /bin/bash
 
 COMPOSE := docker compose
 
-.PHONY: help install env up down restart logs migrate ensure-bucket seed dev build start lint typecheck clean test-setup test test-api test-e2e test-defects test-report test-perf perf-aa api-diff
+.PHONY: help install env up down restart logs migrate ensure-bucket seed dev build start lint typecheck clean test-setup test test-unit test-api test-e2e test-defects test-report test-perf perf-aa api-diff
 
 help: ## Affiche cette aide
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-18s\033[0m %s\n", $$1, $$2}'
@@ -62,8 +62,12 @@ clean: ## Arrête Docker et supprime les volumes — efface les données locales
 
 test-setup: up migrate ensure-bucket seed build ## Prépare l'environnement de test (Docker, migrations, seed, build de prod)
 
-test: test-setup ## Lance toute la suite (parité + défauts)
+test: test-setup ## Lance toute la suite (unitaires, parité, défauts)
+	npm run test:unit
 	npx playwright test
+
+test-unit: ## Tests unitaires (Vitest, sans Docker ni build, quelques secondes)
+	npm run test:unit
 
 test-api: test-setup ## Contrat HTTP et défauts
 	npx playwright test tests/api tests/defects

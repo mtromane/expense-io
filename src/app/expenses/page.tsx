@@ -1,25 +1,12 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
-
-interface ExpenseNote {
-  id: string
-  amount: number
-  expenseDate: string
-  description: string
-  status: string
-  createdAt: string
-}
+import type { ExpenseNoteDto } from '@/modules/shared/http/presenters'
+import { employeeApi } from '@/utils/api'
+import { formatCurrency, formatDate } from '@/utils/format'
 
 const inputClass =
   'w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 dark:border-gray-700 dark:bg-gray-900 dark:focus:ring-brand-900'
-
-const currencyFormatter = new Intl.NumberFormat('fr-FR', {
-  style: 'currency',
-  currency: 'EUR',
-})
-
-const dateFormatter = new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium' })
 
 const STATUS_STYLES: Record<string, string> = {
   pending: 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300',
@@ -44,7 +31,7 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 export default function ExpensesPage() {
-  const [notes, setNotes] = useState<ExpenseNote[]>([])
+  const [notes, setNotes] = useState<ExpenseNoteDto[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
@@ -55,9 +42,9 @@ export default function ExpensesPage() {
   const receiptInputRef = useRef<HTMLInputElement>(null)
 
   const loadNotes = useCallback(async () => {
-    const response = await fetch('/api/expense-notes')
-    if (response.ok) {
-      setNotes(await response.json())
+    const result = await employeeApi.listNotes()
+    if (result.ok) {
+      setNotes(result.data)
     } else {
       setError('Impossible de charger les notes de frais.')
     }
@@ -78,25 +65,17 @@ export default function ExpensesPage() {
     const form = event.currentTarget
     const formData = new FormData(form)
 
-    const response = await fetch('/api/expense-notes', {
-      method: 'POST',
-      body: formData,
-    })
+    const result = await employeeApi.submitNote(formData)
     setSubmitting(false)
 
-    if (response.ok) {
+    if (result.ok) {
       form.reset()
       setAmount('')
       setExpenseDate('')
       setSuggestionNotice(null)
       await loadNotes()
     } else {
-      const body = await response.json().catch(() => null)
-      setError(
-        typeof body?.error === 'string'
-          ? body.error
-          : 'Échec de la soumission de la note de frais.'
-      )
+      setError(result.error ?? 'Échec de la soumission de la note de frais.')
     }
   }
 
@@ -112,19 +91,16 @@ export default function ExpensesPage() {
 
     const formData = new FormData()
     formData.set('receipt', receipt)
-    const response = await fetch('/api/expense-notes/receipt-suggestion', {
-      method: 'POST',
-      body: formData,
-    })
+    const result = await employeeApi.suggestFromReceipt(formData)
     setExtracting(false)
 
-    if (!response.ok) {
+    if (!result.ok) {
       setError('Impossible d’analyser ce reçu.')
       return
     }
     // Une réponse vide est valide (rien à suggérer) : sans ce message, ça
     // ne se distinguerait pas visuellement d'un bouton qui n'a rien fait.
-    const suggestion = (await response.json()) as { amount?: number; expenseDate?: string }
+    const suggestion = result.data
     const foundAmount = typeof suggestion.amount === 'number'
     const foundDate = typeof suggestion.expenseDate === 'string'
     if (foundAmount) {
@@ -143,16 +119,18 @@ export default function ExpensesPage() {
   }
 
   async function handleViewReceipt(id: string) {
-    const response = await fetch(`/api/expense-notes/${id}/receipt-url`)
-    if (!response.ok) {
+    const result = await employeeApi.receiptUrl(id)
+    if (!result.ok) {
       setError('Impossible de récupérer le reçu.')
       return
     }
-    const { url } = await response.json()
-    window.open(url, '_blank', 'noopener,noreferrer')
+    window.open(result.data.url, '_blank', 'noopener,noreferrer')
   }
 
   const total = notes.reduce((sum, note) => sum + note.amount, 0)
+  // Total par statut (D17, ADR-017) : affiché sous le total existant, inchangé.
+  const totalOf = (status: string) =>
+    notes.filter((note) => note.status === status).reduce((sum, note) => sum + note.amount, 0)
 
   return (
     <main className="flex flex-col gap-8">
@@ -160,9 +138,14 @@ export default function ExpensesPage() {
         <h1 className="text-2xl font-semibold tracking-tight">Mes notes de frais</h1>
         <p className="text-sm text-gray-500 dark:text-gray-400">
           {notes.length > 0
-            ? `${notes.length} note${notes.length > 1 ? 's' : ''} · ${currencyFormatter.format(total)} au total`
+            ? `${notes.length} note${notes.length > 1 ? 's' : ''} · ${formatCurrency(total)} au total`
             : 'Soumets ta première note de frais ci-dessous.'}
         </p>
+        {notes.length > 0 && (
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            {`En attente : ${formatCurrency(totalOf('pending'))} · Approuvées : ${formatCurrency(totalOf('approved'))} · Rejetées : ${formatCurrency(totalOf('rejected'))}`}
+          </p>
+        )}
       </div>
 
       <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
@@ -282,11 +265,11 @@ export default function ExpensesPage() {
                 {notes.map((note) => (
                   <tr key={note.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
                     <td className="px-6 py-3 whitespace-nowrap text-gray-500 dark:text-gray-400">
-                      {dateFormatter.format(new Date(note.expenseDate))}
+                      {formatDate(note.expenseDate)}
                     </td>
                     <td className="px-6 py-3">{note.description}</td>
                     <td className="px-6 py-3 text-right font-medium whitespace-nowrap">
-                      {currencyFormatter.format(note.amount)}
+                      {formatCurrency(note.amount)}
                     </td>
                     <td className="px-6 py-3">
                       <StatusBadge status={note.status} />

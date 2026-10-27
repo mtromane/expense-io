@@ -7,7 +7,7 @@ Le barème met **0** si l'application est moins performante après la migration.
 `tests/perf/compare.mjs` :
 
 1. prépare la baseline (worktree du commit `265924b`, build de production) et build la version courante ;
-2. pour chaque passage, recrée une base dédiée `expense_io_perf`, applique **les migrations de la version mesurée**, puis la peuple avec `scripts/seed-perf.mjs` (20 entreprises, 2 001 utilisateurs, 193 300 notes, distribution déterministe) ;
+2. pour chaque passage, recrée une base dédiée `expense_io_perf`, applique **les migrations de la version mesurée**, puis la peuple avec `scripts/seed-perf.mjs` (20 entreprises, 2 002 utilisateurs, 193 300 notes, distribution déterministe) ;
 3. démarre la version sur le port 3100 (build de production), chauffe, exécute les scénarios k6 ;
 4. alterne les passages A, B, A, B, A, B (la dérive de la machine s'annule) et compare les **médianes de p95**.
 

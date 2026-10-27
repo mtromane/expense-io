@@ -19,21 +19,21 @@ Cocher chaque ligne. Une seule case vide = migration non terminée.
 
 ### 2.1 Rien n'a été perdu (parité)
 
-- [ ] Les **181 tests `@parity`** passent : `npx playwright test --grep @parity`.
+- [ ] Les **231 tests `@parity`** passent (253 avant que D12 ne fasse passer 22 cellules de la matrice en défauts) : `npx playwright test --grep @parity`.
 - [ ] Toutes les réponses de l'API sont conformes au contrat **`docs/api/openapi.yaml`** : c'est vérifié automatiquement sur chaque réponse obtenue par les tests (schémas stricts, codes HTTP documentés).
 - [ ] Aucun test `@parity` n'a été modifié, sauf changement de comportement **voulu** (§2.3), justifié dans la PR et validé par la team Tests.
 - [ ] Le **contrat** ci-dessous est intact (il est vérifié par les tests, mais c'est lui qui compte) :
 
 | Élément | Ce qui ne doit pas changer |
 |---|---|
-| Routes API | les 14 chemins et verbes (`/api/expense-notes`, `/api/manager/...`, `/api/hr/...`) |
-| Réponses | décrites dans `docs/api/openapi.yaml` : forme JSON (`id`, `userId`, `amount` en nombre, `expenseDate` en `YYYY-MM-DD`, `description`, `receiptKey`, `status`, `createdAt` ISO), codes HTTP, erreurs `{"error": "..."}` sans stack ; messages exacts (`Champs invalides`, `Already decided`, `Invalid manager`, `Not found`…) |
+| Routes API | les 14 chemins et verbes d'origine (`/api/expense-notes`, `/api/manager/...`, `/api/hr/...`), plus `PUT /api/hr/users/{id}/role` (D14) et `GET /api/hr/me` (D13) ajoutés |
+| Réponses | décrites dans `docs/api/openapi.yaml` : forme JSON (`id`, `userId`, `amount` en nombre, `expenseDate` en `YYYY-MM-DD`, `description`, `receiptKey`, `status`, `createdAt` ISO), codes HTTP, erreurs `{"error": "..."}` sans stack ; messages exacts, en anglais depuis D15 (`Invalid fields`, `Already decided`, `Invalid manager`, `Not found`…) |
 | Suggestion OCR | sur les reçus de référence (`tests/fixtures/ocr/`), même montant et même date qu'avant |
 | Tris | employé : `created_at` décroissant ; manager et RH : `created_at` croissant |
 | Interface | textes français des labels et boutons (`Montant (€)`, `Soumettre`, `Approuver`, `Rejeter`, `Voir le reçu`, `Se connecter`, `Se déconnecter`…) |
 | Exploitation | scripts npm (`dev`, `build`, `start`, `lint`, `typecheck`, `migrate:up`, `migrate:down`, `ensure-bucket`, `seed`), cibles make, variables de `.env.example`, ports 3000 / 5433 / 4567 |
 | Données de démo | comptes `hr@expense.io`, `manager@expense.io`, `demo@expense.io` ; `npm run seed` relançable sans doublon ; overrides `SEED_*` |
-| Comportements conservés volontairement | note hors périmètre → `404` (ne pas révéler l'existence d'une ressource) ; `/manager` et `/hr` avec un mauvais rôle → page « Accès réservé » (même titre ; statut HTTP selon D19) ; une note en attente suit le nouveau manager après réaffectation |
+| Comportements conservés volontairement | note hors périmètre → `404` (ne pas révéler l'existence d'une ressource) ; `/manager` et `/hr` avec un mauvais rôle → page « Accès réservé » (même titre, statut `403` depuis D19) ; une note en attente suit le nouveau manager après réaffectation |
 
 ### 2.2 Les défauts techniques sont corrigés
 
@@ -73,6 +73,20 @@ Décision d'équipe du 2026-10-13 : les professeurs ont des tests qui échouent 
 * [ ] Chaque correction suit le cycle rouge → vert : la team Tests ajoute d'abord le défaut au registre (`fixed: false`) avec son test, et fait évoluer dans la même PR les tests de parité et `docs/api/openapi.yaml` qui figeaient l'ancien comportement.
 * [ ] Aucun texte d'interface existant renommé : on ajoute (menu, message, champ), on ne remplace pas.
 * [ ] Seules les options tranchées dans `docs/audit/21-decisions-architecture.md` (D12 à D19) sont implémentées.
+
+Décisions D12 à D19 tranchées le 2026-10-26, suivies par ces défauts du registre (tests dans `tests/defects/metier.spec.ts` et `tests/api/authz-matrix.ts`) :
+
+| ID | Décision | Résultat attendu, vérifié par les tests |
+|---|---|---|
+| AUTHZ-01, AUTHZ-02 | D12 | `403` connecté sans le rôle sur `/api/manager/*`, `401` anonyme sur `/api/hr/*` |
+| MET-03 | D13 | la RH se rattache à un manager (`GET /api/hr/me`, `PUT /api/hr/users/{son id}/manager`) qui valide ses notes ; jamais d'auto-validation |
+| ROLE-01 à ROLE-03 | D14 | `PUT /api/hr/users/:id/role` (employé ↔ manager) et boutons de rôle ; rétrogradation avec subordonnés → `409 Manager has direct reports` ; effet sans reconnexion |
+| MET-02 | doc 22 (sans arbitrage) | notes d'un employé sans manager validées par la RH de l'entreprise, comme celles des managers racine |
+| API-01 | D15 | messages de l'API en anglais (`Invalid fields`, `Receipt file type not allowed`, `File too large`), écran inchangé |
+| MET-01 | D16 | inscription refusée sur un domaine de messagerie public |
+| UI-01 | D17 | « Mes notes » : total par statut ajouté sous le total existant |
+| MET-04 | D18 | cycle hiérarchique → `409 Invalid manager` |
+| AUTHZ-03 | D19 | page « Accès réservé » servie en `403` |
 
 ### 2.4 Pas plus lent qu'avant
 

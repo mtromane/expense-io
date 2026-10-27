@@ -6,6 +6,7 @@ import { actor } from '../support/actors'
 import { apiLogin, credentialsOf, loginAs } from '../support/auth'
 import { FAULTY_URL } from '../support/env'
 import { paddedPng } from '../support/files'
+import { apiError } from '../support/messages'
 import { createNote, listOwnNotes, postNote, uniqueDescription } from '../support/notes'
 import { expectDefect } from './registry'
 
@@ -34,7 +35,7 @@ test('SEC-07 contenu non conforme au type déclaré → 400', { tag: ['@defect',
   expectDefect('SEC-07')
   const res = await postNote(emp, { receipt: fake })
   expect(res.status()).toBe(400)
-  expect(await res.json()).toEqual({ error: 'Type de fichier non autorisé pour le reçu' })
+  expect(await res.json()).toEqual(apiError('Type de fichier non autorisé pour le reçu'))
   await emp.dispose()
 })
 
@@ -45,7 +46,7 @@ test('SEC-08 suggestion OCR : fichier de plus de 10 Mo → 400', { tag: ['@defec
   expectDefect('SEC-08')
   const res = await emp.post('/api/expense-notes/receipt-suggestion', { multipart: { receipt: big } })
   expect(res.status()).toBe(400)
-  expect(await res.json()).toEqual({ error: 'Fichier trop volumineux' })
+  expect(await res.json()).toEqual(apiError('Fichier trop volumineux'))
   await emp.dispose()
 })
 

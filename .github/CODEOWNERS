@@ -3,6 +3,7 @@
 # régression : on corrige le code, pas le test.
 /tests/                   @mtromane @LKsLg @thibaultbriens
 /playwright.config.ts     @mtromane @LKsLg @thibaultbriens
+/vitest.config.mts       @mtromane @LKsLg @thibaultbriens
 /scripts/seed-e2e.mjs     @mtromane @LKsLg @thibaultbriens
 /docs/tests/              @mtromane @LKsLg @thibaultbriens
 /docs/api/                @mtromane @LKsLg @thibaultbriens

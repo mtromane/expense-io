@@ -15,7 +15,10 @@
         { "key": "reassignRob03", "name": "Reassign ROB-03", "role": "employee", "manager": "subMgrA" },
         { "key": "reassignE2E", "name": "Reassign E2E", "role": "employee" },
         { "key": "reassignHrApi", "name": "Reassign HR API", "role": "employee", "manager": "subMgrA" },
-        { "key": "reassignSeed", "name": "Reassign Seed", "role": "employee", "manager": "subMgrA" }
+        { "key": "reassignSeed", "name": "Reassign Seed", "role": "employee", "manager": "subMgrA" },
+        { "key": "reassignRoot", "name": "Reassign Root", "role": "manager", "manager": "rootMgrA" },
+        { "key": "reassignUi", "name": "Reassign UI", "role": "employee", "manager": "subMgrA" },
+        { "key": "loneMgrA", "name": "Lone Manager A", "role": "manager", "manager": "rootMgrA" }
       ]
     },
     {
@@ -25,6 +28,27 @@
         { "key": "hrB", "name": "HR B", "role": "hr_admin" },
         { "key": "rootMgrB", "name": "Root Manager B", "role": "manager" },
         { "key": "empB", "name": "Employee B", "role": "employee", "manager": "rootMgrB" }
+      ]
+    },
+    {
+      "key": "C",
+      "domain": "c.e2e.test",
+      "users": [
+        { "key": "hrC", "name": "HR C", "role": "hr_admin" },
+        { "key": "mgrC", "name": "Manager C", "role": "manager" },
+        { "key": "mgrC2", "name": "Sub Manager C", "role": "manager", "manager": "mgrC" },
+        { "key": "empC1", "name": "Employee C1", "role": "employee", "manager": "mgrC2" },
+        { "key": "promoteC", "name": "Promote C", "role": "employee" },
+        { "key": "sessionC", "name": "Session C", "role": "employee" },
+        { "key": "promoteUiC", "name": "Promote UI C", "role": "employee" },
+        { "key": "totalsC", "name": "Totals C", "role": "employee", "manager": "mgrC" },
+        { "key": "raceMgrC", "name": "Race Manager C", "role": "manager" },
+        { "key": "raceEmpC", "name": "Race Employee C", "role": "employee" },
+        { "key": "cycleMgrC1", "name": "Cycle Manager C1", "role": "manager" },
+        { "key": "cycleMgrC2", "name": "Cycle Manager C2", "role": "manager" },
+        { "key": "rootMgrC", "name": "Root Manager C", "role": "manager" },
+        { "key": "noMgrEmpC", "name": "No Manager Employee C", "role": "employee" },
+        { "key": "zeroAmountC", "name": "Zero Amount C", "role": "employee" }
       ]
     }
   ]

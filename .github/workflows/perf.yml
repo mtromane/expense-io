@@ -34,6 +34,8 @@ env:
   S3_SECRET_ACCESS_KEY: test
   S3_BUCKET: receipts
   S3_FORCE_PATH_STYLE: 'true'
+  # Rôle de la RLS effective (version courante) ; ignoré par la baseline.
+  APP_DB_ROLE: expense_app
   PERF_BASELINE_DIR: ../baseline
   # Le runner GitHub est plus bruyant que les machines locales : jusqu'à 15 %
   # d'écart observé entre deux versions au code identique (P-MGR, 21 ms, run

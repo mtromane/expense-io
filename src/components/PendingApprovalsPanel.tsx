@@ -1,33 +1,20 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-
-interface ExpenseNote {
-  id: string
-  userId: string
-  amount: number
-  expenseDate: string
-  description: string
-  createdAt: string
-}
-
-const currencyFormatter = new Intl.NumberFormat('fr-FR', {
-  style: 'currency',
-  currency: 'EUR',
-})
-
-const dateFormatter = new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium' })
+import type { ExpenseNoteDto } from '@/modules/shared/http/presenters'
+import { managerApi, type Decision } from '@/utils/api'
+import { formatCurrency, formatDate } from '@/utils/format'
 
 export function PendingApprovalsPanel() {
-  const [notes, setNotes] = useState<ExpenseNote[]>([])
+  const [notes, setNotes] = useState<ExpenseNoteDto[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [decidingId, setDecidingId] = useState<string | null>(null)
 
   const loadPending = useCallback(async () => {
-    const response = await fetch('/api/manager/expense-notes')
-    if (response.ok) {
-      setNotes(await response.json())
+    const result = await managerApi.listPending()
+    if (result.ok) {
+      setNotes(result.data)
     } else {
       setError('Impossible de charger les notes en attente.')
     }
@@ -41,32 +28,24 @@ export function PendingApprovalsPanel() {
 
   async function handleViewReceipt(id: string) {
     setError(null)
-    const response = await fetch(`/api/manager/expense-notes/${id}/receipt-url`)
-    if (!response.ok) {
+    const result = await managerApi.receiptUrl(id)
+    if (!result.ok) {
       setError('Impossible de récupérer le reçu.')
       return
     }
-    const { url } = await response.json()
-    window.open(url, '_blank', 'noopener,noreferrer')
+    window.open(result.data.url, '_blank', 'noopener,noreferrer')
   }
 
-  async function handleDecide(id: string, decision: 'approve' | 'reject') {
+  async function handleDecide(id: string, decision: Decision) {
     setDecidingId(id)
     setError(null)
-    const response = await fetch(`/api/manager/expense-notes/${id}/${decision}`, {
-      method: 'POST',
-    })
+    const result = await managerApi.decide(id, decision)
     setDecidingId(null)
 
-    if (response.ok) {
+    if (result.ok) {
       await loadPending()
     } else {
-      const body = await response.json().catch(() => null)
-      setError(
-        typeof body?.error === 'string'
-          ? body.error
-          : "Échec de la décision sur cette note de frais."
-      )
+      setError(result.error ?? 'Échec de la décision sur cette note de frais.')
     }
   }
 
@@ -117,11 +96,11 @@ export function PendingApprovalsPanel() {
                       {note.userId.slice(0, 8)}…
                     </td>
                     <td className="px-6 py-3 whitespace-nowrap text-gray-500 dark:text-gray-400">
-                      {dateFormatter.format(new Date(note.expenseDate))}
+                      {formatDate(note.expenseDate)}
                     </td>
                     <td className="px-6 py-3">{note.description}</td>
                     <td className="px-6 py-3 text-right font-medium whitespace-nowrap">
-                      {currencyFormatter.format(note.amount)}
+                      {formatCurrency(note.amount)}
                     </td>
                     <td className="px-6 py-3 text-right whitespace-nowrap">
                       <button

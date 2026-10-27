@@ -1,19 +1,10 @@
-import { auth } from '@/lib/auth'
+import { forbidden } from 'next/navigation'
 import { PendingApprovalsPanel } from '@/components/PendingApprovalsPanel'
+import { currentActor } from '@/app/current-user'
 
 export default async function ManagerPage() {
-  const session = await auth()
-
-  if (session?.user.role !== 'manager') {
-    return (
-      <main className="flex flex-col items-center gap-2 py-16 text-center">
-        <h1 className="text-xl font-semibold">Accès réservé aux managers</h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400">
-          Cette page n&apos;est visible que par les utilisateurs de rôle manager.
-        </p>
-      </main>
-    )
-  }
+  // Mauvais rôle : page « Accès réservé » (forbidden.tsx) servie en 403 (D19, ADR-019).
+  if ((await currentActor())?.role !== 'manager') forbidden()
 
   return <PendingApprovalsPanel />
 }

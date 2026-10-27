@@ -50,3 +50,37 @@ npx playwright test --grep @parity                        # toute la parité
 make test-report                                          # rapport HTML
 npm run lint && npm run typecheck                         # qualité
 ```
+
+## Carte des modules
+
+Monolithe modulaire : chaque module métier vit dans `src/modules/<module>/` (`domain/`, `application/`, `ports/`, `infrastructure/`, `index.ts`, `README.md`). Vue d'ensemble : `docs/architecture/HLD.md`.
+
+| Module | Responsabilité |
+|---|---|
+| `identity` | inscription, connexion, acteur de la session (`getActor`) |
+| `organization` | annuaire de l'entreprise, rattachement à un manager |
+| `expenses` | soumettre et consulter ses notes, reçus |
+| `approval` | qui valide quoi (`ApprovalPolicy`), décision atomique |
+| `receipt-scan` | suggestion OCR (pool Tesseract borné) |
+| `shared` | garde HTTP `route()`, erreurs typées, presenters, `withUserScope`, logger |
+
+Règle de dépendance, **vérifiée par `npm run lint` (en erreur)** :
+
+- `domain/`, `application/` et `ports/` n'importent ni `pg`, ni `@aws-sdk/*`, ni `tesseract.js`, ni `bcryptjs`, ni Next.js / Auth.js, ni `@/lib/*`, ni `shared/http`, ni `shared/infrastructure` ;
+- un module s'importe par son `index.ts`, jamais par ses fichiers internes ;
+- les routes, pages et composants passent par les modules, jamais par la base, S3 ou l'OCR ;
+- `src/lib/` n'existe plus : tout le code vit dans les modules (règle vérifiée par ESLint).
+
+Où placer quoi : règle métier pure → `domain/` ; cas d'usage `make<CasDUsage>(deps)` → `application/` ; interface d'accès bornée à l'acteur → `ports/` ; SQL, S3, SDK → `infrastructure/` ; assemblage → `index.ts` ; contrôle de rôle → `route({ role })` (401 sans session, 403 sans le rôle), jamais dans le handler ; le rôle est relu en base à chaque requête. Les notes de frais se lisent et s'écrivent dans `withUserScope` (RLS).
+
+## Ajouter une fonctionnalité
+
+Recette complète avec exemple réel : `docs/architecture/ajouter-une-fonctionnalite.md`. En bref :
+
+1. choisir le module (et le justifier) ;
+2. test unitaire du cas d'usage avec des ports en mémoire, dans un **nouveau** fichier `tests/unit/modules/` (rouge) ;
+3. domaine, puis port borné à l'acteur, puis cas d'usage (erreurs typées de `@/modules/shared/domain`) ;
+4. adapter dans `infrastructure/`, assemblage dans `index.ts` ;
+5. route fine avec `route()` ; textes d'interface **ajoutés**, jamais renommés ;
+6. nouveau contrat (route, champ) : `docs/api/openapi.yaml` et tests de parité par la team Tests, dans la même PR ;
+7. vérifier : `npm run lint && npm run typecheck && npm run test:unit`, puis `npm run build && npx playwright test` (et `make test-perf` si SQL, OCR ou listes).

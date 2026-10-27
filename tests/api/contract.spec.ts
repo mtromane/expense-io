@@ -20,6 +20,9 @@ const EXPECTED_OPERATIONS = [
   'GET /api/hr/expense-notes/{id}/receipt-url',
   'GET /api/hr/users',
   'PUT /api/hr/users/{id}/manager',
+  // Ajouts décidés le 2026-10-26 : D14 (changement de rôle), D13 (fiche de la RH).
+  'PUT /api/hr/users/{id}/role',
+  'GET /api/hr/me',
 ]
 
 const NOTE = {
@@ -34,7 +37,7 @@ const NOTE = {
 }
 
 test.describe('Contrat OpenAPI (docs/api/openapi.yaml)', { tag: '@parity' }, () => {
-  test('les 14 endpoints sont décrits, ni plus ni moins', () => {
+  test('les 16 endpoints sont décrits, ni plus ni moins', () => {
     expect([...CONTRACT_OPERATIONS].sort()).toEqual([...EXPECTED_OPERATIONS].sort())
   })
 

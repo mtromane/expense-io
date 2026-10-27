@@ -21,9 +21,17 @@ info:
     obtenu via `/api/auth/csrf` puis `/api/auth/callback/credentials`
     (routes Auth.js, hors de ce contrat).
 
-    Incohérences conservées pour parité : un rôle insuffisant renvoie 401 sur
-    `/api/manager/*` et 403 sur `/api/hr/*` (y compris sans session) ; une
-    note hors périmètre renvoie 404.
+    Codes d'accès (décision D12, ADR-012) : 401 sans session, 403 avec une
+    session qui n'a pas le rôle exigé. L'application d'origine renvoyait 401
+    sur `/api/manager/*` et 403 sur `/api/hr/*` dans les deux cas : les deux
+    codes restent documentés sur ces routes. Une note hors périmètre renvoie
+    404 (son existence n'est pas révélée).
+
+    Messages d'erreur (décision D15, ADR-015) : en anglais (`Invalid fields`,
+    `Receipt file type not allowed`, `File too large`, `Not found`,
+    `Already decided`, `Invalid manager`, `Manager has direct reports`,
+    `Unauthorized`). L'application d'origine renvoyait les trois premiers en
+    français.
 servers:
   - url: http://localhost:3000
 security:
@@ -110,6 +118,7 @@ paths:
       responses:
         '200': { $ref: '#/components/responses/NoteList' }
         '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
         '500': { $ref: '#/components/responses/Error' }
 
   /api/manager/expense-notes/{id}/approve:
@@ -119,6 +128,7 @@ paths:
       responses:
         '200': { $ref: '#/components/responses/Note' }
         '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
         '404': { $ref: '#/components/responses/Error' }
         '409': { $ref: '#/components/responses/Error' }
         '500': { $ref: '#/components/responses/Error' }
@@ -130,6 +140,7 @@ paths:
       responses:
         '200': { $ref: '#/components/responses/Note' }
         '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
         '404': { $ref: '#/components/responses/Error' }
         '409': { $ref: '#/components/responses/Error' }
         '500': { $ref: '#/components/responses/Error' }
@@ -141,14 +152,16 @@ paths:
       responses:
         '200': { $ref: '#/components/responses/ReceiptUrl' }
         '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
         '404': { $ref: '#/components/responses/Error' }
         '500': { $ref: '#/components/responses/Error' }
 
   /api/hr/expense-notes:
     get:
-      summary: Notes en attente des managers racine de l'entreprise (tri created_at ASC)
+      summary: Notes en attente des managers et employés sans manager de l'entreprise (MET-02 ; tri created_at ASC)
       responses:
         '200': { $ref: '#/components/responses/NoteList' }
+        '401': { $ref: '#/components/responses/Error' }
         '403': { $ref: '#/components/responses/Error' }
         '500': { $ref: '#/components/responses/Error' }
 
@@ -158,6 +171,7 @@ paths:
       parameters: [{ $ref: '#/components/parameters/Id' }]
       responses:
         '200': { $ref: '#/components/responses/Note' }
+        '401': { $ref: '#/components/responses/Error' }
         '403': { $ref: '#/components/responses/Error' }
         '404': { $ref: '#/components/responses/Error' }
         '409': { $ref: '#/components/responses/Error' }
@@ -169,6 +183,7 @@ paths:
       parameters: [{ $ref: '#/components/parameters/Id' }]
       responses:
         '200': { $ref: '#/components/responses/Note' }
+        '401': { $ref: '#/components/responses/Error' }
         '403': { $ref: '#/components/responses/Error' }
         '404': { $ref: '#/components/responses/Error' }
         '409': { $ref: '#/components/responses/Error' }
@@ -180,6 +195,7 @@ paths:
       parameters: [{ $ref: '#/components/parameters/Id' }]
       responses:
         '200': { $ref: '#/components/responses/ReceiptUrl' }
+        '401': { $ref: '#/components/responses/Error' }
         '403': { $ref: '#/components/responses/Error' }
         '404': { $ref: '#/components/responses/Error' }
         '500': { $ref: '#/components/responses/Error' }
@@ -193,12 +209,13 @@ paths:
           content:
             application/json:
               schema: { type: array, items: { $ref: '#/components/schemas/CompanyUser' } }
+        '401': { $ref: '#/components/responses/Error' }
         '403': { $ref: '#/components/responses/Error' }
         '500': { $ref: '#/components/responses/Error' }
 
   /api/hr/users/{id}/manager:
     put:
-      summary: Assigner (ou retirer avec null) le manager d'un employé ou d'un manager de l'entreprise
+      summary: Assigner (ou retirer avec null) le manager d'un employé ou d'un manager de l'entreprise, ou de la RH elle-même (D13)
       parameters: [{ $ref: '#/components/parameters/Id' }]
       requestBody:
         required: true
@@ -211,14 +228,58 @@ paths:
                 managerId: { type: [string, 'null'], format: uuid }
       responses:
         '200':
+          description: Utilisateur mis à jour (la fiche de la RH si elle se rattache elle-même)
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - { $ref: '#/components/schemas/CompanyUser' }
+                  - { $ref: '#/components/schemas/HrUser' }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '500': { $ref: '#/components/responses/Error' }
+
+  /api/hr/users/{id}/role:
+    put:
+      summary: Nommer un employé manager, ou rétrograder un manager sans subordonné (D14, ADR-014)
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [role]
+              properties:
+                role: { type: string, enum: [employee, manager] }
+      responses:
+        '200':
           description: Utilisateur mis à jour
           content:
             application/json:
               schema: { $ref: '#/components/schemas/CompanyUser' }
         '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
         '403': { $ref: '#/components/responses/Error' }
         '404': { $ref: '#/components/responses/Error' }
         '409': { $ref: '#/components/responses/Error' }
+        '500': { $ref: '#/components/responses/Error' }
+
+  /api/hr/me:
+    get:
+      summary: Fiche de la RH connectée, dont le manager qui valide ses notes (D13, ADR-013)
+      responses:
+        '200':
+          description: Fiche de la RH
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/HrUser' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
         '500': { $ref: '#/components/responses/Error' }
 
 components:
@@ -287,6 +348,17 @@ components:
         name: { type: string }
         email: { type: string }
         role: { type: string, enum: [employee, manager] }
+        managerId: { type: [string, 'null'], format: uuid }
+
+    HrUser:
+      type: object
+      additionalProperties: false
+      required: [id, name, email, role, managerId]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        email: { type: string }
+        role: { type: string, enum: [hr_admin] }
         managerId: { type: [string, 'null'], format: uuid }
 
     Suggestion:
