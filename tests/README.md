@@ -36,7 +36,7 @@ Une fois l'environnement prêt : `npx playwright test <fichier> --no-deps`.
 ## Tests unitaires (Vitest)
 
 ```bash
-npm run test:unit            # environ 215 tests, quelques secondes
+npm run test:unit            # environ 230 tests, quelques secondes
 npm run test:unit:coverage   # + couverture (rapport HTML dans coverage/)
 ```
 
@@ -110,8 +110,9 @@ Ce n'est pas permanent : `test.fail()` disparaît défaut par défaut.
 | Corrigé et déclaré | `true` | corrigé | passe, test normal | verte |
 | Déclaré corrigé à tort | `true` | présent | échoue | **rouge** |
 
-Fin de migration : les 28 identifiants (17 défauts techniques et 11 défauts
-métier issus des décisions D12 à D19) sont à `fixed: true`, plus aucun échec
+Fin de migration : les 30 identifiants (18 défauts techniques, dont ROB-03f
+ajouté par la revue de la PR #6, et 12 défauts métier : MET-02 et les
+décisions D12 à D19) sont à `fixed: true`, plus aucun échec
 attendu, tous les tests passent au sens propre. Les défauts métier sont testés
 dans `tests/defects/metier.spec.ts` (avec des tests de concurrence pour
 ROLE-02 et MET-04) et dans la matrice d'autorisations.
