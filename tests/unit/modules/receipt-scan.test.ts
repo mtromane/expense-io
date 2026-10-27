@@ -7,7 +7,7 @@ import { InvalidInputError } from '@/modules/shared/domain'
  */
 
 const engine = vi.hoisted(() => {
-  const state = { running: 0, maxRunning: 0, delayMs: 5 }
+  const state = { running: 0, maxRunning: 0, delayMs: 5, live: 0, maxLive: 0, terminateDelayMs: 0 }
   const recognize = vi.fn(async () => {
     state.running++
     state.maxRunning = Math.max(state.maxRunning, state.running)
@@ -15,8 +15,16 @@ const engine = vi.hoisted(() => {
     state.running--
     return { data: { text: 'TOTAL 12,50' } }
   })
-  const terminate = vi.fn(async () => undefined)
-  const createWorker = vi.fn(async () => ({ recognize, terminate }))
+  // Un worker reste vivant tant que terminate() n'a pas abouti.
+  const terminate = vi.fn(async () => {
+    await new Promise((resolve) => setTimeout(resolve, state.terminateDelayMs))
+    state.live--
+  })
+  const createWorker = vi.fn(async () => {
+    state.live++
+    state.maxLive = Math.max(state.maxLive, state.live)
+    return { recognize, terminate }
+  })
   return { state, recognize, terminate, createWorker }
 })
 
@@ -30,6 +38,9 @@ beforeEach(() => {
   engine.terminate.mockClear()
   engine.state.maxRunning = 0
   engine.state.delayMs = 5
+  engine.state.live = 0
+  engine.state.maxLive = 0
+  engine.state.terminateDelayMs = 0
 })
 
 describe('TesseractWorkerPool', () => {
@@ -54,6 +65,17 @@ describe('TesseractWorkerPool', () => {
     engine.state.delayMs = 5
     expect(await pool.recognizeText(Buffer.from('img'))).toBe('TOTAL 12,50')
     expect(engine.createWorker).toHaveBeenCalledTimes(2)
+  })
+
+  it('délai dépassé : la place n’est rendue qu’une fois le worker arrêté (jamais plus de workers vivants que la taille)', async () => {
+    const pool = new TesseractWorkerPool({ size: 1, timeoutMs: 20 })
+    engine.state.delayMs = 100
+    engine.state.terminateDelayMs = 50
+    const first = pool.recognizeText(Buffer.from('img'))
+    const second = pool.recognizeText(Buffer.from('img'))
+    await expect(first).rejects.toThrow(/interrompue/)
+    await expect(second).rejects.toThrow(/interrompue/)
+    expect(engine.state.maxLive).toBe(1)
   })
 })
 

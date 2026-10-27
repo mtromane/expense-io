@@ -34,7 +34,9 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
  * Workers Tesseract réutilisés d'une requête à l'autre (PERF-01) et bornés en
  * nombre : l'application d'origine chargeait le modèle de langue à chaque
  * requête. Un worker en erreur ou trop lent est détruit, puis recréé à la
- * demande ; un échec de création n'affecte que la requête en cours.
+ * demande ; un échec de création n'affecte que la requête en cours. La place
+ * d'un worker détruit n'est rendue qu'une fois son arrêt confirmé : sous
+ * charge, jamais plus de `size` workers vivants.
  */
 export class TesseractWorkerPool implements ReceiptScanner {
   private readonly idle: Worker[] = []
@@ -47,16 +49,25 @@ export class TesseractWorkerPool implements ReceiptScanner {
 
   async recognizeText(image: Buffer): Promise<string> {
     await this.acquire()
-    let worker: Worker | undefined
+    let worker: Worker
     try {
       worker = this.idle.pop() ?? (await this.createWorker())
+    } catch (error) {
+      this.release()
+      throw error
+    }
+    try {
       const result = await withTimeout(worker.recognize(image), this.options.timeoutMs)
       this.idle.push(worker)
-      worker = undefined
-      return result.data.text
-    } finally {
-      if (worker) void worker.terminate().catch(() => undefined)
       this.release()
+      return result.data.text
+    } catch (error) {
+      // L'appelant reçoit l'erreur tout de suite ; la place attend l'arrêt effectif du worker.
+      void worker
+        .terminate()
+        .catch(() => undefined)
+        .finally(() => this.release())
+      throw error
     }
   }
 
