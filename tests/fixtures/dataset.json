@@ -45,7 +45,10 @@
         { "key": "raceMgrC", "name": "Race Manager C", "role": "manager" },
         { "key": "raceEmpC", "name": "Race Employee C", "role": "employee" },
         { "key": "cycleMgrC1", "name": "Cycle Manager C1", "role": "manager" },
-        { "key": "cycleMgrC2", "name": "Cycle Manager C2", "role": "manager" }
+        { "key": "cycleMgrC2", "name": "Cycle Manager C2", "role": "manager" },
+        { "key": "rootMgrC", "name": "Root Manager C", "role": "manager" },
+        { "key": "noMgrEmpC", "name": "No Manager Employee C", "role": "employee" },
+        { "key": "zeroAmountC", "name": "Zero Amount C", "role": "employee" }
       ]
     }
   ]

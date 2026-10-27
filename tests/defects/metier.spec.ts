@@ -156,6 +156,36 @@ test('ROLE-02 rétrograder un manager qui a encore des subordonnés → 409',
     }
   })
 
+test('MET-02 note d’un employé sans manager : validée par la RH de son entreprise',
+  { tag: ['@defect', '@MET-02'] }, async () => {
+    const emp = await loginAs('noMgrEmpC')
+    const hr = await loginAs('hrC')
+    const note = await createNote(emp)
+    expectDefect('MET-02')
+    const queue = (await (await hr.get('/api/hr/expense-notes')).json()) as ExpenseNoteDto[]
+    expect(queue.map((n) => n.id)).toContain(note.id)
+    expect((await hr.post(`/api/hr/expense-notes/${note.id}/approve`)).status()).toBe(200)
+    expect((await listOwnNotes(emp)).find((n) => n.id === note.id)?.status).toBe('approved')
+    await Promise.all([emp.dispose(), hr.dispose()])
+  })
+
+test('MET-02 manager racine rétrogradé : ses notes passent à la RH, aucune ne reste sans valideur',
+  { tag: ['@defect', '@MET-02'] }, async () => {
+    const hr = await loginAs('hrC')
+    const target = await loginAs('rootMgrC')
+    const url = `/api/hr/users/${actor('rootMgrC').id}/role`
+    expectDefect('MET-02')
+    try {
+      expect((await hr.put(url, { data: { role: 'employee' } })).status()).toBe(200)
+      const note = await createNote(target)
+      const queue = (await (await hr.get('/api/hr/expense-notes')).json()) as ExpenseNoteDto[]
+      expect(queue.map((n) => n.id)).toContain(note.id)
+    } finally {
+      await hr.put(url, { data: { role: 'manager' } })
+      await Promise.all([hr.dispose(), target.dispose()])
+    }
+  })
+
 // Concurrence (revue de la PR #6) : deux changements d'organigramme simultanés
 // ne doivent jamais aboutir tous les deux quand l'un invalide l'autre.
 const RACE_ROUNDS = 10

@@ -32,6 +32,9 @@ export type ActorKey =
   | 'raceEmpC'
   | 'cycleMgrC1'
   | 'cycleMgrC2'
+  | 'rootMgrC'
+  | 'noMgrEmpC'
+  | 'zeroAmountC'
 
 export interface Actor {
   key: ActorKey

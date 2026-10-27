@@ -105,3 +105,15 @@ for (const { id, name, status, run, after } of ROB03) {
     await Promise.all([c.emp.dispose(), c.hr.dispose()])
   })
 }
+
+// Acteur dédié, sans manager : sur la baseline (défaut présent), la note est
+// créée à 0,00 € ; elle ne doit apparaître dans aucune liste lue par un autre
+// test (le contrat exige amount > 0).
+test('ROB-03f montant arrondi à 0,00 par numeric(10,2) (0.004) → 400',
+  { tag: ['@defect', '@ROB-03f'] }, async () => {
+    const emp = await loginAs('zeroAmountC')
+    expectDefect('ROB-03f')
+    const res = await postNote(emp, { amount: '0.004' })
+    expect(res.status()).toBe(400)
+    await emp.dispose()
+  })
