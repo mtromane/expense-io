@@ -77,7 +77,7 @@ Les tables `users` et `companies` n'ont pas changé : `scripts/seed.mjs` et `scr
 
 ## 8. Performance
 
-`make test-perf` compare la version courante à la baseline `265924b`, sur la même machine et dans le même run. Il alterne les passages et compare les médianes de p95 (`docs/perf/README.md`). Le jeu de données compte 20 entreprises, 2 001 utilisateurs et 193 300 notes.
+`make test-perf` compare la version courante à la baseline `265924b`, sur la même machine et dans le même run. Il alterne les passages et compare les médianes de p95 (`docs/perf/README.md`). Le jeu de données compte 20 entreprises, 2 002 utilisateurs et 193 300 notes.
 
 | Objectif | Moyen |
 |---|---|

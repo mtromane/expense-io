@@ -1,5 +1,5 @@
 // Gros volume pour les mesures de performance (spec §8.1) : 20 entreprises,
-// 2 001 utilisateurs, environ 193 000 notes. Distribution déterministe
+// 2 002 utilisateurs, environ 193 000 notes. Distribution déterministe
 // (aucun aléa) : deux exécutions produisent les mêmes données.
 // Cible une base dédiée (PERF_DATABASE_URL), déjà migrée par la version mesurée.
 import bcrypt from 'bcryptjs'
@@ -52,11 +52,20 @@ try {
      WHERE sub.email LIKE 'sub%@%.perf.test'`,
     [passwordHash, EMPLOYEES_PER_MANAGER]
   )
-  // Employé dédié aux scénarios d'écriture (P-CREATE, P-OCR) : sans manager,
-  // ses notes n'apparaissent dans aucune liste lue par les autres scénarios.
+  // Employé dédié aux scénarios d'écriture (P-CREATE, P-OCR), rattaché à un
+  // manager dédié qu'aucun scénario ne lit : ses notes n'apparaissent dans
+  // aucune liste mesurée. (Sans manager, elles iraient à la RH depuis MET-02 et
+  // gonfleraient la liste RH de P-MIX pour la seule version courante.)
   await pool.query(
     `INSERT INTO users (company_id, name, email, password_hash, role)
-     SELECT id, 'Writer perf1', 'writer@c1.perf.test', $1, 'employee' FROM companies WHERE email_domain = 'c1.perf.test'`,
+     SELECT id, 'Writer manager perf1', 'writer-mgr@c1.perf.test', $1, 'manager' FROM companies WHERE email_domain = 'c1.perf.test'`,
+    [passwordHash]
+  )
+  await pool.query(
+    `INSERT INTO users (company_id, name, email, password_hash, role, manager_id)
+     SELECT co.id, 'Writer perf1', 'writer@c1.perf.test', $1, 'employee', mgr.id
+     FROM companies co JOIN users mgr ON mgr.email = 'writer-mgr@c1.perf.test'
+     WHERE co.email_domain = 'c1.perf.test'`,
     [passwordHash]
   )
   const insertNotes = `
