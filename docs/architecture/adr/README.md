@@ -3,7 +3,7 @@
 Une ADR par décision D1 à D11 de [`docs/audit/21-decisions-architecture.md`](../../audit/21-decisions-architecture.md).
 Le numéro de l'ADR reprend celui de la décision (ADR-002 = D2). Chacune applique la recommandation du document 21.
 
-**Statut de toutes les ADR : Proposée, à valider par l'équipe.**
+**Statut de toutes les ADR : acceptées par l'équipe le 2026-10-28** (réunion d'équipe).
 
 | ADR | Décision | Choix proposé |
 |---|---|---|
@@ -19,7 +19,7 @@ Le numéro de l'ADR reprend celui de la décision (ADR-002 = D2). Chacune appliq
 | [ADR-010](ADR-010-live-coding.md) | D10 · fonctionnalité du live coding | sans objet, préparer `AGENTS.md` |
 | [ADR-011](ADR-011-types-de-reponse.md) | D11 · types de réponse | écrits à la main |
 
-Décisions métier D12 à D19 : **choix arrêtés le 2026-10-26 par Maxence Larche, en attente de validation explicite de l'équipe** (condition de fusion de la PR #6). D13, D15 et D17 s'écartent de la recommandation du document 21 :
+Décisions métier D12 à D19, **validées en équipe le 2026-10-28** (D13 et D14 avec un ajout : seconde RH). D13, D15 et D17 s'écartent de la recommandation initiale du document 21 :
 
 | ADR | Décision | Choix |
 |---|---|---|

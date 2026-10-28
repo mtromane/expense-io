@@ -1,6 +1,6 @@
 # ADR-018 · `409 Invalid manager`, y compris pour les cycles
 
-* Statut : Proposée. Choix arrêté le 2026-10-26 par Maxence Larche ; **validation explicite de l'équipe requise avant fusion** (revue de la PR #6)
+* Statut : Acceptée par l'équipe le 2026-10-28
 * Décision source : D18 (`B-05`, `V-04.2` ; défaut `MET-04`)
 
 ## Contexte

@@ -1,6 +1,6 @@
 # ADR-013 · Les notes d'une RH sont validées par le manager auquel elle est rattachée
 
-* Statut : Proposée. Choix arrêté le 2026-10-26 par Maxence Larche ; **validation explicite de l'équipe requise avant fusion** (revue de la PR #6)
+* Statut : Acceptée par l'équipe le 2026-10-28
 * Décision source : D13 (`M-01.1` ; défaut `MET-03`)
 
 ## Contexte

@@ -1,6 +1,6 @@
 # ADR-015 · Messages d'erreur de l'API en anglais, écran inchangé
 
-* Statut : Proposée. Choix arrêté le 2026-10-26 par Maxence Larche ; **validation explicite de l'équipe requise avant fusion** (revue de la PR #6)
+* Statut : Acceptée par l'équipe le 2026-10-28
 * Décision source : D15 (`B-06`, `V-15.2` ; défaut `API-01`)
 
 ## Contexte

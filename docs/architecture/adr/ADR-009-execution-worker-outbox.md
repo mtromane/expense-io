@@ -1,6 +1,6 @@
 # ADR-009 · Exécution du worker d'outbox (si une outbox apparaît)
 
-* Statut : Proposée, à valider par l'équipe
+* Statut : Acceptée par l'équipe le 2026-10-28
 * Décision source : D9 (ne s'applique qu'avec ADR-008)
 
 ## Contexte

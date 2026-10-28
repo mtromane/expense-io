@@ -1,6 +1,6 @@
 # ADR-002 · Monolithe modulaire
 
-* Statut : Proposée, à valider par l'équipe
+* Statut : Acceptée par l'équipe le 2026-10-28
 * Décision source : D2
 
 ## Contexte

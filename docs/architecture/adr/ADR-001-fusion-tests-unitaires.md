@@ -1,6 +1,6 @@
 # ADR-001 · Reprendre les tests unitaires de `tests/p2-unitaires` maintenant
 
-* Statut : Proposée, à valider par l'équipe
+* Statut : Acceptée par l'équipe le 2026-10-28
 * Décision source : D1
 
 ## Contexte

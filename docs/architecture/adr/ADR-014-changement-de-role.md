@@ -1,6 +1,6 @@
 # ADR-014 · Changement de rôle par une nouvelle route RH
 
-* Statut : Proposée. Choix arrêté le 2026-10-26 par Maxence Larche ; **validation explicite de l'équipe requise avant fusion** (revue de la PR #6)
+* Statut : Acceptée par l'équipe le 2026-10-28
 * Décision source : D14 (`M-02`, `M-08`, `V-19` ; défauts `ROLE-01` à `ROLE-03`)
 
 ## Contexte
