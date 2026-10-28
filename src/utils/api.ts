@@ -26,6 +26,8 @@ const SCREEN_MESSAGES: Record<string, string> = {
   'Receipt file type not allowed': 'Type de fichier non autorisé pour le reçu',
   'File too large': 'Fichier trop volumineux',
   'Manager has direct reports': 'Ce manager a encore des subordonnés : réaffectez-les d’abord.',
+  'Last HR admin': 'Une entreprise doit garder au moins une RH.',
+  'Cannot change own role': 'Vous ne pouvez pas changer votre propre rôle.',
 }
 
 async function request<T>(url: string, init?: RequestInit): Promise<ApiResult<T>> {
@@ -65,9 +67,10 @@ export const hrApi = {
   listUsers: () => request<CompanyUserDto[]>('/api/hr/users'),
   assignManager: (userId: string, managerId: string | null) =>
     request<CompanyUserDto>(`/api/hr/users/${userId}/manager`, putJson({ managerId })),
-  changeRole: (userId: string, role: CompanyUserDto['role']) =>
+  changeRole: (userId: string, role: CompanyUserDto['role'] | HrUserDto['role']) =>
     request<CompanyUserDto>(`/api/hr/users/${userId}/role`, putJson({ role })),
   me: () => request<HrUserDto>('/api/hr/me'),
+  listAdmins: () => request<HrUserDto[]>('/api/hr/admins'),
   listPending: () => request<ExpenseNoteDto[]>('/api/hr/expense-notes'),
   receiptUrl: (id: string) => request<ReceiptUrlDto>(`/api/hr/expense-notes/${id}/receipt-url`),
   decide: (id: string, decision: Decision) =>

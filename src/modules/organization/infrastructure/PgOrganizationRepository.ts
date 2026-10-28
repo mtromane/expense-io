@@ -1,6 +1,6 @@
 import type { PoolClient } from 'pg'
 import { getPool, withTransaction } from '@/modules/shared/infrastructure/db'
-import type { AssignableRole, CompanyUser, HrUser } from '../domain/CompanyUser'
+import type { AssignableRole, CompanyUser, HrUser, Member } from '../domain/CompanyUser'
 import type { OrganizationRepository, OrganizationTransaction } from '../ports/OrganizationRepository'
 
 interface UserRecord {
@@ -15,7 +15,7 @@ function toCompanyUser(row: UserRecord): CompanyUser {
   return { id: row.id, name: row.name, email: row.email, role: row.role as CompanyUser['role'], managerId: row.manager_id }
 }
 
-function toUser(row: UserRecord): CompanyUser | HrUser {
+function toUser(row: UserRecord): Member {
   return row.role === 'hr_admin'
     ? { id: row.id, name: row.name, email: row.email, role: 'hr_admin', managerId: row.manager_id }
     : toCompanyUser(row)
@@ -57,6 +57,31 @@ export class PgOrganizationRepository implements OrganizationRepository {
       [hrId, userId]
     )
     return result.rows[0] ? toCompanyUser(result.rows[0]) : null
+  }
+
+  async findCompanyMember(hrId: string, userId: string): Promise<Member | null> {
+    const result = await this.db.query<UserRecord>(
+      `SELECT ${COLUMNS} FROM users WHERE id = $2 AND company_id = ${COMPANY_OF}`,
+      [hrId, userId]
+    )
+    return result.rows[0] ? toUser(result.rows[0]) : null
+  }
+
+  async listHrAdmins(hrId: string): Promise<HrUser[]> {
+    const result = await this.db.query<UserRecord>(
+      `SELECT ${COLUMNS} FROM users WHERE role = 'hr_admin' AND company_id = ${COMPANY_OF} ORDER BY name`,
+      [hrId]
+    )
+    return result.rows.map((row) => toUser(row) as HrUser)
+  }
+
+  async countHrAdmins(hrId: string, exceptUserId: string): Promise<number> {
+    const result = await this.db.query<{ count: number }>(
+      `SELECT count(*)::int AS count FROM users
+       WHERE role = 'hr_admin' AND id <> $2 AND company_id = ${COMPANY_OF}`,
+      [hrId, exceptUserId]
+    )
+    return result.rows[0].count
   }
 
   async findHr(hrId: string): Promise<HrUser | null> {
@@ -105,13 +130,14 @@ export class PgOrganizationRepository implements OrganizationRepository {
     return toUser(result.rows[0])
   }
 
-  async setRole(userId: string, role: AssignableRole): Promise<CompanyUser> {
+  async setRole(userId: string, role: AssignableRole): Promise<Member> {
+    // Cible déjà bornée à l'entreprise par findCompanyMember, dans la même transaction.
     const result = await this.db.query<UserRecord>(
-      `UPDATE users SET role = $1 WHERE id = $2 AND role IN ('employee', 'manager')
+      `UPDATE users SET role = $1 WHERE id = $2
        RETURNING ${COLUMNS}`,
       [role, userId]
     )
-    return toCompanyUser(result.rows[0])
+    return toUser(result.rows[0])
   }
 }
 

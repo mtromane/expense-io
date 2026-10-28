@@ -94,4 +94,12 @@ export const AUTHZ_MATRIX: MatrixRow[] = [
       directManager: { status: 403, defect: 'MET-03' }, otherManager: { status: 403, defect: 'MET-03' },
       hr: { status: 200, defect: 'MET-03' }, otherHr: { status: 200, defect: 'MET-03' },
     } },
+  // Réunion du 28/10 (ROLE-04) : liste des RH de l'entreprise, pour la console.
+  { id: 'H09', method: 'GET', path: '/api/hr/admins', target: 'none', body: 'none',
+    expected: {
+      anonymous: { status: 401, defect: 'ROLE-04' },
+      owner: { status: 403, defect: 'ROLE-04' }, otherEmployee: { status: 403, defect: 'ROLE-04' },
+      directManager: { status: 403, defect: 'ROLE-04' }, otherManager: { status: 403, defect: 'ROLE-04' },
+      hr: { status: 200, defect: 'ROLE-04' }, otherHr: { status: 200, defect: 'ROLE-04' },
+    } },
 ]

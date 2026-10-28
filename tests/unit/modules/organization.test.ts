@@ -3,6 +3,7 @@ import type { UserRole } from '@/domain/User'
 import { makeAssignManager } from '@/modules/organization/application/assignManager'
 import { makeChangeRole } from '@/modules/organization/application/changeRole'
 import { makeGetHrProfile } from '@/modules/organization/application/getHrProfile'
+import { makeListHrAdmins } from '@/modules/organization/application/listHrAdmins'
 import type { AssignableRole, CompanyUser, HrUser } from '@/modules/organization/domain/CompanyUser'
 import type { OrganizationRepository, OrganizationTransaction } from '@/modules/organization/ports/OrganizationRepository'
 import { ConflictError, InvalidInputError, NotFoundError, type Actor } from '@/modules/shared/domain'
@@ -20,6 +21,7 @@ const MGR_A = '22222222-2222-4222-8222-222222222222'
 const MGR_B = '33333333-3333-4333-8333-333333333333'
 const SUB_MGR_A = '55555555-5555-4555-8555-555555555555'
 const ROOT_MGR_A = '66666666-6666-4666-8666-666666666666'
+const HR_A2 = '77777777-7777-4777-8777-777777777777'
 
 interface Member {
   id: string
@@ -56,6 +58,19 @@ class InMemoryOrganization implements OrganizationRepository {
     return found ? (view(found) as CompanyUser) : null
   }
 
+  async findCompanyMember(hrId: string, userId: string) {
+    const found = this.members.find((m) => m.id === userId && m.company === this.companyOf(hrId))
+    return found ? view(found) : null
+  }
+
+  async listHrAdmins(hrId: string) {
+    return this.members.filter((m) => m.role === 'hr_admin' && m.company === this.companyOf(hrId)).map(view) as HrUser[]
+  }
+
+  async countHrAdmins(hrId: string, exceptUserId: string) {
+    return this.members.filter((m) => m.role === 'hr_admin' && m.id !== exceptUserId && m.company === this.companyOf(hrId)).length
+  }
+
   async findHr(hrId: string) {
     const found = this.members.find((m) => m.id === hrId && m.role === 'hr_admin')
     return found ? (view(found) as HrUser) : null
@@ -87,7 +102,7 @@ class InMemoryOrganization implements OrganizationRepository {
     this.writes++
     const member = this.members.find((m) => m.id === userId)!
     member.role = role
-    return view(member) as CompanyUser
+    return view(member)
   }
 }
 
@@ -232,7 +247,6 @@ describe('changeRole (D14)', () => {
   for (const [name, input] of [
     ['corps illisible', undefined],
     ['rôle absent', {}],
-    ['seconde RH', { role: 'hr_admin' }],
     ['rôle inconnu', { role: 'boss' }],
   ] as const) {
     it(`${name} → Invalid fields, rien n’est écrit`, async () => {
@@ -244,12 +258,66 @@ describe('changeRole (D14)', () => {
     })
   }
 
-  it('utilisateur d’une autre entreprise, ou la RH elle-même → NotFound', async () => {
-    for (const userId of [MGR_B, HR_A.id]) {
-      await expect(
-        makeChangeRole({ transaction: inTransaction(organization()) })({ actor: HR_A, userId, input: { role: 'manager' } })
-      ).rejects.toBeInstanceOf(NotFoundError)
+  it('utilisateur d’une autre entreprise → NotFound', async () => {
+    await expect(
+      makeChangeRole({ transaction: inTransaction(organization()) })({ actor: HR_A, userId: MGR_B, input: { role: 'manager' } })
+    ).rejects.toBeInstanceOf(NotFoundError)
+  })
+})
+
+describe('changeRole : seconde RH (réunion du 2026-10-28)', () => {
+  const withSecondHr = () => {
+    const org = organization()
+    org.members.push({ id: HR_A2, name: 'RH A2', email: 'rh2@a.test', role: 'hr_admin', managerId: null, company: 'A' })
+    return org
+  }
+  const change = (org: InMemoryOrganization, userId: string, role: string) =>
+    makeChangeRole({ transaction: inTransaction(org) })({ actor: HR_A, userId, input: { role } })
+
+  it('nomme un employé RH (ROLE-04)', async () => {
+    const org = organization()
+    member(org, EMP).managerId = null
+    expect(await change(org, EMP, 'hr_admin')).toMatchObject({ id: EMP, role: 'hr_admin' })
+  })
+
+  it('une RH ne change jamais son propre rôle → 409, rien n’est écrit (ROLE-05)', async () => {
+    const org = withSecondHr()
+    for (const role of ['employee', 'manager', 'hr_admin']) {
+      await expect(change(org, HR_A.id, role)).rejects.toEqual(new ConflictError('Cannot change own role'))
     }
+    expect(org.writes).toBe(0)
+  })
+
+  it('rétrograde une autre RH tant qu’il en reste une', async () => {
+    const org = withSecondHr()
+    expect(await change(org, HR_A2, 'employee')).toMatchObject({ id: HR_A2, role: 'employee' })
+  })
+
+  it('la dernière RH ne peut pas être rétrogradée → 409 Last HR admin (ROLE-06)', async () => {
+    // Situation de la course : HR_A a été rétrogradée par HR_A2 juste avant que sa propre demande ne passe.
+    const org = withSecondHr()
+    member(org, HR_A.id).role = 'employee'
+    await expect(change(org, HR_A2, 'employee')).rejects.toEqual(new ConflictError('Last HR admin'))
+    expect(org.writes).toBe(0)
+  })
+
+  it('un manager qui a encore des subordonnés ne devient pas RH → 409 (ROLE-07)', async () => {
+    const org = organization()
+    await expect(change(org, MGR_A, 'hr_admin')).rejects.toEqual(new ConflictError('Manager has direct reports'))
+    expect(org.writes).toBe(0)
+  })
+
+  it('un manager sans subordonné devient RH', async () => {
+    expect(await change(organization(), ROOT_MGR_A, 'hr_admin')).toMatchObject({ id: ROOT_MGR_A, role: 'hr_admin' })
+  })
+})
+
+describe('listHrAdmins (ROLE-04)', () => {
+  it('les RH de l’entreprise de la RH, elle comprise', async () => {
+    const org = organization()
+    org.members.push({ id: HR_A2, name: 'RH A2', email: 'rh2@a.test', role: 'hr_admin', managerId: null, company: 'A' })
+    const admins = await makeListHrAdmins({ organization: org })(HR_A)
+    expect(admins.map((a) => a.id).sort()).toEqual([HR_A.id, HR_A2].sort())
   })
 })
 

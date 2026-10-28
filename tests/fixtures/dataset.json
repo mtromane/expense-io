@@ -50,6 +50,27 @@
         { "key": "noMgrEmpC", "name": "No Manager Employee C", "role": "employee" },
         { "key": "zeroAmountC", "name": "Zero Amount C", "role": "employee" }
       ]
+    },
+    {
+      "key": "D",
+      "domain": "d.e2e.test",
+      "users": [
+        { "key": "hrD", "name": "HR D", "role": "hr_admin" },
+        { "key": "hrD2", "name": "Second HR D", "role": "hr_admin" },
+        { "key": "promoteHrD", "name": "Promote HR D", "role": "employee" },
+        { "key": "promoteHrUiD", "name": "Promote HR UI D", "role": "employee" },
+        { "key": "sessionHrD", "name": "Session HR D", "role": "employee" },
+        { "key": "mgrReportsD", "name": "Manager Reports D", "role": "manager" },
+        { "key": "reportD", "name": "Report D", "role": "employee", "manager": "mgrReportsD" }
+      ]
+    },
+    {
+      "key": "E",
+      "domain": "e.e2e.test",
+      "users": [
+        { "key": "hrE1", "name": "HR E1", "role": "hr_admin" },
+        { "key": "hrE2", "name": "HR E2", "role": "hr_admin" }
+      ]
     }
   ]
 }

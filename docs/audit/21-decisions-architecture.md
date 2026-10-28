@@ -1,7 +1,7 @@
 # 21 · Décisions d'architecture à prendre en équipe : pour et contre
 
 * Pour qui : l'équipe, en séance de décision. Une décision par section, à trancher puis à reporter dans l'ADR correspondante.
-* **D1 à D19 validées en équipe le 2026-10-28** (réunion d'équipe ; ADR-001 à ADR-019 acceptées). D13 et D14 avec un ajout : une RH peut en nommer une autre (voir leur section). D13, D15 et D17 s'écartent de la recommandation initiale ; D15 change des messages du contrat (exception de la règle 5 d'`AGENTS.md`).
+* **D1 à D19 validées en équipe le 2026-10-28** (réunion d'équipe ; ADR-001 à ADR-019 acceptées). D13 et D14 avec un ajout : une RH peut en nommer une autre (voir leur section). D15 et D17 s'écartent de la recommandation initiale (D13 la suit désormais en entier) ; D15 change des messages du contrat (exception de la règle 5 d'`AGENTS.md`).
 * Source : §9 de [20-audit-architecture-arla.md](20-audit-architecture-arla.md), complété des décisions implicites que le jury risque de poser en question.
 * Grille utilisée (cours ARLA) : délai, coût, maturité de l'équipe, sécurité, performance (0 au barème si plus lent), contrat figé par les tests, valeur pour la soutenance.
 * Les points métier (`MET-01` à `MET-09`, lot 8) sont désormais dans le périmètre : le métier doit être totalement fonctionnel. Inventaire complet dans [22-comportements-a-corriger.md](22-comportements-a-corriger.md) ; seuls ceux qui demandent un choix figurent ici (D12 à D19).
@@ -22,8 +22,8 @@
 | D10 | Fonctionnalité du live coding | sans objet : imposée par les professeurs | préparer `AGENTS.md` en fin de migration | fin de migration |
 | D11 | Types de réponse | générés depuis OpenAPI / écrits à la main | à la main d'abord | faible |
 | D12 | Incohérence 401 / 403 | conserver / corriger | **Choix : corriger** (401 non connecté, 403 mauvais rôle) | [ADR-012](../architecture/adr/ADR-012-codes-401-403.md) |
-| D13 | Qui valide les notes d'une RH (`M-01.1`) | autre RH / manager rattaché / les deux / interdire | **Choix : manager rattaché** (écart avec la recommandation) (pas de seconde RH) | [ADR-013](../architecture/adr/ADR-013-validation-des-notes-rh.md) |
-| D14 | Changement de rôle (`M-02`, `M-08`) | nouvelle route / route existante étendue / implicite | **Choix : nouvelle route** (employé ↔ manager), rétrogradation refusée s'il reste des subordonnés | [ADR-014](../architecture/adr/ADR-014-changement-de-role.md) |
+| D13 | Qui valide les notes d'une RH (`M-01.1`) | autre RH / manager rattaché / les deux / interdire | **Choix : manager rattaché, sinon autre RH** (recommandation complète, réunion du 28/10) | [ADR-013](../architecture/adr/ADR-013-validation-des-notes-rh.md) |
+| D14 | Changement de rôle (`M-02`, `M-08`) | nouvelle route / route existante étendue / implicite | **Choix : nouvelle route** (employé, manager ou RH), jamais son propre rôle ni la dernière RH, refus s'il reste des subordonnés | [ADR-014](../architecture/adr/ADR-014-changement-de-role.md) |
 | D15 | Langue des messages d'erreur (`B-06`) | écran seul / API / codes stables | **Choix : API entièrement en anglais** (écart avec la recommandation), écran inchangé | [ADR-015](../architecture/adr/ADR-015-messages-api-en-anglais.md) |
 | D16 | Domaines publics (`M-03`) | liste de refus / accepter / invitation | **Choix : liste de refus** | [ADR-016](../architecture/adr/ADR-016-domaines-publics.md) |
 | D17 | Total « Mes notes » (`M-04`) | hors rejetées / par statut | **Choix : total par statut** (écart avec la recommandation) (ajouté, texte existant conservé) | [ADR-017](../architecture/adr/ADR-017-total-par-statut.md) |
@@ -176,7 +176,7 @@ Contexte : une entreprise n'a qu'une RH aujourd'hui. Elle ne peut ni se valider 
 
 Recommandation : **rattachement à un manager**, avec « autre RH » ajouté si `M-02` permet de nommer plusieurs RH. Dans tous les cas, jamais d'auto validation.
 
-**Choix (2026-10-26, validé en équipe le 2026-10-28) :** la RH peut être rattachée à un manager de son entreprise, qui valide ses notes comme celles d'un employé ; jamais d'auto-validation. Pas de seconde RH (la route de rôle de D14 se limite à employé ↔ manager). Défaut `MET-03`.
+**Choix (2026-10-26, validé en équipe le 2026-10-28, complété le même jour) :** la recommandation complète. Une RH rattachée à un manager est validée par ce manager ; une RH sans manager est validée par n'importe quelle autre RH de son entreprise ; jamais par elle-même. Sans manager ni autre RH, ses notes restent en attente et la console l'indique. Défauts `MET-03`, `MET-10` ; ADR-013.
 
 ## D14 · Forme du changement de rôle (`M-02`, `M-08`)
 
@@ -195,7 +195,7 @@ Pour la rétrogradation d'un manager qui a des subordonnés (`M-08`) :
 
 Recommandation : **nouvelle route** et **refus** de la rétrogradation tant qu'il reste des subordonnés. Traiter `V-19` en même temps (relire le rôle en base à chaque requête, ou raccourcir la session), sinon une promotion n'a d'effet qu'après reconnexion.
 
-**Choix (2026-10-26, validé en équipe le 2026-10-28) :** nouvelle route `PUT /api/hr/users/:id/role` (`employee` ↔ `manager`) et menu de rôle dans la console RH ; rétrogradation refusée (`409`) d'un manager qui a encore des subordonnés ; un manager sans manager rétrogradé voit ses notes aller à la RH (`MET-02`, sans arbitrage dans le doc 22). Le rôle est relu en base pour tout contrôle de rôle (`V-19`) : une promotion prend effet sans reconnexion. Défauts `ROLE-01` à `ROLE-03`.
+**Choix (2026-10-26, validé en équipe le 2026-10-28, complété le même jour) :** nouvelle route `PUT /api/hr/users/:id/role` (`employee`, `manager` ou `hr_admin` : une RH peut en nommer une autre) et boutons de rôle dans la console RH, plus `GET /api/hr/admins` pour la section « Équipe RH ». Refusés en `409` : changer son propre rôle (`Cannot change own role`), rétrograder la dernière RH (`Last HR admin`), retirer son rôle à un manager qui a encore des subordonnés (`Manager has direct reports`). Un manager sans manager rétrogradé voit ses notes aller à la RH (`MET-02`). Le rôle est relu en base pour tout contrôle de rôle (`V-19`) : une promotion prend effet sans reconnexion. Tout passe par la transaction verrouillée par entreprise. Défauts `ROLE-01` à `ROLE-07` ; ADR-014.
 
 ## D15 · Langue des messages d'erreur (`B-06`, `V-15.2`)
 
