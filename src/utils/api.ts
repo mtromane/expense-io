@@ -2,6 +2,7 @@ import type {
   CompanyUserDto,
   ExpenseNoteDto,
   HrUserDto,
+  PendingExpenseNoteDto,
   ReceiptUrlDto,
   SuggestionDto,
 } from '@/modules/shared/http/presenters'
@@ -57,7 +58,7 @@ export const employeeApi = {
 }
 
 export const managerApi = {
-  listPending: () => request<ExpenseNoteDto[]>('/api/manager/expense-notes'),
+  listPending: () => request<PendingExpenseNoteDto[]>('/api/manager/expense-notes'),
   receiptUrl: (id: string) => request<ReceiptUrlDto>(`/api/manager/expense-notes/${id}/receipt-url`),
   decide: (id: string, decision: Decision) =>
     request<ExpenseNoteDto>(`/api/manager/expense-notes/${id}/${decision}`, post),

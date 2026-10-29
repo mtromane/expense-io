@@ -8,7 +8,8 @@ import type { NewUser, SignupTransaction, UserCredentials, UserRepository } from
  * Pas de portée utilisateur : l'inscription et la connexion précèdent toute
  * session (pas d'acteur pour la RLS), et les tables users et companies n'y
  * sont pas soumises. Lectures sur le pool ; l'inscription écrit dans
- * `pgSignupTransaction`.
+ * `pgSignupTransaction`. Les emails se comparent sans tenir compte de la
+ * casse (MET-05), par l'index unique `lower(email)`.
  */
 export class PgUserRepository implements UserRepository {
   constructor(private readonly client?: PoolClient) {}
@@ -19,7 +20,7 @@ export class PgUserRepository implements UserRepository {
 
   async findCredentials(email: string): Promise<UserCredentials | null> {
     const result = await this.db.query<{ id: string; email: string; password_hash: string; role: UserRole }>(
-      'SELECT id, email, password_hash, role FROM users WHERE email = $1',
+      'SELECT id, email, password_hash, role FROM users WHERE lower(email) = lower($1)',
       [email]
     )
     const row = result.rows[0]
@@ -32,7 +33,7 @@ export class PgUserRepository implements UserRepository {
   }
 
   async emailExists(email: string): Promise<boolean> {
-    const result = await this.db.query('SELECT id FROM users WHERE email = $1', [email])
+    const result = await this.db.query('SELECT id FROM users WHERE lower(email) = lower($1)', [email])
     return (result.rowCount ?? 0) > 0
   }
 
@@ -51,10 +52,11 @@ export class PgUserRepository implements UserRepository {
   }
 
   async createUser(user: NewUser): Promise<boolean> {
-    // Email pris entre-temps : aucune ligne écrite, la transaction n'est pas interrompue par une erreur.
+    // Email pris entre-temps, dans n'importe quelle casse : aucune ligne écrite, la transaction
+    // n'est pas interrompue par une erreur (contrainte sur email ou index sur lower(email)).
     const result = await this.db.query(
       `INSERT INTO users (name, email, password_hash, company_id, role) VALUES ($1, $2, $3, $4, $5)
-       ON CONFLICT (email) DO NOTHING`,
+       ON CONFLICT DO NOTHING`,
       [user.name, user.email, user.passwordHash, user.companyId, user.role]
     )
     return (result.rowCount ?? 0) > 0

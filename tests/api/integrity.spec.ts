@@ -72,7 +72,9 @@ test.describe('DATA — même note, même JSON sur tous les endpoints', { tag: '
     const [emp, mgr] = await Promise.all([loginAs('empA1'), loginAs('subMgrA')])
     const created = await createNote(emp, { amount: '73.40', expenseDate: '2026-02-03' })
     expect((await listOwnNotes(emp)).find((n) => n.id === created.id)).toEqual(created)
-    expect((await listFor(mgr, '/api/manager/expense-notes')).find((n) => n.id === created.id)).toEqual(created)
+    // La liste manager ajoute le nom de l'auteur (D20, MET-08) ; le reste est la même note.
+    const queued = (await listFor(mgr, '/api/manager/expense-notes')).find((n) => n.id === created.id)
+    expect({ ...queued, authorName: undefined }).toEqual(created)
 
     const res = await mgr.post(`/api/manager/expense-notes/${created.id}/approve`)
     expect(res.status()).toBe(200)

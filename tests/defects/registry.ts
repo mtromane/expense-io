@@ -45,9 +45,9 @@ export const DEFECTS = {
   'API-01': { title: 'Messages d’erreur de l’API en partie en français (D15)', fixed: true },
   'UI-01': { title: '« Mes notes » : total sans détail par statut, rejetées comprises (D17)', fixed: true },
   // Décision D20 du 2026-10-29 : comportements sans arbitrage de docs/audit/22-comportements-a-corriger.md.
-  'MET-05': { title: 'Email sensible à la casse : deux comptes pour une adresse, connexion dépendante de la casse (D20, V-12.3)', fixed: false },
-  'MET-06': { title: 'Date de dépense dans le futur acceptée (D20, M-09)', fixed: false },
-  'MET-08': { title: 'Le manager voit l’id tronqué de l’auteur au lieu de son nom (D20, M-06)', fixed: false },
+  'MET-05': { title: 'Email sensible à la casse : deux comptes pour une adresse, connexion dépendante de la casse (D20, V-12.3)', fixed: true },
+  'MET-06': { title: 'Date de dépense dans le futur acceptée (D20, M-09)', fixed: true },
+  'MET-08': { title: 'Le manager voit l’id tronqué de l’auteur au lieu de son nom (D20, M-06)', fixed: true },
 } satisfies Record<string, { title: string; fixed: boolean }>
 
 export type DefectId = keyof typeof DEFECTS

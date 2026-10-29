@@ -1,12 +1,12 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import type { ExpenseNoteDto } from '@/modules/shared/http/presenters'
+import type { PendingExpenseNoteDto } from '@/modules/shared/http/presenters'
 import { managerApi, type Decision } from '@/utils/api'
 import { formatCurrency, formatDate } from '@/utils/format'
 
 export function PendingApprovalsPanel() {
-  const [notes, setNotes] = useState<ExpenseNoteDto[]>([])
+  const [notes, setNotes] = useState<PendingExpenseNoteDto[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [decidingId, setDecidingId] = useState<string | null>(null)
@@ -92,9 +92,7 @@ export function PendingApprovalsPanel() {
               <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                 {notes.map((note) => (
                   <tr key={note.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
-                    <td className="px-6 py-3 font-mono text-xs text-gray-500 dark:text-gray-400">
-                      {note.userId.slice(0, 8)}…
-                    </td>
+                    <td className="px-6 py-3">{note.authorName}</td>
                     <td className="px-6 py-3 whitespace-nowrap text-gray-500 dark:text-gray-400">
                       {formatDate(note.expenseDate)}
                     </td>
