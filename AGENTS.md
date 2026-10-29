@@ -75,12 +75,14 @@ Où placer quoi : règle métier pure → `domain/` ; cas d'usage `make<CasDUsag
 
 ## Ajouter une fonctionnalité
 
-Recette complète avec exemple réel : `docs/architecture/ajouter-une-fonctionnalite.md`. En bref :
+Recette complète avec exemple réel : `docs/architecture/ajouter-une-fonctionnalite.md`. Avec Claude Code : `/feature <énoncé>` (`.claude/skills/feature/SKILL.md`) la déroule ; dans ce dépôt, elle remplace les skills génériques de conception et de plan (pas de document de conception, un seul point de validation). En bref :
 
 1. choisir le module (et le justifier) ;
-2. test unitaire du cas d'usage avec des ports en mémoire, dans un **nouveau** fichier `tests/unit/modules/<module>-<fonctionnalité>.test.ts`, jamais dans le fichier existant du module (rouge) ;
+2. tests d'abord (rouge), chacun dans un **nouveau** fichier :
+   * test boîte noire `tests/defects/<fonctionnalité>.spec.ts`, avec les tags `@defect` et `@FEAT-<nn>` (jamais `@parity`, sinon le job CI `baseline-proof` tombe), et l'entrée `FEAT-<nn>` à `fixed: false` ajoutée dans `tests/defects/registry.ts` ;
+   * test unitaire du cas d'usage avec des ports en mémoire, dans `tests/unit/modules/<module>-<fonctionnalité>.test.ts`, jamais dans le fichier existant du module ;
 3. domaine, puis port borné à l'acteur, puis cas d'usage (erreurs typées de `@/modules/shared/domain`) ;
-4. adapter dans `infrastructure/`, assemblage dans `index.ts` ; toute écriture dans l'organigramme (rôle, rattachement) passe par la transaction verrouillée `OrganizationTransaction` (`{ transaction: pgOrganizationTransaction }`), jamais directement par le dépôt ;
+4. adapter dans `infrastructure/`, assemblage dans `index.ts` ; toute écriture dans l'organigramme (rôle, rattachement) passe par la transaction verrouillée `OrganizationTransaction` (`{ transaction: pgOrganizationTransaction }`), jamais directement par le dépôt ; changement de schéma : **nouvelle** migration, colonne nullable ou `DEFAULT`, `GRANT … TO expense_app` pour une nouvelle table (recette, « Changer le schéma ») ;
 5. route fine avec `route()` ; textes d'interface **ajoutés**, jamais renommés ;
 6. nouvelle route : **deux fichiers dans la même PR**, `docs/api/openapi.yaml` (chemin, codes, schémas) et la liste `EXPECTED_OPERATIONS` de `tests/api/contract.spec.ts` (avec le nombre d'endpoints du titre), sinon le test de contrat échoue. C'est une évolution de contrat voulue (règle 5), relue par la team Tests, pas un test modifié pour masquer une régression ; nouveau champ : `docs/api/openapi.yaml` ;
 7. vérifier : `npm run lint && npm run typecheck && npm run test:unit`, puis `npm run build && npx playwright test` (et `make test-perf` si SQL, OCR ou listes).
