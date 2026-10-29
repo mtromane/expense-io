@@ -21,7 +21,7 @@ Chiffres relevés sur la branche `fix/p0-metier-et-docs`.
 | Mesure | Avant (baseline `265924b`) | Après |
 |---|---|---|
 | Constats Critiques et Hauts clos | 0 / 15 | 13 / 15 (restent V-18 ouvert, V-17 hors périmètre) |
-| Constats clos, tous niveaux | 0 / 63 | 40 / 63 ; 1 partiel, 16 ouverts, 4 acceptés, 2 hors périmètre ([12](12-constats.md)) |
+| Constats clos, tous niveaux | 0 / 63 | 41 / 63 ; 1 partiel, 15 ouverts, 4 acceptés, 2 hors périmètre ([12](12-constats.md)) |
 | Défauts du registre (rouge → vert) | 38 rouges | 38 verts : 18 techniques, 20 métier |
 | Tests automatisés | aucun | 246 unitaires, 329 Playwright (231 parité, 98 défauts) |
 | CI | aucune | `static`, `parity`, `defects`, `baseline-proof`, `perf` |
@@ -32,8 +32,9 @@ Chiffres relevés sur la branche `fix/p0-metier-et-docs`.
 | Performance (p95, même machine) | référence | aucun scénario plus lent : OCR −97 %, liste RH −78 %, création −21 %, liste employé −20 %, liste manager −4 % ; PERF-01 atteint, PERF-02 non (listes employé et manager au-dessus de 50 % de la baseline) |
 
 Ce qui reste ouvert relève surtout de l'exploitation et de la sécurité de
-second rang (limite de débit, journalisation des décisions, délais, mise à
-jour de `next`) : liste et raisons dans [12-constats.md](12-constats.md).
+second rang (limite de débit, journalisation des décisions, délais) : liste et
+raisons dans [12-constats.md](12-constats.md). Dépendances de production :
+`npm audit` sans vulnérabilité depuis `next` 16.4.3 (V-32).
 
 ## Verdict (audit initial, 2026-10-13)
 
