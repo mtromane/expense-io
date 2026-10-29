@@ -1,6 +1,6 @@
 # ADR-003 · Refacto par modules complets
 
-* Statut : Proposée, à valider par l'équipe
+* Statut : Acceptée par l'équipe le 2026-10-28
 * Décision source : D3
 
 ## Contexte

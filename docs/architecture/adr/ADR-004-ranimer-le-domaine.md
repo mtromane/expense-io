@@ -1,6 +1,6 @@
 # ADR-004 · Ranimer `src/domain`, `src/ports`, `src/adapters`
 
-* Statut : Proposée, à valider par l'équipe
+* Statut : Acceptée par l'équipe le 2026-10-28
 * Décision source : D4 (inverse la piste « supprimer » de `V-01`)
 
 ## Contexte

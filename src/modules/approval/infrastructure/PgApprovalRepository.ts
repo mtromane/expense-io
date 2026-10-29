@@ -17,7 +17,7 @@ function scopeCondition(scope: ApprovalScope, placeholder: string): string {
     ? `en.user_id = ANY (ARRAY(SELECT id FROM users WHERE manager_id = ${placeholder}))`
     : `en.user_id = ANY (ARRAY(
          SELECT id FROM users
-         WHERE manager_id IS NULL AND role IN ('manager', 'employee')
+         WHERE manager_id IS NULL AND role IN ('manager', 'employee', 'hr_admin') AND id <> ${placeholder}
            AND company_id = (SELECT company_id FROM users WHERE id = ${placeholder})
        ))`
 }

@@ -114,7 +114,8 @@ test('ROLE-01 la RH nomme un manager puis le rétrograde ; rôle invalide ou hor
     expect(down.status()).toBe(200)
     expect(await down.json()).toMatchObject({ id: target.id, role: 'employee' })
 
-    for (const data of [{ role: 'hr_admin' }, { role: 'boss' }, {}]) {
+    // hr_admin est attribuable depuis la réunion du 28/10 (ROLE-04) : plus un rôle invalide.
+    for (const data of [{ role: 'boss' }, {}]) {
       const invalid = await hr.put(url, { data })
       expect(invalid.status()).toBe(400)
       expect(await invalid.json()).toEqual(apiError('Champs invalides'))
@@ -307,3 +308,140 @@ for (const [path, title] of [['/hr', 'Accès réservé aux RH'], ['/manager', 'A
       await emp.dispose()
     })
 }
+
+// ---------------------------------------------------------------------------
+// Réunion d'équipe du 2026-10-28 : D13 et D14 complétées, une RH peut en nommer
+// une autre (entreprises D et E du dataset, dédiées à ces tests).
+
+type HrAdmin = { id: string; role: string; managerId: string | null }
+
+test('ROLE-04 la RH nomme une seconde RH ; promotion effective sans reconnexion ; annuaire inchangé',
+  { tag: ['@defect', '@ROLE-04'] }, async () => {
+    const hr = await loginAs('hrD')
+    const target = actor('promoteHrD')
+    const promoted = await loginAs('promoteHrD') // session ouverte en tant qu'employé
+    const url = `/api/hr/users/${target.id}/role`
+    expectDefect('ROLE-04')
+    try {
+      const up = await hr.put(url, { data: { role: 'hr_admin' } })
+      expect(up.status()).toBe(200)
+      expect(await up.json()).toMatchObject({ id: target.id, role: 'hr_admin' })
+
+      const admins = (await (await hr.get('/api/hr/admins')).json()) as HrAdmin[]
+      expect(admins.map((a) => a.id)).toEqual(expect.arrayContaining([actor('hrD').id, target.id]))
+      const directory = (await (await hr.get('/api/hr/users')).json()) as { id: string }[]
+      expect(directory.map((u) => u.id)).not.toContain(target.id) // l'annuaire ne liste toujours que employés et managers
+
+      expect((await promoted.get('/api/hr/admins')).status()).toBe(200) // sans reconnexion
+
+      const down = await hr.put(url, { data: { role: 'employee' } })
+      expect(down.status()).toBe(200)
+      expect((await promoted.get('/api/hr/admins')).status()).toBe(403)
+    } finally {
+      await hr.put(url, { data: { role: 'employee' } })
+      await Promise.all([hr.dispose(), promoted.dispose()])
+    }
+  })
+
+test('ROLE-04 bouton « Nommer RH » et section « Équipe RH » dans la console',
+  { tag: ['@defect', '@ROLE-04'] }, async ({ page }) => {
+    const target = actor('promoteHrUiD')
+    await loginUI(page, credentialsOf(actor('hrD')))
+    await page.goto('/hr')
+    expectDefect('ROLE-04')
+    const row = page.getByRole('row').filter({ hasText: target.email })
+    const promote = row.getByRole('button', { name: 'Nommer RH' })
+    await expect(promote).toBeVisible({ timeout: 5_000 }) // absent : échec attendu, pas un dépassement de délai
+    await promote.click()
+    const team = page.getByRole('region', { name: 'Équipe RH' })
+    await expect(team.getByText(target.email)).toBeVisible()
+    await expect(page.getByRole('row').filter({ hasText: target.email }).getByRole('button', { name: 'Nommer RH' })).toHaveCount(0)
+    const hr = await loginAs('hrD')
+    await hr.put(`/api/hr/users/${target.id}/role`, { data: { role: 'employee' } })
+    await hr.dispose()
+  })
+
+test('ROLE-05 une RH ne change jamais son propre rôle → 409 Cannot change own role',
+  { tag: ['@defect', '@ROLE-05'] }, async () => {
+    const self = await loginAs('hrD2')
+    const url = `/api/hr/users/${actor('hrD2').id}/role`
+    expectDefect('ROLE-05')
+    const res = await self.put(url, { data: { role: 'employee' } })
+    try {
+      expect(res.status()).toBe(409)
+      expect(await res.json()).toEqual({ error: 'Cannot change own role' })
+    } finally {
+      if (res.status() === 200) {
+        const hr = await loginAs('hrD')
+        await hr.put(url, { data: { role: 'hr_admin' } })
+        await hr.dispose()
+      }
+      await self.dispose()
+    }
+  })
+
+test('ROLE-06 deux RH qui se rétrogradent en même temps : il reste toujours une RH',
+  { tag: ['@defect', '@ROLE-06'] }, async () => {
+    const [e1, e2] = [actor('hrE1'), actor('hrE2')]
+    const [ctx1, ctx2] = await Promise.all([loginAs('hrE1'), loginAs('hrE2')])
+    const restore = async () => {
+      // La RH restante repromeut l'autre ; sans effet si les deux sont encore RH.
+      for (const [ctx, other] of [[ctx1, e2], [ctx2, e1]] as const) {
+        await ctx.put(`/api/hr/users/${other.id}/role`, { data: { role: 'hr_admin' } })
+      }
+    }
+    expectDefect('ROLE-06')
+    try {
+      for (let round = 0; round < RACE_ROUNDS; round++) {
+        const [r1, r2] = await Promise.all([
+          ctx1.put(`/api/hr/users/${e2.id}/role`, { data: { role: 'employee' } }),
+          ctx2.put(`/api/hr/users/${e1.id}/role`, { data: { role: 'employee' } }),
+        ])
+        const statuses = [r1.status(), r2.status()].sort()
+        // Une seule rétrogradation aboutit. L'autre est refusée : 409 « Last HR admin » si elle
+        // passe la garde avant l'autre écriture, 403 si son auteur n'est déjà plus RH.
+        expect(statuses[0], statuses.join(',')).toBe(200)
+        expect([403, 409], statuses.join(',')).toContain(statuses[1])
+        const refused = r1.status() === 200 ? r2 : r1
+        if (refused.status() === 409) expect(await refused.json()).toEqual({ error: 'Last HR admin' })
+        const survivor = r1.status() === 200 ? ctx1 : ctx2
+        const admins = (await (await survivor.get('/api/hr/admins')).json()) as HrAdmin[]
+        expect(admins).toHaveLength(1)
+        await restore()
+      }
+    } finally {
+      await restore()
+      await Promise.all([ctx1.dispose(), ctx2.dispose()])
+    }
+  })
+
+test('ROLE-07 promouvoir en RH un manager qui a encore des subordonnés → 409 Manager has direct reports',
+  { tag: ['@defect', '@ROLE-07'] }, async () => {
+    const hr = await loginAs('hrD')
+    const url = `/api/hr/users/${actor('mgrReportsD').id}/role`
+    expectDefect('ROLE-07')
+    const res = await hr.put(url, { data: { role: 'hr_admin' } })
+    try {
+      expect(res.status()).toBe(409)
+      expect(await res.json()).toEqual({ error: 'Manager has direct reports' })
+    } finally {
+      if (res.status() === 200) await hr.put(url, { data: { role: 'manager' } })
+      await hr.dispose()
+    }
+  })
+
+test('MET-10 note d’une RH sans manager : validée par une autre RH, jamais par elle-même',
+  { tag: ['@defect', '@MET-10'] }, async () => {
+    const author = await loginAs('hrD2')
+    const other = await loginAs('hrD')
+    const note = await createNote(author)
+    expectDefect('MET-10')
+    const ownQueue = (await (await author.get('/api/hr/expense-notes')).json()) as ExpenseNoteDto[]
+    expect(ownQueue.map((n) => n.id)).not.toContain(note.id)
+    expect((await author.post(`/api/hr/expense-notes/${note.id}/approve`)).status()).toBe(404)
+    const queue = (await (await other.get('/api/hr/expense-notes')).json()) as ExpenseNoteDto[]
+    expect(queue.map((n) => n.id)).toContain(note.id)
+    expect((await other.post(`/api/hr/expense-notes/${note.id}/approve`)).status()).toBe(200)
+    expect((await listOwnNotes(author)).find((n) => n.id === note.id)?.status).toBe('approved')
+    await Promise.all([author.dispose(), other.dispose()])
+  })

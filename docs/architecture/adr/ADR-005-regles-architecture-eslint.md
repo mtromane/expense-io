@@ -1,6 +1,6 @@
 # ADR-005 · Règles d'architecture vérifiées par ESLint
 
-* Statut : Proposée, à valider par l'équipe
+* Statut : Acceptée par l'équipe le 2026-10-28
 * Décision source : D5
 
 ## Contexte

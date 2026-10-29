@@ -36,6 +36,12 @@ export const DEFECTS = {
   'ROLE-01': { title: 'Aucun moyen de nommer ou rétrograder un manager (D14)', fixed: true },
   'ROLE-02': { title: 'Rétrogradation d’un manager qui a encore des subordonnés (D14)', fixed: true },
   'ROLE-03': { title: 'Changement de rôle sans effet avant reconnexion (D14, V-19)', fixed: true },
+  // Réunion d'équipe du 2026-10-28 : D13 et D14 complétées (une RH peut en nommer une autre).
+  'ROLE-04': { title: 'Impossible de nommer une seconde RH (D14, réunion du 28/10)', fixed: true },
+  'ROLE-05': { title: 'Une RH qui vise son propre rôle reçoit 404 au lieu d’un refus explicite (D14)', fixed: true },
+  'ROLE-06': { title: 'Deux RH qui se rétrogradent en même temps laissent l’entreprise sans RH (D14)', fixed: true },
+  'ROLE-07': { title: 'Promotion en RH d’un manager qui a encore des subordonnés (D14)', fixed: true },
+  'MET-10': { title: 'Notes d’une RH sans manager validables par aucune autre RH (D13)', fixed: true },
   'API-01': { title: 'Messages d’erreur de l’API en partie en français (D15)', fixed: true },
   'UI-01': { title: '« Mes notes » : total sans détail par statut, rejetées comprises (D17)', fixed: true },
 } satisfies Record<string, { title: string; fixed: boolean }>

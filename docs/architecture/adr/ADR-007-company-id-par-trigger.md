@@ -1,6 +1,6 @@
 # ADR-007 · `company_id` sur `expense_notes`, rempli par trigger
 
-* Statut : Proposée, à valider par l'équipe
+* Statut : Acceptée par l'équipe le 2026-10-28
 * Décision source : D7
 
 ## Contexte

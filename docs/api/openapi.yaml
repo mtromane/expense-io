@@ -30,6 +30,7 @@ info:
     Messages d'erreur (décision D15, ADR-015) : en anglais (`Invalid fields`,
     `Receipt file type not allowed`, `File too large`, `Not found`,
     `Already decided`, `Invalid manager`, `Manager has direct reports`,
+    `Last HR admin`, `Cannot change own role`,
     `Unauthorized`). L'application d'origine renvoyait les trois premiers en
     français.
 servers:
@@ -244,7 +245,7 @@ paths:
 
   /api/hr/users/{id}/role:
     put:
-      summary: Nommer un employé manager, ou rétrograder un manager sans subordonné (D14, ADR-014)
+      summary: Changer le rôle d'un membre de l'entreprise (employé, manager ou RH) ; jamais le sien, jamais la dernière RH (D14, ADR-014)
       parameters: [{ $ref: '#/components/parameters/Id' }]
       requestBody:
         required: true
@@ -255,18 +256,34 @@ paths:
               additionalProperties: false
               required: [role]
               properties:
-                role: { type: string, enum: [employee, manager] }
+                role: { type: string, enum: [employee, manager, hr_admin] }
       responses:
         '200':
-          description: Utilisateur mis à jour
+          description: Utilisateur mis à jour (fiche RH s'il devient RH)
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/CompanyUser' }
+              schema:
+                oneOf:
+                  - { $ref: '#/components/schemas/CompanyUser' }
+                  - { $ref: '#/components/schemas/HrUser' }
         '400': { $ref: '#/components/responses/Error' }
         '401': { $ref: '#/components/responses/Error' }
         '403': { $ref: '#/components/responses/Error' }
         '404': { $ref: '#/components/responses/Error' }
         '409': { $ref: '#/components/responses/Error' }
+        '500': { $ref: '#/components/responses/Error' }
+
+  /api/hr/admins:
+    get:
+      summary: RH de l'entreprise, la RH connectée comprise (tri par nom ; réunion du 28/10, ADR-014)
+      responses:
+        '200':
+          description: Équipe RH
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: '#/components/schemas/HrUser' } }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
         '500': { $ref: '#/components/responses/Error' }
 
   /api/hr/me:

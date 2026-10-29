@@ -35,6 +35,15 @@ export type ActorKey =
   | 'rootMgrC'
   | 'noMgrEmpC'
   | 'zeroAmountC'
+  | 'hrD'
+  | 'hrD2'
+  | 'promoteHrD'
+  | 'promoteHrUiD'
+  | 'sessionHrD'
+  | 'mgrReportsD'
+  | 'reportD'
+  | 'hrE1'
+  | 'hrE2'
 
 export interface Actor {
   key: ActorKey

@@ -36,7 +36,7 @@ Une fois l'environnement prêt : `npx playwright test <fichier> --no-deps`.
 ## Tests unitaires (Vitest)
 
 ```bash
-npm run test:unit            # environ 230 tests, quelques secondes
+npm run test:unit            # environ 235 tests, quelques secondes
 npm run test:unit:coverage   # + couverture (rapport HTML dans coverage/)
 ```
 
@@ -69,7 +69,7 @@ reste un changement de comportement à valider par la team Tests.
 
 ## Contrat d'API (OpenAPI)
 
-`docs/api/openapi.yaml` décrit les 14 endpoints de l'app d'origine, plus les 2 ajoutés par les décisions D13 et D14 (requêtes,
+`docs/api/openapi.yaml` décrit les 14 endpoints de l'app d'origine, plus les 3 ajoutés par les décisions D13 et D14 (requêtes,
 réponses, codes HTTP, erreurs). Les contextes HTTP de `tests/support/auth.ts`
 passent par `tests/support/contract.ts` : **chaque réponse de l'API obtenue par
 un test est validée contre ce contrat** (schémas stricts : un champ en trop,
@@ -110,9 +110,9 @@ Ce n'est pas permanent : `test.fail()` disparaît défaut par défaut.
 | Corrigé et déclaré | `true` | corrigé | passe, test normal | verte |
 | Déclaré corrigé à tort | `true` | présent | échoue | **rouge** |
 
-Fin de migration : les 30 identifiants (18 défauts techniques, dont ROB-03f
-ajouté par la revue de la PR #6, et 12 défauts métier : MET-02 et les
-décisions D12 à D19) sont à `fixed: true`, plus aucun échec
+Fin de migration : les 35 identifiants (18 défauts techniques, dont ROB-03f
+ajouté par la revue de la PR #6, et 17 défauts métier : MET-02, les
+décisions D12 à D19 et leurs compléments du 28/10) sont à `fixed: true`, plus aucun échec
 attendu, tous les tests passent au sens propre. Les défauts métier sont testés
 dans `tests/defects/metier.spec.ts` (avec des tests de concurrence pour
 ROLE-02 et MET-04) et dans la matrice d'autorisations.

@@ -4,8 +4,10 @@ import type { Actor } from '@/modules/shared/domain'
  * Qui voit et tranche quelles notes (règle unique pour les listes, les
  * décisions et les reçus côté valideur) :
  * - un manager : les notes de ses rattachés directs ;
- * - une RH : les notes des managers et des employés sans manager de son
- *   entreprise (MET-02 : aucune note sans valideur). Jamais ses propres notes.
+ * - une RH : les notes de quiconque n'a pas de manager dans son entreprise :
+ *   managers, employés (MET-02) et autres RH (MET-10, réunion du 2026-10-28).
+ *   Jamais ses propres notes : une RH sans manager est validée par une autre
+ *   RH ; sans manager ni autre RH, ses notes restent en attente.
  * Les autres rôles ne valident rien.
  */
 export type ApprovalScope =

@@ -14,6 +14,7 @@ export function AdminConsole() {
   const [usersError, setUsersError] = useState<string | null>(null)
   const [savingId, setSavingId] = useState<string | null>(null)
   const [me, setMe] = useState<HrUserDto | null>(null)
+  const [admins, setAdmins] = useState<HrUserDto[]>([])
 
   const [notes, setNotes] = useState<ExpenseNoteDto[]>([])
   const [notesLoading, setNotesLoading] = useState(true)
@@ -21,13 +22,14 @@ export function AdminConsole() {
   const [decidingId, setDecidingId] = useState<string | null>(null)
 
   const loadUsers = useCallback(async () => {
-    const [result, profile] = await Promise.all([hrApi.listUsers(), hrApi.me()])
+    const [result, profile, team] = await Promise.all([hrApi.listUsers(), hrApi.me(), hrApi.listAdmins()])
     if (result.ok) {
       setUsers(result.data)
     } else {
       setUsersError("Impossible de charger l'annuaire.")
     }
     if (profile.ok) setMe(profile.data)
+    if (team.ok) setAdmins(team.data)
     setUsersLoading(false)
   }, [])
 
@@ -48,6 +50,7 @@ export function AdminConsole() {
   }, [loadUsers, loadNotes])
 
   const managers = users.filter((user) => user.role === 'manager')
+  const otherAdmins = admins.filter((admin) => admin.id !== me?.id)
 
   async function handleManagerChange(userId: string, managerId: string) {
     setSavingId(userId)
@@ -62,10 +65,10 @@ export function AdminConsole() {
     }
   }
 
-  async function handleRoleChange(user: CompanyUserDto) {
-    setSavingId(user.id)
+  async function handleRoleChange(userId: string, role: CompanyUserDto['role'] | HrUserDto['role']) {
+    setSavingId(userId)
     setUsersError(null)
-    const result = await hrApi.changeRole(user.id, user.role === 'manager' ? 'employee' : 'manager')
+    const result = await hrApi.changeRole(userId, role)
     setSavingId(null)
 
     if (result.ok) {
@@ -128,9 +131,14 @@ export function AdminConsole() {
               ))}
             </select>
           </div>
-          {!me.managerId && (
+          {!me.managerId && otherAdmins.length === 0 && (
             <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
               Sans manager, vos notes de frais restent en attente : vous ne pouvez pas les valider vous-même.
+            </p>
+          )}
+          {!me.managerId && otherAdmins.length > 0 && (
+            <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+              Sans manager, vos notes de frais sont validées par une autre RH de l&apos;entreprise.
             </p>
           )}
         </section>
@@ -193,10 +201,18 @@ export function AdminConsole() {
                       <button
                         type="button"
                         disabled={savingId === user.id}
-                        onClick={() => handleRoleChange(user)}
+                        onClick={() => handleRoleChange(user.id, user.role === 'manager' ? 'employee' : 'manager')}
                         className="text-sm font-medium text-brand-600 hover:underline disabled:cursor-not-allowed disabled:opacity-60"
                       >
                         {user.role === 'manager' ? 'Rétrograder en employé' : 'Nommer manager'}
+                      </button>
+                      <button
+                        type="button"
+                        disabled={savingId === user.id}
+                        onClick={() => handleRoleChange(user.id, 'hr_admin')}
+                        className="ml-3 text-sm font-medium text-brand-600 hover:underline disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        Nommer RH
                       </button>
                     </td>
                   </tr>
@@ -205,6 +221,38 @@ export function AdminConsole() {
             </table>
           </div>
         )}
+      </section>
+
+      <section
+        aria-labelledby="hr-team-title"
+        className="rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900"
+      >
+        <h2 id="hr-team-title" className="border-b border-gray-200 px-6 py-4 text-base font-semibold dark:border-gray-800">
+          Équipe RH ({admins.length})
+        </h2>
+        <ul className="divide-y divide-gray-100 dark:divide-gray-800">
+          {admins.map((admin) => (
+            <li key={admin.id} className="flex flex-wrap items-center justify-between gap-3 px-6 py-3 text-sm">
+              <div>
+                <div className="font-medium">
+                  {admin.name}
+                  {admin.id === me?.id && <span className="ml-2 text-xs text-gray-500 dark:text-gray-400">(vous)</span>}
+                </div>
+                <div className="text-xs text-gray-500 dark:text-gray-400">{admin.email}</div>
+              </div>
+              {admin.id !== me?.id && (
+                <button
+                  type="button"
+                  disabled={savingId === admin.id}
+                  onClick={() => handleRoleChange(admin.id, 'employee')}
+                  className="text-sm font-medium text-brand-600 hover:underline disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  Rétrograder en employé
+                </button>
+              )}
+            </li>
+          ))}
+        </ul>
       </section>
 
       <section className="rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">

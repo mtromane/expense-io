@@ -3,7 +3,7 @@
 Une ADR par décision D1 à D11 de [`docs/audit/21-decisions-architecture.md`](../../audit/21-decisions-architecture.md).
 Le numéro de l'ADR reprend celui de la décision (ADR-002 = D2). Chacune applique la recommandation du document 21.
 
-**Statut de toutes les ADR : Proposée, à valider par l'équipe.**
+**Statut de toutes les ADR : acceptées par l'équipe le 2026-10-28** (réunion d'équipe).
 
 | ADR | Décision | Choix proposé |
 |---|---|---|
@@ -19,13 +19,13 @@ Le numéro de l'ADR reprend celui de la décision (ADR-002 = D2). Chacune appliq
 | [ADR-010](ADR-010-live-coding.md) | D10 · fonctionnalité du live coding | sans objet, préparer `AGENTS.md` |
 | [ADR-011](ADR-011-types-de-reponse.md) | D11 · types de réponse | écrits à la main |
 
-Décisions métier D12 à D19 : **choix arrêtés le 2026-10-26 par Maxence Larche, en attente de validation explicite de l'équipe** (condition de fusion de la PR #6). D13, D15 et D17 s'écartent de la recommandation du document 21 :
+Décisions métier D12 à D19, **validées en équipe le 2026-10-28** (D13 et D14 avec un ajout : seconde RH). D15 et D17 s'écartent de la recommandation initiale du document 21 :
 
 | ADR | Décision | Choix |
 |---|---|---|
 | [ADR-012](ADR-012-codes-401-403.md) | D12 · codes 401 / 403 | 401 non connecté, 403 mauvais rôle |
-| [ADR-013](ADR-013-validation-des-notes-rh.md) | D13 · notes d'une RH | validées par le manager auquel elle est rattachée |
-| [ADR-014](ADR-014-changement-de-role.md) | D14 · changement de rôle | nouvelle route, rétrogradation refusée s'il reste des subordonnés, rôle relu en base |
+| [ADR-013](ADR-013-validation-des-notes-rh.md) | D13 · notes d'une RH | validées par son manager, sinon par une autre RH |
+| [ADR-014](ADR-014-changement-de-role.md) | D14 · changement de rôle | nouvelle route (seconde RH comprise), jamais son propre rôle ni la dernière RH, rôle relu en base |
 | [ADR-015](ADR-015-messages-api-en-anglais.md) | D15 · langue des erreurs | API en anglais, écran inchangé |
 | [ADR-016](ADR-016-domaines-publics.md) | D16 · domaines publics | inscription refusée |
 | [ADR-017](ADR-017-total-par-statut.md) | D17 · total « Mes notes » | total par statut ajouté |

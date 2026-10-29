@@ -1,6 +1,6 @@
 # ADR-010 · Fonctionnalité du live coding
 
-* Statut : Proposée, à valider par l'équipe
+* Statut : Acceptée par l'équipe le 2026-10-28
 * Décision source : D10
 
 ## Contexte

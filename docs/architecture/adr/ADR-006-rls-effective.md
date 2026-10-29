@@ -1,6 +1,6 @@
 # ADR-006 · Rendre la RLS effective
 
-* Statut : Proposée, à valider par l'équipe
+* Statut : Acceptée par l'équipe le 2026-10-28
 * Décision source : D6 (défaut `SEC-09`)
 
 ## Contexte
