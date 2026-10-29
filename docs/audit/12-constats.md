@@ -19,13 +19,13 @@ le document : les identifiants ne bougent pas.
 |---|---|---|---|---|---|
 | Critique (3) | 3 | | | | |
 | Haute (12) | 10 | | 1 (V-18) | | 1 (V-17) |
-| Moyenne (28) | 17 | 1 (V-26) | 7 | 2 | 1 |
+| Moyenne (28) | 18 | 1 (V-26) | 6 | 2 | 1 |
 | Faible (20) | 10 | | 8 | 2 | |
-| **Total (63)** | **40** | **1** | **16** | **4** | **2** |
+| **Total (63)** | **41** | **1** | **15** | **4** | **2** |
 
 Les constats ouverts sont surtout de l'exploitation et de la sécurité de second
-rang : limite de débit (V-18), journalisation (V-27), délais (V-29), dépendances
-(V-32, V-33), en-têtes HTTP (V-25), politique de mot de passe et de session
+rang : limite de débit (V-18), journalisation (V-27), délais (V-29), `next-auth`
+en bêta (V-33), en-têtes HTTP (V-25), politique de mot de passe et de session
 (V-21 à V-23). « Accepté » = comportement gardé volontairement, avec sa raison
 dans la fiche.
 
@@ -134,7 +134,7 @@ Trié par gravité, puis thème.
 | [V-02.4](#v-02-4) | Contrôle de session et de rôle recopié dans chaque route | T6 | auth | Moyenne | S | non | confirmé (lecture) | clos |
 | [V-16.2](#v-16-2) | Aucune intégration continue (lint, typecheck, build, tests) | T6 | socle | Moyenne | S | non | confirmé (lecture) | clos |
 | [V-31](#v-31) | Logique métier et accès aux données mêlés aux route handlers | T6 | socle | Moyenne | L | non | confirmé (lecture) | clos |
-| [V-32](#v-32) | Next.js exposé à des vulnérabilités connues | T7 | socle | Moyenne | S | non | partiel | ouvert |
+| [V-32](#v-32) | Next.js exposé à des vulnérabilités connues | T7 | socle | Moyenne | S | non | partiel | clos |
 | [V-34](#v-34) | Postgres et LocalStack exposés sur toutes les interfaces | T7 | socle | Moyenne | S | non | confirmé (PoC) | ouvert |
 | [V-35](#v-35) | Aucune suppression ni durée de conservation des données personnelles | T7 | donnees | Moyenne | L | oui | confirmé (lecture) | hors périmètre |
 | [V-36](#v-36) | Seed créant des comptes connus hors développement | T7 | donnees | Moyenne | S | non | confirmé (lecture) | ouvert |
@@ -1542,7 +1542,7 @@ Trié par gravité, puis thème.
 
 | Champ | Valeur |
 |---|---|
-| Statut (2026-10-29) | **ouvert** — `npm audit` du 2026-10-29 : `next` 16.3.5 (critique), `sharp` (haute) |
+| Statut (2026-10-29) | **clos** — `next` 16.3.5 → 16.4.3 et `sharp` 0.35.4 → 0.35.5 : `npm audit --omit=dev` ne trouve plus aucune vulnérabilité (avant : 3 RCE critiques, DoS des Server Actions, SSRF de l'optimiseur d'images) |
 | Thème | T7 — Dépendances, configuration et données personnelles |
 | Module | socle |
 | Référence | OWASP A03 :2025 — Software Supply Chain Failures |

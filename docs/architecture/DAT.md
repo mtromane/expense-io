@@ -6,7 +6,7 @@ Document de synthèse : pile technique, déploiement, configuration, sécurité,
 
 | Élément | Choix |
 |---|---|
-| Application | Next.js 16 (App Router, build de production `next start`), React 19, TypeScript |
+| Application | Next.js 16.4 (App Router, build de production `next start`), React 19, TypeScript |
 | Authentification | Auth.js v5 (NextAuth), session JWT, identifiants email et mot de passe (bcrypt coût 12) |
 | Base de données | PostgreSQL 16, migrations SQL (`node-pg-migrate`, dossier `migrations/`) |
 | Stockage des reçus | S3 (LocalStack 3.8.1 en local), URL présignées de 5 minutes |
@@ -48,6 +48,7 @@ Toute la configuration vient de l'environnement (`.env.example`) et passe par `s
 | Reçus | clé opaque (UUID), type vérifié sur la signature du fichier, 10 Mo au plus, URL présignée de 5 minutes |
 | Erreurs | `{ "error": "..." }` en anglais (D15), sans stack ni chemin interne. Le détail est journalisé côté serveur (SEC-05). L'écran affiche les messages en français |
 | Injection SQL | requêtes paramétrées, tri par liste blanche (SEC-01) |
+| Dépendances | versions exactes de `next` et `eslint-config-next` ; `npm audit --omit=dev` sans vulnérabilité au 2026-10-29 (V-32 : `next` 16.4.3) |
 
 ## 5. Exploitation
 
