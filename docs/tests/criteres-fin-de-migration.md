@@ -17,17 +17,19 @@ La migration est terminée quand **`make test` est vert sur `main`, que tous les
 
 Cocher chaque ligne. Une seule case vide = migration non terminée.
 
+**Relevé du 2026-10-29** (branche `fix/p0-metier-et-docs`, suite complète en local : 329 tests Playwright verts, 246 unitaires) : les cases cochées sont vérifiées ; les cases vides disent ce qui manque.
+
 ### 2.1 Rien n'a été perdu (parité)
 
-- [ ] Les **231 tests `@parity`** passent (253 avant que D12 ne fasse passer 22 cellules de la matrice en défauts) : `npx playwright test --grep @parity`.
-- [ ] Toutes les réponses de l'API sont conformes au contrat **`docs/api/openapi.yaml`** : c'est vérifié automatiquement sur chaque réponse obtenue par les tests (schémas stricts, codes HTTP documentés).
-- [ ] Aucun test `@parity` n'a été modifié, sauf changement de comportement **voulu** (§2.3), justifié dans la PR et validé par la team Tests.
-- [ ] Le **contrat** ci-dessous est intact (il est vérifié par les tests, mais c'est lui qui compte) :
+- [x] Les **231 tests `@parity`** passent (253 avant que D12 ne fasse passer 22 cellules de la matrice en défauts) : `npx playwright test --grep @parity`.
+- [x] Toutes les réponses de l'API sont conformes au contrat **`docs/api/openapi.yaml`** : c'est vérifié automatiquement sur chaque réponse obtenue par les tests (schémas stricts, codes HTTP documentés).
+- [x] Aucun test `@parity` n'a été modifié, sauf changement de comportement **voulu** (§2.3), justifié dans la PR et validé par la team Tests. Dernier en date : `tests/api/integrity.spec.ts` (D20 : date passée, `authorName` dans la liste manager).
+- [x] Le **contrat** ci-dessous est intact (il est vérifié par les tests, mais c'est lui qui compte) :
 
 | Élément | Ce qui ne doit pas changer |
 |---|---|
 | Routes API | les 14 chemins et verbes d'origine (`/api/expense-notes`, `/api/manager/...`, `/api/hr/...`), plus `PUT /api/hr/users/{id}/role` (D14), `GET /api/hr/me` (D13) et `GET /api/hr/admins` (D14, réunion du 28/10) ajoutés |
-| Réponses | décrites dans `docs/api/openapi.yaml` : forme JSON (`id`, `userId`, `amount` en nombre, `expenseDate` en `YYYY-MM-DD`, `description`, `receiptKey`, `status`, `createdAt` ISO), codes HTTP, erreurs `{"error": "..."}` sans stack ; messages exacts, en anglais depuis D15 (`Invalid fields`, `Already decided`, `Invalid manager`, `Not found`…) |
+| Réponses | décrites dans `docs/api/openapi.yaml` : forme JSON (`id`, `userId`, `amount` en nombre, `expenseDate` en `YYYY-MM-DD`, `description`, `receiptKey`, `status`, `createdAt` ISO ; plus `authorName` dans la liste manager depuis D20), codes HTTP, erreurs `{"error": "..."}` sans stack ; messages exacts, en anglais depuis D15 (`Invalid fields`, `Already decided`, `Invalid manager`, `Not found`…) |
 | Suggestion OCR | sur les reçus de référence (`tests/fixtures/ocr/`), même montant et même date qu'avant |
 | Tris | employé : `created_at` décroissant ; manager et RH : `created_at` croissant |
 | Interface | textes français des labels et boutons (`Montant (€)`, `Soumettre`, `Approuver`, `Rejeter`, `Voir le reçu`, `Se connecter`, `Se déconnecter`…) |
@@ -37,8 +39,8 @@ Cocher chaque ligne. Une seule case vide = migration non terminée.
 
 ### 2.2 Les défauts techniques sont corrigés
 
-- [ ] Chaque identifiant de `tests/defects/registry.ts` (17 défauts techniques à l'origine, plus les défauts métier ajoutés au titre du §2.3) est passé à `fixed: true`.
-- [ ] `make test-defects` est vert **après** ces bascules.
+- [x] Chaque identifiant de `tests/defects/registry.ts` (38 : 18 défauts techniques, dont 17 à l'origine, plus 20 défauts métier ajoutés au titre du §2.3) est passé à `fixed: true`.
+- [x] `make test-defects` est vert **après** ces bascules.
 
 | ID | À corriger | Résultat attendu, vérifié par les tests |
 |---|---|---|
@@ -66,15 +68,15 @@ Les objectifs de performance PERF-01 et PERF-02 sont suivis à part, dans `tests
 
 Décision d'équipe du 2026-10-13 : les professeurs ont des tests qui échouent sur l'application d'origine et qu'ils attendent verts après la migration, probablement sur les comportements étranges. Les défauts métier MET-01 à MET-09 (spec §5.2) et les comportements inventoriés dans `docs/audit/22-comportements-a-corriger.md` sont donc **à corriger**.
 
-* [ ] Le circuit complet fonctionne depuis l'interface, sans seed ni SQL : inscription d'une entreprise, nomination d'un manager par la RH, rattachement, soumission, validation, statut visible par l'auteur.
-* [ ] Toute note a un valideur : employé sans manager, manager racine, RH (règle tranchée en D13).
-* [ ] Codes HTTP standard : `401` si non connecté, `403` si connecté sans le rôle, sur toutes les routes `/api/manager/*` et `/api/hr/*`.
-* [ ] Chaque point de `22-comportements-a-corriger.md` est soit corrigé, soit marqué « conservé » avec sa justification.
-* [ ] Chaque correction suit le cycle rouge → vert : la team Tests ajoute d'abord le défaut au registre (`fixed: false`) avec son test, et fait évoluer dans la même PR les tests de parité et `docs/api/openapi.yaml` qui figeaient l'ancien comportement.
-* [ ] Aucun texte d'interface existant renommé : on ajoute (menu, message, champ), on ne remplace pas.
-* [ ] Seules les options tranchées dans `docs/audit/21-decisions-architecture.md` (D12 à D19) sont implémentées.
+* [x] Le circuit complet fonctionne depuis l'interface, sans seed ni SQL : inscription d'une entreprise, nomination d'un manager par la RH, rattachement, soumission, validation, statut visible par l'auteur. Chaque étape a son test d'interface (E2E-01, ROLE-01, MET-03, E2E-11, MET-08) ; pas encore de test unique qui enchaîne tout le parcours.
+* [x] Toute note a un valideur : employé sans manager, manager racine, RH (règle tranchée en D13).
+* [x] Codes HTTP standard : `401` si non connecté, `403` si connecté sans le rôle, sur toutes les routes `/api/manager/*` et `/api/hr/*`.
+* [ ] Chaque point de `22-comportements-a-corriger.md` est soit corrigé, soit marqué « conservé » avec sa justification. Manquent encore, faute d'arbitrage ou de temps : `M-05.1` (décideur et date), `MET-06` (longueur de description, décimales), `V-13.3` (PDF et OCR), `V-14.1` (onglet du reçu), `V-14.3` (erreur réseau) ; `M-07` est conservé (texte d'interface existant).
+* [x] Chaque correction suit le cycle rouge → vert : la team Tests ajoute d'abord le défaut au registre (`fixed: false`) avec son test, et fait évoluer dans la même PR les tests de parité et `docs/api/openapi.yaml` qui figeaient l'ancien comportement.
+* [x] Aucun texte d'interface existant renommé : on ajoute (menu, message, champ), on ne remplace pas.
+* [x] Seules les options tranchées dans `docs/audit/21-decisions-architecture.md` (D12 à D20) sont implémentées.
 
-Décisions D12 à D19 tranchées le 2026-10-26, suivies par ces défauts du registre (tests dans `tests/defects/metier.spec.ts` et `tests/api/authz-matrix.ts`) :
+Décisions D12 à D19 tranchées le 2026-10-26, et D20 le 2026-10-29, suivies par ces défauts du registre (tests dans `tests/defects/metier.spec.ts`, `tests/defects/metier-d20.spec.ts` et `tests/api/authz-matrix.ts`) :
 
 | ID | Décision | Résultat attendu, vérifié par les tests |
 |---|---|---|
@@ -88,11 +90,14 @@ Décisions D12 à D19 tranchées le 2026-10-26, suivies par ces défauts du regi
 | UI-01 | D17 | « Mes notes » : total par statut ajouté sous le total existant |
 | MET-04 | D18 | cycle hiérarchique → `409 Invalid manager` |
 | AUTHZ-03 | D19 | page « Accès réservé » servie en `403` |
+| MET-08 | D20 | liste manager : `authorName` de chaque note, nom affiché sur la page de validation |
+| MET-05 | D20 | casse de l'email ignorée à l'inscription (doublon refusé) et à la connexion |
+| MET-06 | D20 | date de dépense postérieure à demain (UTC) → `400 Invalid fields` |
 
 ### 2.4 Pas plus lent qu'avant
 
-- [ ] Aucune régression de performance : le barème met **0** si l'application est moins performante.
-- [ ] Objectifs atteints et déclarés `fixed: true` dans `tests/perf/targets.json` :
+- [x] Aucune régression de performance : le barème met **0** si l'application est moins performante. Relevé local du 2026-10-29 : aucun scénario plus lent que la baseline (verdict « aucun problème détecté ») ; liste manager mesurée en A/B contre `main` après D20 : pas plus lente.
+- [ ] Objectifs atteints et déclarés `fixed: true` dans `tests/perf/targets.json`. PERF-01 atteint (ratio 0,03) ; **PERF-02 non atteint** (ratios 0,80, 0,96, 0,22) : la liste manager est dominée par la taille de la réponse, la pagination serait le levier suivant (`docs/architecture/DAT.md` §8).
 
 | ID | À corriger | Objectif mesuré |
 |---|---|---|
@@ -103,9 +108,9 @@ Vérification : `make test-perf` en local (environ 15 min), ou poser le label `p
 
 ### 2.5 Qualité et CI
 
-- [ ] `npm run lint`, `npm run typecheck`, `npm run build` passent.
-- [ ] Les jobs GitHub Actions `static`, `parity`, `defects` sont verts sur `main`.
-- [ ] Le job `baseline-proof` est vert (il prouve que les tests restent valides contre l'application d'origine).
+- [x] `npm run lint`, `npm run typecheck`, `npm run build` passent.
+- [x] Les jobs GitHub Actions `static`, `parity`, `defects` sont verts sur `main`.
+- [x] Le job `baseline-proof` est vert (il prouve que les tests restent valides contre l'application d'origine).
 
 ---
 

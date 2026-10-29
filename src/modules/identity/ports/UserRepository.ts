@@ -17,7 +17,11 @@ export interface NewUser {
   role: UserRole
 }
 
-/** Comptes et rattachement à l'entreprise au moment de l'inscription. */
+/**
+ * Comptes et rattachement à l'entreprise au moment de l'inscription. Un email
+ * désigne un seul compte quelle que soit sa casse (MET-05) : les recherches
+ * l'ignorent, l'email est conservé tel que saisi.
+ */
 export interface UserRepository {
   findCredentials(email: string): Promise<UserCredentials | null>
   /** Identifiant et rôle **actuel** d'un utilisateur, ou null s'il n'existe plus. */

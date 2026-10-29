@@ -26,6 +26,8 @@ export interface SubmitDeps {
   receipts: ReceiptStoragePort
   /** Identifiant opaque de la clé du reçu (SEC-06). */
   newId: () => string
+  /** Horloge : une dépense ne peut pas être datée après demain (D20, MET-06). Par défaut, l'heure courante. */
+  now?: () => Date
   onCompensationFailure?: (key: string, error: unknown) => void
 }
 
@@ -36,7 +38,7 @@ export interface SubmitDeps {
  */
 export function makeSubmitExpenseNote(deps: SubmitDeps) {
   return async (command: SubmitExpenseNoteCommand): Promise<ExpenseNote> => {
-    const fields = parseNewExpenseNote(command)
+    const fields = parseNewExpenseNote(command, deps.now?.())
     const { receipt } = command
     if (!receipt) throw new InvalidInputError()
     if (!isReceiptType(receipt.declaredType)) throw new InvalidInputError(RECEIPT_TYPE_REFUSED)

@@ -35,9 +35,11 @@ cotation et l'état à jour, `12-constats.md` fait foi.
   le métier listés dans `22-comportements-a-corriger.md`, qui doivent être
   corrigés (décision d'équipe du 2026-10-13). Les choix ouverts sont dans
   `21-decisions-architecture.md` ; ne pas implémenter une option non tranchée.
-- Ne pas se fier aux commentaires du code qui parlent de sécurité (V-00), ni
-  supposer que `src/domain/` porte les règles métier : il n'est jamais appelé
-  (V-01).
+- Les fichiers `01` à `14` et `poc/` décrivent l'application **d'origine**
+  (tag `baseline`). Le code a été refondu depuis : `src/domain/` est ranimé
+  et branché (ADR-004), la RLS est effective (ADR-006). Pour le code actuel,
+  lire `AGENTS.md` et `docs/architecture/HLD.md` ; statut de chaque constat :
+  colonne « Statut » de `12-constats.md`.
 - Les « Règles pour les agents » de `11-methode.md` (dont « ne rien modifier
   dans le code ») concernaient la phase d'audit, pas la remédiation.
 - Après une correction : marquer le constat clos dans `12-constats.md`

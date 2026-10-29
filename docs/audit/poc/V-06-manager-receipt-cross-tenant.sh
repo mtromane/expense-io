@@ -3,6 +3,8 @@
 # aucun de ses subordonnés (autre chaîne hiérarchique / autre entreprise) ?
 # Route visée : GET /api/manager/expense-notes/<id>/receipt-url (pool brut,
 # WHERE id seul, aucun filtre de rattachement).
+# Mis à jour le 2026-10-29 : verdict RÉFUTÉ quand le critère d'acceptation de la
+# fiche (docs/audit/12-constats.md) est atteint par la version corrigée.
 set -u
 cd "$(dirname "$0")"; . ./_lib.sh
 require_app
@@ -48,6 +50,10 @@ if [ "$APPROVE_CODE" = "404" ] && [ "$RU_CODE" = "200" ] && echo "$FETCH" | grep
   echo "=> Le manager obtient l'URL et récupère le reçu d'une note d'une AUTRE"
   echo "   entreprise, alors que la route approve lui refuse (404) la même note."
   verdict CONFIRMÉ
+elif { [ "$RU_CODE" = "404" ] || [ "$RU_CODE" = "403" ]; } && ! echo "$FETCH" | grep -q '^200/'; then
+  echo "=> Le manager n'obtient plus l'URL du reçu d'une note d'une autre entreprise"
+  echo "   (receipt-url=$RU_CODE, comme approve=$APPROVE_CODE) : périmètre unique (SEC-02)."
+  verdict RÉFUTÉ
 else
   echo "=> Comportement inattendu (approve=$APPROVE_CODE receipt-url=$RU_CODE fetch=$FETCH)."
   verdict PARTIEL

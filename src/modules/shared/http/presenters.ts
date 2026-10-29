@@ -18,6 +18,15 @@ export function presentExpenseNote(note: ExpenseNote): ExpenseNoteDto {
   return { id, userId, amount, expenseDate, description, receiptKey, status, createdAt }
 }
 
+/** Note de la file d'un manager (GET /api/manager/expense-notes) : avec le nom de son auteur (D20, MET-08). */
+export interface PendingExpenseNoteDto extends ExpenseNoteDto {
+  authorName: string
+}
+
+export function presentPendingNote({ note, authorName }: { note: ExpenseNote; authorName: string }): PendingExpenseNoteDto {
+  return { ...presentExpenseNote(note), authorName }
+}
+
 /** Employé ou manager de l'annuaire RH (GET /api/hr/users). */
 export interface CompanyUserDto {
   id: string

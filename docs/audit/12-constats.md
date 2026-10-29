@@ -8,6 +8,27 @@ dans [`poc/README.md`](poc/README.md)), dont les
 (V-05.1). Les autres fiches restent vérifiées par lecture. Méthode, échelles et
 modèle de fiche : [11-methode.md](11-methode.md).
 
+## Statut au 2026-10-29
+
+Après la refonte (étapes 0 à 8) et les décisions D1 à D20 : colonne « Statut »
+de l'index et ligne « Statut » de chaque fiche, avec la preuve (défaut du
+registre `tests/defects/registry.ts`, décision, PoC). Un constat clos reste dans
+le document : les identifiants ne bougent pas.
+
+| Gravité | Clos | Partiel | Ouvert | Accepté | Hors périmètre |
+|---|---|---|---|---|---|
+| Critique (3) | 3 | | | | |
+| Haute (12) | 10 | | 1 (V-18) | | 1 (V-17) |
+| Moyenne (28) | 17 | 1 (V-26) | 7 | 2 | 1 |
+| Faible (20) | 10 | | 8 | 2 | |
+| **Total (63)** | **40** | **1** | **16** | **4** | **2** |
+
+Les constats ouverts sont surtout de l'exploitation et de la sécurité de second
+rang : limite de débit (V-18), journalisation (V-27), délais (V-29), dépendances
+(V-32, V-33), en-têtes HTTP (V-25), politique de mot de passe et de session
+(V-21 à V-23). « Accepté » = comportement gardé volontairement, avec sa raison
+dans la fiche.
+
 ## En chiffres
 
 63 fiches : **3 Critiques, 12 Hautes, 28 Moyennes, 20 Faibles** · 47 points
@@ -76,71 +97,71 @@ V-16 → .1, .2 · M-01 → .1, .2 · M-05 → .1.
 
 Trié par gravité, puis thème.
 
-| ID | Constat | Thème | Module | Gravité | Effort | Visible | Vérification |
-|---|---|---|---|---|---|---|---|
-| [V-07](#v-07) | Injection SQL par le paramètre de tri | T3 | notes | Critique | S | non | confirmé (PoC) |
-| [M-01.1](#m-01-1) | Notes des RH validées par personne | T8 | validation | Critique | M | oui | confirmé (lecture) |
-| [M-02](#m-02) | Rôle manager non attribuable depuis l'interface | T8 | organigramme | Critique | M | oui | confirmé (lecture) |
-| [V-08](#v-08) | Secret d'authentification codé en dur, variable d'environnement ignorée | T1 | auth | Haute | S | non | confirmé (PoC) |
-| [V-17](#v-17) | Email jamais vérifié à l'inscription | T1 | auth | Haute | L | oui | non vérifié |
-| [V-18](#v-18) | Connexion, inscription et OCR sans limite de débit | T1 | auth | Haute | M | oui | non vérifié |
-| [V-03](#v-03) | Règle d'accès « qui voit et décide quelle note » éclatée et divergente | T2 | validation | Haute | M | non | confirmé (lecture) |
-| [V-06](#v-06) | Reçu de n'importe quelle note accessible par tout manager | T2 | recus | Haute | S | non | confirmé (PoC) |
-| [V-11](#v-11) | Message et pile d'exception renvoyés au client | T5 | socle | Haute | S | oui | confirmé (PoC) |
-| [V-13.1](#v-13-1) | Worker OCR recréé à chaque requête, sans limite de concurrence ni délai | T5 | ocr | Haute | M | non | confirmé (PoC) |
-| [V-13.2](#v-13-2) | Corps de requête lu sans borne de taille | T5 | ocr | Haute | S | non | confirmé (PoC) |
-| [V-16.1](#v-16-1) | Aucun filet de tests de non-régression | T6 | socle | Haute | M | non | confirmé (lecture) |
-| [M-01.2](#m-01-2) | Notes d'un employé sans manager validées par personne | T8 | validation | Haute | S | oui | confirmé (lecture) |
-| [M-03](#m-03) | Entreprise fondée sur un domaine de messagerie public | T8 | auth | Haute | S | oui | confirmé (lecture) |
-| [M-06](#m-06) | Auteur d'une note présenté au manager par un id tronqué | T8 | validation | Haute | S | oui | confirmé (lecture) |
-| [V-12.3](#v-12-3) | Emails sensibles à la casse (comptes en double, connexion dépendante de la casse) | T1 | auth | Moyenne | M | oui | confirmé (lecture) |
-| [V-19](#v-19) | Rôle et existence de l'utilisateur figés dans le JWT (jusqu'à 30 jours) | T1 | auth | Moyenne | M | non | confirmé (lecture) |
-| [V-20](#v-20) | Énumération des comptes possible à l'inscription | T1 | auth | Moyenne | S | oui | confirmé (lecture) |
-| [V-04.1](#v-04-1) | Manager d'une autre entreprise attribuable à un employé | T2 | organigramme | Moyenne | S | non | confirmé (lecture) |
-| [V-04.2](#v-04-2) | Deux managers peuvent se valider mutuellement (cycle d'organigramme) | T2 | organigramme | Moyenne | S | oui | non vérifié |
-| [V-05.1](#v-05-1) | RLS contournée : l'application se connecte avec un rôle à privilèges | T2 | donnees | Moyenne | M | non | confirmé (PoC) |
-| [V-10.4](#v-10-4) | Montant, date et description insuffisamment validés (500 possible) | T3 | notes | Moyenne | S | non | confirmé (lecture) |
-| [V-09](#v-09) | Décision concurrente non verrouillée (vérification puis écriture) | T4 | validation | Moyenne | S | non | confirmé (PoC) |
-| [V-12.1](#v-12-1) | Inscription non transactionnelle (entreprise sans RH possible) | T4 | auth | Moyenne | S | non | non vérifié |
-| [V-26](#v-26) | Contraintes d'intégrité manquantes au schéma | T4 | donnees | Moyenne | S | non | non vérifié |
-| [V-27](#v-27) | Décisions et événements de sécurité non journalisés | T5 | validation | Moyenne | M | non | confirmé (lecture) |
-| [V-28](#v-28) | Erreurs contournant le gestionnaire de la route | T5 | socle | Moyenne | S | non | confirmé (lecture) |
-| [V-29](#v-29) | Aucun délai défini sur la base, le pool et S3 | T5 | donnees | Moyenne | S | non | non vérifié |
-| [V-00](#v-00) | Commentaires du code trompeurs sur la sécurité | T6 | socle | Moyenne | S | non | confirmé (lecture) |
-| [V-01](#v-01) | Couche domaine/ports/adapters/utils morte (jamais importée) | T6 | socle | Moyenne | S | non | confirmé (lecture) |
-| [V-02.2](#v-02-2) | Objets échangés (ligne SQL → DTO → client) dupliqués et non typés | T6 | socle | Moyenne | M | non | confirmé (lecture) |
-| [V-02.3](#v-02-3) | Utilitaires et appels API dupliqués côté client | T6 | socle | Moyenne | S | non | confirmé (lecture) |
-| [V-02.4](#v-02-4) | Contrôle de session et de rôle recopié dans chaque route | T6 | auth | Moyenne | S | non | confirmé (lecture) |
-| [V-16.2](#v-16-2) | Aucune intégration continue (lint, typecheck, build, tests) | T6 | socle | Moyenne | S | non | confirmé (lecture) |
-| [V-31](#v-31) | Logique métier et accès aux données mêlés aux route handlers | T6 | socle | Moyenne | L | non | confirmé (lecture) |
-| [V-32](#v-32) | Next.js exposé à des vulnérabilités connues | T7 | socle | Moyenne | S | non | partiel |
-| [V-34](#v-34) | Postgres et LocalStack exposés sur toutes les interfaces | T7 | socle | Moyenne | S | non | confirmé (PoC) |
-| [V-35](#v-35) | Aucune suppression ni durée de conservation des données personnelles | T7 | donnees | Moyenne | L | oui | confirmé (lecture) |
-| [V-36](#v-36) | Seed créant des comptes connus hors développement | T7 | donnees | Moyenne | S | non | confirmé (lecture) |
-| [M-04](#m-04) | Total « Mes notes » additionnant les notes rejetées | T8 | notes | Moyenne | S | oui | confirmé (lecture) |
-| [M-05.1](#m-05-1) | Auteur et date d'une décision non conservés | T8 | validation | Moyenne | M | oui | confirmé (lecture) |
-| [M-07](#m-07) | Employé sans manager présenté comme « racine » | T8 | organigramme | Moyenne | S | oui | confirmé (lecture) |
-| [V-13.3](#v-13-3) | PDF accepté au formulaire mais ignoré par l'OCR | T8 | ocr | Moyenne | S | oui | confirmé (lecture) |
-| [V-21](#v-21) | Temps de réponse de la connexion révélant l'existence d'un compte | T1 | auth | Faible | S | non | confirmé (lecture) |
-| [V-22](#v-22) | Mots de passe courants acceptés | T1 | auth | Faible | S | oui | confirmé (lecture) |
-| [V-23](#v-23) | Session non bornée et non révoquée à la déconnexion | T1 | auth | Faible | S | oui | confirmé (lecture) |
-| [V-05.2](#v-05-2) | Policy RLS RH non filtrée par entreprise | T2 | donnees | Faible | S | non | confirmé (lecture) |
-| [V-10.2](#v-10-2) | Clés de reçu séquentielles et donc prévisibles | T2 | recus | Faible | S | non | confirmé (PoC) |
-| [V-10.3](#v-10-3) | Contenu du reçu non vérifié (seul le type annoncé est contrôlé) | T3 | recus | Faible | S | non | confirmé (lecture) |
-| [V-24](#v-24) | Format des identifiants reçus non validé | T3 | validation | Faible | S | non | confirmé (lecture) |
-| [V-25](#v-25) | En-têtes de sécurité HTTP absents | T3 | socle | Faible | S | non | confirmé (lecture) |
-| [V-10.1](#v-10-1) | Création de note non atomique (note ou reçu orphelins possibles) | T4 | notes | Faible | M | non | non vérifié |
-| [V-12.2](#v-12-2) | Conflit d'email à l'inscription remonté en erreur non gérée | T5 | auth | Faible | S | non | non vérifié |
-| [V-14.1](#v-14-1) | Onglet du reçu ouvert après l'appel réseau (bloqué par les anti-pop-up) | T5 | notes | Faible | S | non | confirmé (lecture) |
-| [V-14.2](#v-14-2) | Dates affichées avec un décalage de fuseau | T5 | notes | Faible | S | non | confirmé (lecture) |
-| [V-14.3](#v-14-3) | Erreurs réseau des appels `fetch` non gérées | T5 | notes | Faible | S | non | confirmé (lecture) |
-| [V-15.1](#v-15-1) | Codes HTTP d'erreur incohérents entre routes | T5 | socle | Faible | S | non | confirmé (lecture) |
-| [V-15.2](#v-15-2) | Messages d'erreur en anglais renvoyés à l'interface | T5 | validation | Faible | S | oui | confirmé (lecture) |
-| [V-30](#v-30) | Erreurs du pool `pg` non gérées (arrêt possible du processus) | T5 | donnees | Faible | S | non | non vérifié |
-| [V-33](#v-33) | `next-auth` en version bêta, non épinglée | T7 | auth | Faible | S | non | confirmé (lecture) |
-| [M-08](#m-08) | Subordonnés d'un manager rétrogradé laissés sans valideur | T8 | organigramme | Faible | S | oui | non vérifié |
-| [M-09](#m-09) | Date de dépense dans le futur acceptée | T8 | notes | Faible | S | oui | confirmé (lecture) |
-| [V-13.4](#v-13-4) | Extraction OCR du montant et de la date fragile | T8 | ocr | Faible | M | oui | confirmé (lecture) |
+| ID | Constat | Thème | Module | Gravité | Effort | Visible | Vérification | Statut (2026-10-29) |
+|---|---|---|---|---|---|---|---|---|
+| [V-07](#v-07) | Injection SQL par le paramètre de tri | T3 | notes | Critique | S | non | confirmé (PoC) | clos |
+| [M-01.1](#m-01-1) | Notes des RH validées par personne | T8 | validation | Critique | M | oui | confirmé (lecture) | clos |
+| [M-02](#m-02) | Rôle manager non attribuable depuis l'interface | T8 | organigramme | Critique | M | oui | confirmé (lecture) | clos |
+| [V-08](#v-08) | Secret d'authentification codé en dur, variable d'environnement ignorée | T1 | auth | Haute | S | non | confirmé (PoC) | clos |
+| [V-17](#v-17) | Email jamais vérifié à l'inscription | T1 | auth | Haute | L | oui | non vérifié | hors périmètre |
+| [V-18](#v-18) | Connexion, inscription et OCR sans limite de débit | T1 | auth | Haute | M | oui | non vérifié | ouvert |
+| [V-03](#v-03) | Règle d'accès « qui voit et décide quelle note » éclatée et divergente | T2 | validation | Haute | M | non | confirmé (lecture) | clos |
+| [V-06](#v-06) | Reçu de n'importe quelle note accessible par tout manager | T2 | recus | Haute | S | non | confirmé (PoC) | clos |
+| [V-11](#v-11) | Message et pile d'exception renvoyés au client | T5 | socle | Haute | S | oui | confirmé (PoC) | clos |
+| [V-13.1](#v-13-1) | Worker OCR recréé à chaque requête, sans limite de concurrence ni délai | T5 | ocr | Haute | M | non | confirmé (PoC) | clos |
+| [V-13.2](#v-13-2) | Corps de requête lu sans borne de taille | T5 | ocr | Haute | S | non | confirmé (PoC) | clos |
+| [V-16.1](#v-16-1) | Aucun filet de tests de non-régression | T6 | socle | Haute | M | non | confirmé (lecture) | clos |
+| [M-01.2](#m-01-2) | Notes d'un employé sans manager validées par personne | T8 | validation | Haute | S | oui | confirmé (lecture) | clos |
+| [M-03](#m-03) | Entreprise fondée sur un domaine de messagerie public | T8 | auth | Haute | S | oui | confirmé (lecture) | clos |
+| [M-06](#m-06) | Auteur d'une note présenté au manager par un id tronqué | T8 | validation | Haute | S | oui | confirmé (lecture) | clos |
+| [V-12.3](#v-12-3) | Emails sensibles à la casse (comptes en double, connexion dépendante de la casse) | T1 | auth | Moyenne | M | oui | confirmé (lecture) | clos |
+| [V-19](#v-19) | Rôle et existence de l'utilisateur figés dans le JWT (jusqu'à 30 jours) | T1 | auth | Moyenne | M | non | confirmé (lecture) | clos |
+| [V-20](#v-20) | Énumération des comptes possible à l'inscription | T1 | auth | Moyenne | S | oui | confirmé (lecture) | accepté |
+| [V-04.1](#v-04-1) | Manager d'une autre entreprise attribuable à un employé | T2 | organigramme | Moyenne | S | non | confirmé (lecture) | clos |
+| [V-04.2](#v-04-2) | Deux managers peuvent se valider mutuellement (cycle d'organigramme) | T2 | organigramme | Moyenne | S | oui | non vérifié | clos |
+| [V-05.1](#v-05-1) | RLS contournée : l'application se connecte avec un rôle à privilèges | T2 | donnees | Moyenne | M | non | confirmé (PoC) | clos |
+| [V-10.4](#v-10-4) | Montant, date et description insuffisamment validés (500 possible) | T3 | notes | Moyenne | S | non | confirmé (lecture) | clos |
+| [V-09](#v-09) | Décision concurrente non verrouillée (vérification puis écriture) | T4 | validation | Moyenne | S | non | confirmé (PoC) | clos |
+| [V-12.1](#v-12-1) | Inscription non transactionnelle (entreprise sans RH possible) | T4 | auth | Moyenne | S | non | non vérifié | clos |
+| [V-26](#v-26) | Contraintes d'intégrité manquantes au schéma | T4 | donnees | Moyenne | S | non | non vérifié | partiel |
+| [V-27](#v-27) | Décisions et événements de sécurité non journalisés | T5 | validation | Moyenne | M | non | confirmé (lecture) | ouvert |
+| [V-28](#v-28) | Erreurs contournant le gestionnaire de la route | T5 | socle | Moyenne | S | non | confirmé (lecture) | clos |
+| [V-29](#v-29) | Aucun délai défini sur la base, le pool et S3 | T5 | donnees | Moyenne | S | non | non vérifié | ouvert |
+| [V-00](#v-00) | Commentaires du code trompeurs sur la sécurité | T6 | socle | Moyenne | S | non | confirmé (lecture) | clos |
+| [V-01](#v-01) | Couche domaine/ports/adapters/utils morte (jamais importée) | T6 | socle | Moyenne | S | non | confirmé (lecture) | clos |
+| [V-02.2](#v-02-2) | Objets échangés (ligne SQL → DTO → client) dupliqués et non typés | T6 | socle | Moyenne | M | non | confirmé (lecture) | clos |
+| [V-02.3](#v-02-3) | Utilitaires et appels API dupliqués côté client | T6 | socle | Moyenne | S | non | confirmé (lecture) | clos |
+| [V-02.4](#v-02-4) | Contrôle de session et de rôle recopié dans chaque route | T6 | auth | Moyenne | S | non | confirmé (lecture) | clos |
+| [V-16.2](#v-16-2) | Aucune intégration continue (lint, typecheck, build, tests) | T6 | socle | Moyenne | S | non | confirmé (lecture) | clos |
+| [V-31](#v-31) | Logique métier et accès aux données mêlés aux route handlers | T6 | socle | Moyenne | L | non | confirmé (lecture) | clos |
+| [V-32](#v-32) | Next.js exposé à des vulnérabilités connues | T7 | socle | Moyenne | S | non | partiel | ouvert |
+| [V-34](#v-34) | Postgres et LocalStack exposés sur toutes les interfaces | T7 | socle | Moyenne | S | non | confirmé (PoC) | ouvert |
+| [V-35](#v-35) | Aucune suppression ni durée de conservation des données personnelles | T7 | donnees | Moyenne | L | oui | confirmé (lecture) | hors périmètre |
+| [V-36](#v-36) | Seed créant des comptes connus hors développement | T7 | donnees | Moyenne | S | non | confirmé (lecture) | ouvert |
+| [M-04](#m-04) | Total « Mes notes » additionnant les notes rejetées | T8 | notes | Moyenne | S | oui | confirmé (lecture) | clos |
+| [M-05.1](#m-05-1) | Auteur et date d'une décision non conservés | T8 | validation | Moyenne | M | oui | confirmé (lecture) | ouvert |
+| [M-07](#m-07) | Employé sans manager présenté comme « racine » | T8 | organigramme | Moyenne | S | oui | confirmé (lecture) | accepté |
+| [V-13.3](#v-13-3) | PDF accepté au formulaire mais ignoré par l'OCR | T8 | ocr | Moyenne | S | oui | confirmé (lecture) | ouvert |
+| [V-21](#v-21) | Temps de réponse de la connexion révélant l'existence d'un compte | T1 | auth | Faible | S | non | confirmé (lecture) | ouvert |
+| [V-22](#v-22) | Mots de passe courants acceptés | T1 | auth | Faible | S | oui | confirmé (lecture) | ouvert |
+| [V-23](#v-23) | Session non bornée et non révoquée à la déconnexion | T1 | auth | Faible | S | oui | confirmé (lecture) | ouvert |
+| [V-05.2](#v-05-2) | Policy RLS RH non filtrée par entreprise | T2 | donnees | Faible | S | non | confirmé (lecture) | clos |
+| [V-10.2](#v-10-2) | Clés de reçu séquentielles et donc prévisibles | T2 | recus | Faible | S | non | confirmé (PoC) | clos |
+| [V-10.3](#v-10-3) | Contenu du reçu non vérifié (seul le type annoncé est contrôlé) | T3 | recus | Faible | S | non | confirmé (lecture) | clos |
+| [V-24](#v-24) | Format des identifiants reçus non validé | T3 | validation | Faible | S | non | confirmé (lecture) | clos |
+| [V-25](#v-25) | En-têtes de sécurité HTTP absents | T3 | socle | Faible | S | non | confirmé (lecture) | ouvert |
+| [V-10.1](#v-10-1) | Création de note non atomique (note ou reçu orphelins possibles) | T4 | notes | Faible | M | non | non vérifié | clos |
+| [V-12.2](#v-12-2) | Conflit d'email à l'inscription remonté en erreur non gérée | T5 | auth | Faible | S | non | non vérifié | clos |
+| [V-14.1](#v-14-1) | Onglet du reçu ouvert après l'appel réseau (bloqué par les anti-pop-up) | T5 | notes | Faible | S | non | confirmé (lecture) | ouvert |
+| [V-14.2](#v-14-2) | Dates affichées avec un décalage de fuseau | T5 | notes | Faible | S | non | confirmé (lecture) | clos |
+| [V-14.3](#v-14-3) | Erreurs réseau des appels `fetch` non gérées | T5 | notes | Faible | S | non | confirmé (lecture) | ouvert |
+| [V-15.1](#v-15-1) | Codes HTTP d'erreur incohérents entre routes | T5 | socle | Faible | S | non | confirmé (lecture) | clos |
+| [V-15.2](#v-15-2) | Messages d'erreur en anglais renvoyés à l'interface | T5 | validation | Faible | S | oui | confirmé (lecture) | accepté |
+| [V-30](#v-30) | Erreurs du pool `pg` non gérées (arrêt possible du processus) | T5 | donnees | Faible | S | non | non vérifié | ouvert |
+| [V-33](#v-33) | `next-auth` en version bêta, non épinglée | T7 | auth | Faible | S | non | confirmé (lecture) | ouvert |
+| [M-08](#m-08) | Subordonnés d'un manager rétrogradé laissés sans valideur | T8 | organigramme | Faible | S | oui | non vérifié | clos |
+| [M-09](#m-09) | Date de dépense dans le futur acceptée | T8 | notes | Faible | S | oui | confirmé (lecture) | clos |
+| [V-13.4](#v-13-4) | Extraction OCR du montant et de la date fragile | T8 | ocr | Faible | M | oui | confirmé (lecture) | accepté |
 
 ## Fiches
 
@@ -152,6 +173,7 @@ Trié par gravité, puis thème.
 
 | Champ | Valeur |
 |---|---|
+| Statut (2026-10-29) | **hors périmètre** — aucun envoi d’email dans la stack (14, D16) |
 | Thème | T1 — Authentification et secrets |
 | Module | auth |
 | Référence | OWASP A07:2025 — Authentication Failures |
@@ -182,6 +204,7 @@ Trié par gravité, puis thème.
 
 | Champ | Valeur |
 |---|---|
+| Statut (2026-10-29) | **clos** — SEC-04 ; PoC V-08 réfuté (jeton forgé → 401) |
 | Thème | T1 — Authentification et secrets |
 | Module | auth (secondaires : socle pour `.env.example`, `Makefile`) |
 | Référence | OWASP A04:2025 — Cryptographic Failures (clé en dur) |
@@ -212,6 +235,7 @@ Trié par gravité, puis thème.
 
 | Champ | Valeur |
 |---|---|
+| Statut (2026-10-29) | **ouvert** — limite de débit (429) à porter par une passerelle, non codée |
 | Thème | T1 — Authentification et secrets |
 | Module | auth (secondaires : socle, ocr) |
 | Référence | OWASP A07:2025 — Authentication Failures |
@@ -247,6 +271,7 @@ Trié par gravité, puis thème.
 
 | Champ | Valeur |
 |---|---|
+| Statut (2026-10-29) | **clos** — MET-05 (D20) : casse ignorée, index unique `lower(email)` |
 | Thème | T1 — Authentification et secrets |
 | Module | auth (secondaires : donnees pour la contrainte) |
 | Référence | OWASP A07:2025 — Authentication Failures |
@@ -273,6 +298,7 @@ Trié par gravité, puis thème.
 
 | Champ | Valeur |
 |---|---|
+| Statut (2026-10-29) | **clos** — ROLE-03 : rôle et existence relus en base à chaque requête |
 | Thème | T1 — Authentification et secrets |
 | Module | auth |
 | Référence | OWASP A07:2025 — Authentication Failures |
@@ -303,6 +329,7 @@ Trié par gravité, puis thème.
 
 | Champ | Valeur |
 |---|---|
+| Statut (2026-10-29) | **accepté** — message « Un compte existe déjà avec cet email. » figé par E2E-01 ; la correction passe par l’invitation (V-17) |
 | Thème | T1 — Authentification et secrets |
 | Module | auth |
 | Référence | OWASP A07:2025 — Authentication Failures |
@@ -333,6 +360,7 @@ Trié par gravité, puis thème.
 
 | Champ | Valeur |
 |---|---|
+| Statut (2026-10-29) | **ouvert** — pas de hachage factice pour un email inconnu |
 | Thème | T1 — Authentification et secrets |
 | Module | auth |
 | Référence | OWASP A07:2025 — Authentication Failures |
@@ -357,6 +385,7 @@ Trié par gravité, puis thème.
 
 | Champ | Valeur |
 |---|---|
+| Statut (2026-10-29) | **ouvert** — seule une longueur de 8 caractères est exigée |
 | Thème | T1 — Authentification et secrets |
 | Module | auth |
 | Référence | OWASP A07:2025 — Authentication Failures |
@@ -381,6 +410,7 @@ Trié par gravité, puis thème.
 
 | Champ | Valeur |
 |---|---|
+| Statut (2026-10-29) | **ouvert** — session JWT de 30 jours ; atténué : rôle et existence relus en base (ROLE-03) |
 | Thème | T1 — Authentification et secrets |
 | Module | auth |
 | Référence | OWASP A07:2025 — Authentication Failures |
@@ -407,6 +437,7 @@ Trié par gravité, puis thème.
 
 | Champ | Valeur |
 |---|---|
+| Statut (2026-10-29) | **clos** — SEC-02 ; PoC V-06 réfuté (reçu hors périmètre → 404) |
 | Thème | T2 — Autorisation et isolation entre entreprises |
 | Module | recus (secondaires : validation) |
 | Référence | OWASP A01:2025 — Broken Access Control |
@@ -437,6 +468,7 @@ Trié par gravité, puis thème.
 
 | Champ | Valeur |
 |---|---|
+| Statut (2026-10-29) | **clos** — `ApprovalPolicy` unique (module approval) ; SEC-02 |
 | Thème | T2 — Autorisation et isolation entre entreprises |
 | Module | validation (secondaires : recus, notes, organigramme) |
 | Référence | OWASP A01:2025 — Broken Access Control |
@@ -478,6 +510,7 @@ Trié par gravité, puis thème.
 
 | Champ | Valeur |
 |---|---|
+| Statut (2026-10-29) | **clos** — SEC-03 |
 | Thème | T2 — Autorisation et isolation entre entreprises |
 | Module | organigramme |
 | Référence | OWASP A01:2025 — Broken Access Control |
@@ -508,6 +541,7 @@ Trié par gravité, puis thème.
 
 | Champ | Valeur |
 |---|---|
+| Statut (2026-10-29) | **clos** — MET-04 (D18) |
 | Thème | T2 — Autorisation et isolation entre entreprises (aspect métier : T8) |
 | Module | organigramme (secondaires : donnees) |
 | Référence | — |
@@ -543,6 +577,7 @@ Trié par gravité, puis thème.
 
 | Champ | Valeur |
 |---|---|
+| Statut (2026-10-29) | **clos** — SEC-09 : RLS effective par `APP_DB_ROLE` (ADR-006) ; PoC V-05 réfuté |
 | Thème | T2 — Autorisation et isolation entre entreprises |
 | Module | donnees (secondaires : notes, recus, socle) |
 | Référence | OWASP A01:2025 — Broken Access Control (A02 pour la configuration) |
@@ -569,6 +604,7 @@ Trié par gravité, puis thème.
 
 | Champ | Valeur |
 |---|---|
+| Statut (2026-10-29) | **clos** — policies RH filtrées par entreprise (migration d’isolation, ADR-006) |
 | Thème | T2 — Autorisation et isolation entre entreprises |
 | Module | donnees |
 | Référence | OWASP A01:2025 — Broken Access Control |
@@ -593,6 +629,7 @@ Trié par gravité, puis thème.
 
 | Champ | Valeur |
 |---|---|
+| Statut (2026-10-29) | **clos** — SEC-06 : clé UUID ; PoC V-34 (partie V-10.2) réfuté |
 | Thème | T2 — Autorisation et isolation entre entreprises |
 | Module | recus |
 | Référence | OWASP A01:2025 — Broken Access Control |
@@ -621,6 +658,7 @@ Trié par gravité, puis thème.
 
 | Champ | Valeur |
 |---|---|
+| Statut (2026-10-29) | **clos** — SEC-01 : tri par liste blanche ; PoC V-07 réfuté |
 | Thème | T3 — Injection et validation des entrées |
 | Module | notes |
 | Référence | OWASP A05:2025 — Injection |
@@ -651,6 +689,7 @@ Trié par gravité, puis thème.
 
 | Champ | Valeur |
 |---|---|
+| Statut (2026-10-29) | **clos** — ROB-03b, c, d, f ; MET-06 (date future, D20) |
 | Thème | T3 — Injection et validation des entrées |
 | Module | notes |
 | Référence | OWASP A06:2025 — Insecure Design (validation d'entrée) |
@@ -684,6 +723,7 @@ Trié par gravité, puis thème.
 
 | Champ | Valeur |
 |---|---|
+| Statut (2026-10-29) | **clos** — SEC-07 : signature du fichier |
 | Thème | T3 — Injection et validation des entrées |
 | Module | recus (secondaires : notes) |
 | Référence | OWASP A06:2025 — Insecure Design (upload) |
@@ -710,6 +750,7 @@ Trié par gravité, puis thème.
 
 | Champ | Valeur |
 |---|---|
+| Statut (2026-10-29) | **clos** — ROB-03a : identifiant validé, 404 |
 | Thème | T3 — Injection et validation des entrées |
 | Module | validation (secondaires : organigramme, recus) |
 | Référence | OWASP A10:2025 — Mishandling of Exceptional Conditions |
@@ -736,6 +777,7 @@ Trié par gravité, puis thème.
 
 | Champ | Valeur |
 |---|---|
+| Statut (2026-10-29) | **ouvert** — aucun en-tête de sécurité HTTP |
 | Thème | T3 — Injection et validation des entrées |
 | Module | socle |
 | Référence | OWASP A02:2025 — Security Misconfiguration |
@@ -762,6 +804,7 @@ Trié par gravité, puis thème.
 
 | Champ | Valeur |
 |---|---|
+| Statut (2026-10-29) | **clos** — ROB-02 ; PoC V-09 réfuté (une seule décision par round, 10 / 10) |
 | Thème | T4 — Intégrité des données et concurrence |
 | Module | validation |
 | Référence | OWASP A06 :2025 — Insecure Design (TOCTOU) |
@@ -792,6 +835,7 @@ Trié par gravité, puis thème.
 
 | Champ | Valeur |
 |---|---|
+| Statut (2026-10-29) | **clos** — entreprise et compte créés dans une transaction (module identity) |
 | Thème | T4 — Intégrité des données et concurrence |
 | Module | auth (secondaire : donnees) |
 | Référence | — |
@@ -822,6 +866,7 @@ Trié par gravité, puis thème.
 
 | Champ | Valeur |
 |---|---|
+| Statut (2026-10-29) | **partiel** — montants refusés par l’API (ROB-03f) ; contraintes `CHECK` en base non ajoutées |
 | Thème | T4 — Intégrité des données et concurrence |
 | Module | donnees (secondaire : notes) |
 | Référence | — |
@@ -852,6 +897,7 @@ Trié par gravité, puis thème.
 
 | Champ | Valeur |
 |---|---|
+| Statut (2026-10-29) | **clos** — ROB-01 : téléversement puis insertion, compensation |
 | Thème | T4 — Intégrité des données et concurrence |
 | Module | notes (secondaires : recus, donnees) |
 | Référence | — |
@@ -886,6 +932,7 @@ Trié par gravité, puis thème.
 
 | Champ | Valeur |
 |---|---|
+| Statut (2026-10-29) | **clos** — SEC-05 ; PoC V-11 réfuté |
 | Thème | T5 — Robustesse et exploitation |
 | Module | socle (secondaires : notes, recus, organigramme, ocr) |
 | Référence | OWASP A10 :2025 — Mishandling of Exceptional Conditions |
@@ -916,6 +963,7 @@ Trié par gravité, puis thème.
 
 | Champ | Valeur |
 |---|---|
+| Statut (2026-10-29) | **clos** — PERF-01 : pool de 4 workers au plus, délai de 20 s ; PoC V-13 réfuté |
 | Thème | T5 — Robustesse et exploitation |
 | Module | ocr |
 | Référence | OWASP A06 :2025 — Insecure Design (consommation de ressources non bornée) |
@@ -947,6 +995,7 @@ Trié par gravité, puis thème.
 
 | Champ | Valeur |
 |---|---|
+| Statut (2026-10-29) | **clos** — SEC-08 : refus dès `Content-Length`, flux plafonné à 10 Mo (400 du contrat, pas 413) ; PoC V-13 réfuté |
 | Thème | T5 — Robustesse et exploitation |
 | Module | ocr (secondaire : notes) |
 | Référence | OWASP A06 :2025 — Insecure Design (consommation de ressources non bornée) |
@@ -977,6 +1026,7 @@ Trié par gravité, puis thème.
 
 | Champ | Valeur |
 |---|---|
+| Statut (2026-10-29) | **ouvert** — seuls `request.failed`, `ocr.failed` et `receipt.orphaned` sont journalisés |
 | Thème | T5 — Robustesse et exploitation |
 | Module | validation (secondaires : donnees, auth, organigramme) |
 | Référence | OWASP A09 :2025 — Security Logging and Alerting Failures |
@@ -1007,6 +1057,7 @@ Trié par gravité, puis thème.
 
 | Champ | Valeur |
 |---|---|
+| Statut (2026-10-29) | **clos** — garde `route()` : `await` systématique (SEC-05, ROB-03a) |
 | Thème | T5 — Robustesse et exploitation |
 | Module | socle (secondaires : notes, validation) |
 | Référence | OWASP A10 :2025 — Mishandling of Exceptional Conditions |
@@ -1037,6 +1088,7 @@ Trié par gravité, puis thème.
 
 | Champ | Valeur |
 |---|---|
+| Statut (2026-10-29) | **ouvert** — aucun délai sur le pool `pg` ni sur le client S3 (seul l’OCR est borné, 20 s) |
 | Thème | T5 — Robustesse et exploitation |
 | Module | donnees (secondaire : recus) |
 | Référence | OWASP A06 :2025 — Insecure Design |
@@ -1067,6 +1119,7 @@ Trié par gravité, puis thème.
 
 | Champ | Valeur |
 |---|---|
+| Statut (2026-10-29) | **clos** — inscription simultanée → « Un compte existe déjà avec cet email. » |
 | Thème | T5 — Robustesse et exploitation |
 | Module | auth |
 | Référence | OWASP A10 :2025 — Mishandling of Exceptional Conditions |
@@ -1089,6 +1142,7 @@ Trié par gravité, puis thème.
 
 | Champ | Valeur |
 |---|---|
+| Statut (2026-10-29) | **ouvert** — onglet du reçu ouvert après l’appel réseau |
 | Thème | T5 — Robustesse et exploitation |
 | Module | notes (secondaires : validation, organigramme) |
 | Référence | — |
@@ -1111,6 +1165,7 @@ Trié par gravité, puis thème.
 
 | Champ | Valeur |
 |---|---|
+| Statut (2026-10-29) | **clos** — BUG-01 |
 | Thème | T5 — Robustesse et exploitation |
 | Module | notes (secondaires : validation, organigramme) |
 | Référence | — |
@@ -1133,6 +1188,7 @@ Trié par gravité, puis thème.
 
 | Champ | Valeur |
 |---|---|
+| Statut (2026-10-29) | **ouvert** — erreur réseau d’un `fetch` non interceptée par `src/utils/api.ts` |
 | Thème | T5 — Robustesse et exploitation |
 | Module | notes (secondaires : validation, organigramme) |
 | Référence | — |
@@ -1155,6 +1211,7 @@ Trié par gravité, puis thème.
 
 | Champ | Valeur |
 |---|---|
+| Statut (2026-10-29) | **clos** — AUTHZ-01, AUTHZ-02 (D12) ; 409 gardé (D18) |
 | Thème | T5 — Robustesse et exploitation |
 | Module | socle (secondaires : validation, organigramme, recus) |
 | Référence | — |
@@ -1177,6 +1234,7 @@ Trié par gravité, puis thème.
 
 | Champ | Valeur |
 |---|---|
+| Statut (2026-10-29) | **accepté** — D15 : API en anglais, écran inchangé |
 | Thème | T5 — Robustesse et exploitation |
 | Module | validation (secondaire : organigramme) |
 | Référence | — |
@@ -1199,6 +1257,7 @@ Trié par gravité, puis thème.
 
 | Champ | Valeur |
 |---|---|
+| Statut (2026-10-29) | **ouvert** — aucun gestionnaire d’erreur sur le pool `pg` |
 | Thème | T5 — Robustesse et exploitation |
 | Module | donnees |
 | Référence | OWASP A10 :2025 — Mishandling of Exceptional Conditions |
@@ -1227,6 +1286,7 @@ Trié par gravité, puis thème.
 
 | Champ | Valeur |
 |---|---|
+| Statut (2026-10-29) | **clos** — harnais : 246 unitaires, 329 tests Playwright (parité, défauts, E2E) |
 | Thème | T6 — Maintenabilité et tests |
 | Module | socle (transverse) |
 | Référence | — |
@@ -1257,6 +1317,7 @@ Trié par gravité, puis thème.
 
 | Champ | Valeur |
 |---|---|
+| Statut (2026-10-29) | **clos** — `src/lib` supprimé et routes réécrites par la refonte |
 | Thème | T6 — Maintenabilité et tests |
 | Module | socle (secondaires : notes, validation, organigramme, auth, donnees, recus) |
 | Référence | — |
@@ -1293,6 +1354,7 @@ Trié par gravité, puis thème.
 
 | Champ | Valeur |
 |---|---|
+| Statut (2026-10-29) | **clos** — couche ranimée et branchée (ADR-004) ; `NotificationPort` gardé pour l’asynchrone (ADR-008) |
 | Thème | T6 — Maintenabilité et tests |
 | Module | socle |
 | Référence | — |
@@ -1323,6 +1385,7 @@ Trié par gravité, puis thème.
 
 | Champ | Valeur |
 |---|---|
+| Statut (2026-10-29) | **clos** — presenters typés (`shared/http/presenters.ts`) |
 | Thème | T6 — Maintenabilité et tests |
 | Module | socle (secondaires : notes, validation, organigramme, auth) |
 | Référence | — |
@@ -1353,6 +1416,7 @@ Trié par gravité, puis thème.
 
 | Champ | Valeur |
 |---|---|
+| Statut (2026-10-29) | **clos** — `src/utils/api.ts` et `src/utils/format.ts` |
 | Thème | T6 — Maintenabilité et tests |
 | Module | socle (secondaires : notes, validation, organigramme) |
 | Référence | — |
@@ -1383,6 +1447,7 @@ Trié par gravité, puis thème.
 
 | Champ | Valeur |
 |---|---|
+| Statut (2026-10-29) | **clos** — garde unique `route({ role })` (ADR-012) |
 | Thème | T6 — Maintenabilité et tests |
 | Module | auth (secondaires : notes, validation, organigramme, recus, ocr) |
 | Référence | — |
@@ -1413,6 +1478,7 @@ Trié par gravité, puis thème.
 
 | Champ | Valeur |
 |---|---|
+| Statut (2026-10-29) | **clos** — CI : static, parity, defects, baseline-proof, perf |
 | Thème | T6 — Maintenabilité et tests |
 | Module | socle |
 | Référence | — |
@@ -1443,6 +1509,7 @@ Trié par gravité, puis thème.
 
 | Champ | Valeur |
 |---|---|
+| Statut (2026-10-29) | **clos** — monolithe modulaire (ADR-002, ADR-003) |
 | Thème | T6 — Maintenabilité et tests |
 | Module | socle (secondaires : notes, validation, organigramme, donnees) |
 | Référence | — |
@@ -1475,6 +1542,7 @@ Trié par gravité, puis thème.
 
 | Champ | Valeur |
 |---|---|
+| Statut (2026-10-29) | **ouvert** — `npm audit` du 2026-10-29 : `next` 16.3.5 (critique), `sharp` (haute) |
 | Thème | T7 — Dépendances, configuration et données personnelles |
 | Module | socle |
 | Référence | OWASP A03 :2025 — Software Supply Chain Failures |
@@ -1515,6 +1583,7 @@ Trié par gravité, puis thème.
 
 | Champ | Valeur |
 |---|---|
+| Statut (2026-10-29) | **ouvert** — ports Docker liés à toutes les interfaces (infrastructure locale) ; PoC V-34 toujours confirmé : LocalStack sert un objet sans signature |
 | Thème | T7 — Dépendances, configuration et données personnelles |
 | Module | socle (secondaire : donnees) |
 | Référence | OWASP A02 :2025 — Security Misconfiguration |
@@ -1545,6 +1614,7 @@ Trié par gravité, puis thème.
 
 | Champ | Valeur |
 |---|---|
+| Statut (2026-10-29) | **hors périmètre** — départ d’un salarié (14) |
 | Thème | T7 — Dépendances, configuration et données personnelles |
 | Module | donnees (secondaires : recus, organigramme) |
 | Référence | — |
@@ -1575,6 +1645,7 @@ Trié par gravité, puis thème.
 
 | Champ | Valeur |
 |---|---|
+| Statut (2026-10-29) | **ouvert** — `scripts/seed.mjs` ne refuse pas un environnement de production |
 | Thème | T7 — Dépendances, configuration et données personnelles |
 | Module | donnees (secondaire : socle) |
 | Référence | OWASP A02 :2025 — Security Misconfiguration (comptes par défaut) |
@@ -1597,6 +1668,7 @@ Trié par gravité, puis thème.
 
 | Champ | Valeur |
 |---|---|
+| Statut (2026-10-29) | **ouvert** — `next-auth` `^5.0.0-beta.32`, ni stable ni épinglé |
 | Thème | T7 — Dépendances, configuration et données personnelles |
 | Module | auth (secondaire : socle) |
 | Référence | OWASP A03 :2025 — Software Supply Chain Failures |
@@ -1621,6 +1693,7 @@ Trié par gravité, puis thème.
 
 | Champ | Valeur |
 |---|---|
+| Statut (2026-10-29) | **clos** — MET-03, MET-10 (D13) |
 | Thème | T8 — Circuit métier |
 | Module | validation (secondaires : organigramme, donnees) |
 | Référence | — |
@@ -1656,6 +1729,7 @@ Trié par gravité, puis thème.
 
 | Champ | Valeur |
 |---|---|
+| Statut (2026-10-29) | **clos** — ROLE-01, ROLE-04 (D14) |
 | Thème | T8 — Circuit métier |
 | Module | organigramme (secondaires : auth) |
 | Référence | — |
@@ -1691,6 +1765,7 @@ Trié par gravité, puis thème.
 
 | Champ | Valeur |
 |---|---|
+| Statut (2026-10-29) | **clos** — MET-02 |
 | Thème | T8 — Circuit métier |
 | Module | validation (secondaires : organigramme, donnees) |
 | Référence | — |
@@ -1726,6 +1801,7 @@ Trié par gravité, puis thème.
 
 | Champ | Valeur |
 |---|---|
+| Statut (2026-10-29) | **clos** — MET-01 (D16) |
 | Thème | T8 — Circuit métier |
 | Module | auth (secondaires : organigramme) |
 | Référence | OWASP A01:2025 — Broken Access Control (A06 Insecure Design) |
@@ -1761,6 +1837,7 @@ Trié par gravité, puis thème.
 
 | Champ | Valeur |
 |---|---|
+| Statut (2026-10-29) | **clos** — MET-08 (D20) : `authorName` dans la liste manager |
 | Thème | T8 — Circuit métier |
 | Module | validation |
 | Référence | — |
@@ -1796,6 +1873,7 @@ Trié par gravité, puis thème.
 
 | Champ | Valeur |
 |---|---|
+| Statut (2026-10-29) | **clos** — UI-01 (D17) |
 | Thème | T8 — Circuit métier |
 | Module | notes |
 | Référence | — |
@@ -1831,6 +1909,7 @@ Trié par gravité, puis thème.
 
 | Champ | Valeur |
 |---|---|
+| Statut (2026-10-29) | **ouvert** — affichage non tranché (D20) |
 | Thème | T8 — Circuit métier |
 | Module | validation (secondaires : donnees) |
 | Référence | — |
@@ -1866,6 +1945,7 @@ Trié par gravité, puis thème.
 
 | Champ | Valeur |
 |---|---|
+| Statut (2026-10-29) | **accepté** — libellé existant de l’interface, jamais renommé (règle 5 d’`AGENTS.md`) |
 | Thème | T8 — Circuit métier |
 | Module | organigramme |
 | Référence | — |
@@ -1901,6 +1981,7 @@ Trié par gravité, puis thème.
 
 | Champ | Valeur |
 |---|---|
+| Statut (2026-10-29) | **ouvert** — non tranché : message à l’écran ou OCR de la première page |
 | Thème | T8 — Circuit métier (à confirmer à la consolidation) |
 | Module | ocr |
 | Référence | — |
@@ -1927,6 +2008,7 @@ Trié par gravité, puis thème.
 
 | Champ | Valeur |
 |---|---|
+| Statut (2026-10-29) | **clos** — ROLE-02 (D14) |
 | Thème | T8 — Circuit métier |
 | Module | organigramme (secondaires : validation, auth) |
 | Référence | — |
@@ -1962,6 +2044,7 @@ Trié par gravité, puis thème.
 
 | Champ | Valeur |
 |---|---|
+| Statut (2026-10-29) | **clos** — MET-06 (D20) |
 | Thème | T8 — Circuit métier |
 | Module | notes |
 | Référence | — |
@@ -1995,6 +2078,7 @@ Trié par gravité, puis thème.
 
 | Champ | Valeur |
 |---|---|
+| Statut (2026-10-29) | **accepté** — sortie OCR figée par le contrat (`tests/fixtures/ocr/`) |
 | Thème | T8 — Circuit métier (à confirmer à la consolidation) |
 | Module | ocr |
 | Référence | — |

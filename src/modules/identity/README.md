@@ -10,7 +10,7 @@ Inscription, connexion et acteur de la session courante.
 | application | `resolveActor.ts` | acteur d'une session : le jeton identifie l'utilisateur, son **rôle est relu en base** (V-19, D14) |
 | application | `authenticate.ts` | vérifie des identifiants ; renvoie `null` aussi bien pour un email inconnu que pour un mot de passe faux |
 | ports | `UserRepository.ts`, `PasswordHasher.ts` | comptes et entreprises ; hachage |
-| infrastructure | `PgUserRepository.ts` | Postgres, hors transaction (aucun acteur avant la connexion ; `users` et `companies` ne sont pas soumises à la RLS) |
+| infrastructure | `PgUserRepository.ts` | Postgres, hors transaction (aucun acteur avant la connexion ; `users` et `companies` ne sont pas soumises à la RLS). Email comparé sans tenir compte de la casse, par l'index unique `lower(email)` (D20, MET-05) ; stocké tel que saisi |
 | infrastructure | `BcryptPasswordHasher.ts` | bcrypt, coût 12 |
 | infrastructure | `authjs.ts` | Auth.js : session JWT, provider « credentials » qui délègue à `authenticate` |
 

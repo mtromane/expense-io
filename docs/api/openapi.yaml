@@ -1,10 +1,11 @@
 openapi: 3.1.0
 info:
   title: Expense.io API
-  version: 1.0.0
+  version: 2.0.0
   description: |
     Contrat de l'API HTTP d'Expense.io, relevé sur l'application d'origine
-    (tag `baseline`, commit 265924b) et figé pour la migration d'architecture.
+    (tag `baseline`, commit 265924b) et figé pour la migration d'architecture,
+    puis étendu par les décisions de l'équipe (historique en fin de texte).
 
     Ce fichier est vérifié par les tests : chaque réponse obtenue par les tests
     d'API (tests/support/contract.ts) doit correspondre à l'opération, au code
@@ -33,6 +34,20 @@ info:
     `Last HR admin`, `Cannot change own role`,
     `Unauthorized`). L'application d'origine renvoyait les trois premiers en
     français.
+
+    Historique (semver : un changement cassant fait passer la version majeure) :
+    - 2.0.0 (2026-10-29), version de la soutenance.
+      Changements cassants : codes d'accès 401 / 403 (D12) ; messages d'erreur
+      en anglais (D15).
+      Ajouts : `PUT /api/hr/users/{id}/role`, `GET /api/hr/admins`,
+      `GET /api/hr/me` (D13, D14) ; champ `authorName` dans
+      `GET /api/manager/expense-notes` (D20).
+      Règles : date de dépense postérieure à demain (UTC) refusée en 400, casse
+      de l'email ignorée à l'inscription et à la connexion (D20).
+      oasdiff 1.0.0 → 2.0.0 : aucun changement cassant de structure (15
+      changements, 1 avertissement). Les ruptures sont de comportement (D12,
+      D15) : seuls les tests de parité les voient.
+    - 1.0.0 (2026-10-12) : contrat relevé sur l'application d'origine.
 servers:
   - url: http://localhost:3000
 security:
@@ -115,9 +130,9 @@ paths:
 
   /api/manager/expense-notes:
     get:
-      summary: Notes en attente des rattachés directs du manager (tri created_at ASC)
+      summary: Notes en attente des rattachés directs du manager, avec le nom de leur auteur (tri created_at ASC)
       responses:
-        '200': { $ref: '#/components/responses/NoteList' }
+        '200': { $ref: '#/components/responses/PendingNoteList' }
         '401': { $ref: '#/components/responses/Error' }
         '403': { $ref: '#/components/responses/Error' }
         '500': { $ref: '#/components/responses/Error' }
@@ -330,6 +345,11 @@ components:
       content:
         application/json:
           schema: { type: array, items: { $ref: '#/components/schemas/ExpenseNote' } }
+    PendingNoteList:
+      description: Notes en attente d'un manager, avec le nom de leur auteur (D20, MET-08)
+      content:
+        application/json:
+          schema: { type: array, items: { $ref: '#/components/schemas/PendingExpenseNote' } }
     ReceiptUrl:
       description: URL présignée (valable 5 minutes)
       content:
@@ -355,6 +375,26 @@ components:
         receiptKey: { type: string }
         status: { type: string, enum: [pending, approved, rejected] }
         createdAt: { type: string, format: date-time }
+
+    PendingExpenseNote:
+      description: |
+        Note de la file d'un manager : la note, plus le nom de son auteur
+        (D20, MET-08). `authorName` est toujours renvoyé depuis la correction ;
+        il reste facultatif ici parce que l'application d'origine ne le
+        renvoyait pas et que le job baseline-proof la valide contre ce contrat.
+      type: object
+      additionalProperties: false
+      required: [id, userId, amount, expenseDate, description, receiptKey, status, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        userId: { type: string, format: uuid }
+        amount: { type: number, exclusiveMinimum: 0 }
+        expenseDate: { type: string, pattern: '^\d{4}-\d{2}-\d{2}$' }
+        description: { type: string }
+        receiptKey: { type: string }
+        status: { type: string, enum: [pending, approved, rejected] }
+        createdAt: { type: string, format: date-time }
+        authorName: { type: string }
 
     CompanyUser:
       type: object

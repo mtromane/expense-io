@@ -1,7 +1,7 @@
 import { test } from '@playwright/test'
 
 /**
- * Registre des défauts techniques (spec §5.1) et métier (décisions D12 à D19). Corriger un défaut =
+ * Registre des défauts techniques (spec §5.1) et métier (décisions D12 à D20). Corriger un défaut =
  * passer `fixed` à true dans la PR du fix : le test redevient un test normal.
  * Un test de défaut qui passe alors que `fixed` est false fait échouer la CI.
  * BASELINE=1 (job baseline-proof) force l'échec attendu pour tous.
@@ -44,6 +44,10 @@ export const DEFECTS = {
   'MET-10': { title: 'Notes d’une RH sans manager validables par aucune autre RH (D13)', fixed: true },
   'API-01': { title: 'Messages d’erreur de l’API en partie en français (D15)', fixed: true },
   'UI-01': { title: '« Mes notes » : total sans détail par statut, rejetées comprises (D17)', fixed: true },
+  // Décision D20 du 2026-10-29 : comportements sans arbitrage de docs/audit/22-comportements-a-corriger.md.
+  'MET-05': { title: 'Email sensible à la casse : deux comptes pour une adresse, connexion dépendante de la casse (D20, V-12.3)', fixed: true },
+  'MET-06': { title: 'Date de dépense dans le futur acceptée (D20, M-09)', fixed: true },
+  'MET-08': { title: 'Le manager voit l’id tronqué de l’auteur au lieu de son nom (D20, M-06)', fixed: true },
 } satisfies Record<string, { title: string; fixed: boolean }>
 
 export type DefectId = keyof typeof DEFECTS

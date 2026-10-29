@@ -84,3 +84,16 @@ Recette complète avec exemple réel : `docs/architecture/ajouter-une-fonctionna
 5. route fine avec `route()` ; textes d'interface **ajoutés**, jamais renommés ;
 6. nouvelle route : **deux fichiers dans la même PR**, `docs/api/openapi.yaml` (chemin, codes, schémas) et la liste `EXPECTED_OPERATIONS` de `tests/api/contract.spec.ts` (avec le nombre d'endpoints du titre), sinon le test de contrat échoue. C'est une évolution de contrat voulue (règle 5), relue par la team Tests, pas un test modifié pour masquer une régression ; nouveau champ : `docs/api/openapi.yaml` ;
 7. vérifier : `npm run lint && npm run typecheck && npm run test:unit`, puis `npm run build && npx playwright test` (et `make test-perf` si SQL, OCR ou listes).
+
+## Si la fonctionnalité demande de l'asynchrone (ADR-008, ADR-009)
+
+Seulement si le traitement est lent **et** dépend d'un service externe ou instable (LLM, email) ; sinon, rester synchrone (l'OCR l'est, ADR-008). Pas de broker : pattern **outbox** sur Postgres.
+
+1. **Événement versionné** dans le domaine du module producteur : type `<Fait>.v1` (ex. `ExpenseNoteDecided.v1`), charge utile minimale (identifiants), validée à l'écriture et à la lecture (contract first).
+2. **Outbox** (nouvelle migration) : table `outbox` (`id`, `type`, `aggregate_id`, `payload jsonb`, `request_id`, `attempts`, `status` `pending | done | dead`, `last_error`, `created_at`, `processed_at`), unique sur `(type, aggregate_id)`, et `GRANT SELECT, INSERT, UPDATE ON outbox TO expense_app` (sinon l'écriture échoue dans la transaction scopée, qui prend ce rôle). L'événement s'écrit **dans la même transaction** que l'action métier (même port de transaction que le cas d'usage) : jamais de double écriture incohérente.
+3. **Consommateur** : cas d'usage `dispatch<Fait>` qui prend les messages `pending` (`FOR UPDATE SKIP LOCKED`), appelle le port de sortie (`NotificationPort` de `src/ports`, client LLM…), puis marque `done` (ack). Idempotent : un message traité deux fois ne produit pas deux effets.
+4. **Échecs** : `attempts + 1` et `last_error` ; après 5 essais, `status = 'dead'` (file d'erreurs, traitement manuel).
+5. **Exécution** (ADR-009) : `after()` de `next/server` en fin de requête pour la latence, plus un script de reprise `npm run worker` (ajout, aucun script existant renommé) pour les messages restés `pending`.
+6. **Traçabilité** : le `requestId` de `route()` est copié dans `request_id` et repris dans chaque log du consommateur (`log('info', 'outbox.done', { requestId, ... })`).
+7. **API** : si le client doit suivre le traitement, `202 Accepted` et une route de lecture de l'état (polling), décrites dans `docs/api/openapi.yaml`.
+8. **Tests** : unitaires du producteur (événement écrit dans la transaction) et du consommateur (ack, rejeu sans doublon, passage en `dead`) avec des ports en mémoire.

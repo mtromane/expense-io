@@ -2,6 +2,8 @@
 # V-34 / V-10.2 — LocalStack (port 4567) sert-il un objet du bucket des reçus
 # sans URL signée (GET direct non authentifié) ? Et les clés sont-elles
 # séquentielles donc prévisibles ?
+# Mis à jour le 2026-10-29 : V-10.2 (clés séquentielles) et V-34 (accès non signé)
+# sont jugés séparément ; depuis SEC-06, la clé est un UUID opaque.
 set -u
 cd "$(dirname "$0")"; . ./_lib.sh
 require_app
@@ -32,14 +34,22 @@ note "GET non signé => $FETCH"
 HEAD="$(xxd "$WORK/obj.bin" 2>/dev/null | head -1)"
 note "octets: $HEAD"
 
-echo "== V-10.2 : prévisibilité — l'objet est au prochain entier de la séquence =="
-SEQ="$(echo "$KEY" | grep -oE '[0-9]+')"
-note "séquence de cette note = $SEQ (clé = receipts/$SEQ.<ext>, devinable)"
+echo "== V-10.2 : prévisibilité de la clé =="
+if echo "$KEY" | grep -qE '^receipts/[0-9]+\.'; then
+  SEQUENTIAL=1; note "clé = $KEY : entier séquentiel, devinable (V-10.2 confirmé)"
+else
+  SEQUENTIAL=0; note "clé = $KEY : identifiant opaque, non devinable (V-10.2 réfuté, SEC-06)"
+fi
 
 echo
 if echo "$FETCH" | grep -q '^200/' && echo "$HEAD" | grep -qi 'PNG'; then
-  echo "=> LocalStack sert l'objet sans signature ni authentification, et les clés"
-  echo "   sont des entiers séquentiels exposés au client : reçus énumérables."
+  echo "=> LocalStack sert l'objet sans signature ni authentification (V-34, infrastructure"
+  echo "   locale : en production, bucket privé et URL présignées seulement)."
+  if [ "$SEQUENTIAL" = "1" ]; then
+    echo "   Clés séquentielles exposées au client : reçus énumérables (V-10.2)."
+  else
+    echo "   Clés opaques : un reçu ne se devine plus (V-10.2 réfuté)."
+  fi
   verdict CONFIRMÉ
 else
   echo "=> L'objet n'a pas été servi sans signature (fetch=$FETCH)."

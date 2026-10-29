@@ -41,7 +41,8 @@ test.describe('DATA — valeurs restituées à l’identique', { tag: '@parity' 
     })
   }
 
-  for (const expenseDate of ['2024-02-29', '2000-01-01', '2026-12-31', '1970-01-01']) {
+  // Dates passées : une date postérieure à demain est refusée depuis D20 (MET-06).
+  for (const expenseDate of ['2024-02-29', '2000-01-01', '2025-12-31', '1970-01-01']) {
     test(`date ${expenseDate} : identique à la création et dans la liste (aucun décalage de fuseau)`, async () => {
       const note = await createNote(emp, { expenseDate })
       expect(note.expenseDate).toBe(expenseDate)
@@ -71,7 +72,9 @@ test.describe('DATA — même note, même JSON sur tous les endpoints', { tag: '
     const [emp, mgr] = await Promise.all([loginAs('empA1'), loginAs('subMgrA')])
     const created = await createNote(emp, { amount: '73.40', expenseDate: '2026-02-03' })
     expect((await listOwnNotes(emp)).find((n) => n.id === created.id)).toEqual(created)
-    expect((await listFor(mgr, '/api/manager/expense-notes')).find((n) => n.id === created.id)).toEqual(created)
+    // La liste manager ajoute le nom de l'auteur (D20, MET-08) ; le reste est la même note.
+    const queued = (await listFor(mgr, '/api/manager/expense-notes')).find((n) => n.id === created.id)
+    expect({ ...queued, authorName: undefined }).toEqual(created)
 
     const res = await mgr.post(`/api/manager/expense-notes/${created.id}/approve`)
     expect(res.status()).toBe(200)

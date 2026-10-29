@@ -2,6 +2,8 @@
 # V-09 — Deux décisions concurrentes (approve + reject) sur la même note en
 # attente aboutissent-elles toutes les deux, faute de condition de statut dans
 # l'UPDATE ? (TOCTOU : SELECT sans FOR UPDATE, test JS, puis UPDATE WHERE id seul)
+# Mis à jour le 2026-10-29 : verdict RÉFUTÉ quand le critère d'acceptation de la
+# fiche (docs/audit/12-constats.md) est atteint par la version corrigée.
 set -u
 cd "$(dirname "$0")"; . ./_lib.sh
 require_app
@@ -23,6 +25,7 @@ MC="authjs.session-token=$(applogin "mgr@$DOMAIN" poc09mgr)"
 ROUNDS="${ROUNDS:-10}"
 PAR="${PAR:-4}"
 double=0
+single=0
 echo "== $ROUNDS rounds : $PAR approve + $PAR reject simultanés sur une note pending =="
 for r in $(seq 1 "$ROUNDS"); do
   pq "UPDATE expense_notes SET status='pending' WHERE id='$NID';" >/dev/null
@@ -38,6 +41,7 @@ for r in $(seq 1 "$ROUNDS"); do
   final="$(pq "SELECT status FROM expense_notes WHERE id='$NID';")"
   note "round $r : succès approve=$a200 reject=$r200 (total 200=$n200) -> statut final=$final"
   [ "$n200" -gt 1 ] && double=$((double+1))
+  [ "$n200" -eq 1 ] && single=$((single+1))
 done
 pq "UPDATE expense_notes SET status='pending' WHERE id='$NID';" >/dev/null
 
@@ -48,6 +52,10 @@ if [ "$double" -gt 0 ]; then
   echo "   en 200 sur une seule note ; statut final = dernière écriture. Attendu après"
   echo "   correctif : exactement un 200, les autres 409."
   verdict CONFIRMÉ
+elif [ "$single" = "$ROUNDS" ]; then
+  echo "=> À chaque round, exactement une décision réussit (les autres 409) :"
+  echo "   écriture conditionnée au statut (ROB-02)."
+  verdict RÉFUTÉ
 else
   echo "=> Aucune double réussite observée (augmenter ROUNDS/PAR, ou latence élevée)."
   verdict PARTIEL
