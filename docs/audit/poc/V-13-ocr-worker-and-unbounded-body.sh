@@ -5,6 +5,10 @@
 #           la route de création de note teste la limite 10 Mo APRÈS avoir
 #           bufferisé tout le corps (request.formData()) -> 400, pas 413.
 # Intensité volontairement faible : quelques requêtes, pas de saturation.
+# Mis à jour le 2026-10-29 : verdict RÉFUTÉ quand le critère d'acceptation de la
+# fiche (docs/audit/12-constats.md) est atteint par la version corrigée.
+# La mémoire (RSS) n'est mesurée que sous Linux (ss, /proc) ; le pool borné de
+# V-13.1 est par ailleurs mesuré par PERF-01 (make test-perf).
 set -u
 cd "$(dirname "$0")"; . ./_lib.sh
 require_app
@@ -42,7 +46,7 @@ BIG="$WORK/big.bin"; head -c 40000000 /dev/zero | tr '\0' 'A' > "$BIG"
 RB="$(rss)"
 OCR_CODE="$(curl -s -o "$WORK/o.out" -b "$C" -X POST "$BASE_URL/api/expense-notes/receipt-suggestion" \
   -F "receipt=@$BIG;type=application/octet-stream" -w '%{http_code}')"
-note "OCR 40 Mo => HTTP $OCR_CODE ; RSS $RB -> $(rss) MB (corps entièrement bufferisé)"
+note "OCR 40 Mo => HTTP $OCR_CODE ; RSS $RB -> $(rss) MB"
 
 echo "== V-13.2 : corps volumineux (40 Mo) sur la création de note =="
 RB2="$(rss)"
@@ -50,8 +54,10 @@ POST_CODE="$(curl -s -o "$WORK/p.out" -b "$C" -X POST "$BASE_URL/api/expense-not
   -F "amount=5" -F "expenseDate=2026-01-01" -F "description=big" \
   -F "receipt=@$BIG;type=image/png" -w '%{http_code}')"
 note "POST 40 Mo => HTTP $POST_CODE ($(head -c 60 "$WORK/p.out")) ; RSS $RB2 -> $(rss) MB"
-note "   -> 400 'Fichier trop volumineux' MAIS après lecture complète en mémoire"
-note "      (la limite 10 Mo est testée après request.formData(), pas en 413)."
+if [ "$OCR_CODE" = "200" ] || [ "$OCR_CODE" = "500" ]; then
+  note "   -> 400 'Fichier trop volumineux' MAIS après lecture complète en mémoire"
+  note "      (la limite 10 Mo est testée après request.formData(), pas en 413)."
+fi
 
 echo
 # Confirmé si : OCR accepte le gros corps (pas de 413) ET le POST renvoie 400
@@ -61,6 +67,10 @@ if [ "$OCR_CODE" != "413" ] && { [ "$OCR_CODE" = "200" ] || [ "$OCR_CODE" = "500
   echo "=> OCR : worker par requête, aucune borne de corps (40 Mo acceptés)."
   echo "   Création de note : limite appliquée après bufferisation complète (400, pas 413)."
   verdict CONFIRMÉ
+elif { [ "$OCR_CODE" = "400" ] || [ "$OCR_CODE" = "413" ]; } && { [ "$POST_CODE" = "400" ] || [ "$POST_CODE" = "413" ]; }; then
+  echo "=> Les deux routes refusent un corps de 40 Mo (SEC-08 : Content-Length vérifié avant"
+  echo "   lecture, flux plafonné à 10 Mo) ; workers OCR en pool borné (PERF-01)."
+  verdict RÉFUTÉ
 else
   echo "=> Résultat inattendu (OCR=$OCR_CODE POST=$POST_CODE)."
   verdict PARTIEL

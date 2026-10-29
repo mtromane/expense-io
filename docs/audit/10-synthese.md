@@ -11,7 +11,31 @@ vers [12-constats.md](12-constats.md) ; pour l'ordre des corrections, voir
 - Contrainte : les correctifs doivent rester **invisibles pour l'utilisateur**,
   sauf bugs métier validés par l'équipe.
 
-## Verdict
+## Bilan au 2026-10-29 : avant / après
+
+La remédiation est faite : refonte en monolithe modulaire (étapes 0 à 8 de
+[20-audit-architecture-arla.md](20-audit-architecture-arla.md)) et décisions
+D1 à D20 ([21-decisions-architecture.md](21-decisions-architecture.md)).
+Chiffres relevés sur la branche `fix/p0-metier-et-docs`.
+
+| Mesure | Avant (baseline `265924b`) | Après |
+|---|---|---|
+| Constats Critiques et Hauts clos | 0 / 15 | 13 / 15 (restent V-18 ouvert, V-17 hors périmètre) |
+| Constats clos, tous niveaux | 0 / 63 | 40 / 63 ; 1 partiel, 16 ouverts, 4 acceptés, 2 hors périmètre ([12](12-constats.md)) |
+| Défauts du registre (rouge → vert) | 38 rouges | 38 verts : 18 techniques, 20 métier |
+| Tests automatisés | aucun | 246 unitaires, 329 Playwright (231 parité, 98 défauts) |
+| CI | aucune | `static`, `parity`, `defects`, `baseline-proof`, `perf` |
+| Couverture unitaire de `src/modules` | 0 % | 72 % des instructions, 75 % des branches |
+| Routes API | 14 fichiers, 592 lignes | 17 fichiers, 127 lignes (3 routes ajoutées) |
+| Accès directs à la base dans `src/app` | 34 | 0 (tout passe par les modules) |
+| Contrôles de rôle écrits dans les routes | 10 | 0 (garde unique `route({ role })`) |
+| Performance (p95, même machine) | référence | aucun scénario plus lent : OCR −97 %, liste RH −78 %, création −21 %, liste employé −20 %, liste manager −4 % ; PERF-01 atteint, PERF-02 non (listes employé et manager au-dessus de 50 % de la baseline) |
+
+Ce qui reste ouvert relève surtout de l'exploitation et de la sécurité de
+second rang (limite de débit, journalisation des décisions, délais, mise à
+jour de `next`) : liste et raisons dans [12-constats.md](12-constats.md).
+
+## Verdict (audit initial, 2026-10-13)
 
 L'application **fonctionne**, mais **n'isole pas réellement les données entre
 entreprises** et **ne protège pas les comptes**. Plusieurs failures graves ont
@@ -106,5 +130,5 @@ Détail et dépendances : [13-plan-remediation.md](13-plan-remediation.md).
 | [14-hors-perimetre.md](14-hors-perimetre.md) | Évolutions non traitées |
 | [`poc/`](poc/) | 8 démonstrations rejouables |
 
-> Rappel : cette étape **constate et propose**. L'implémentation des correctifs
-> est la suite, à mener en équipe à partir du plan.
+> Rappel : l'audit initial **constatait et proposait**. L'implémentation a suivi
+> en équipe, à partir du plan : voir le bilan au 2026-10-29 en tête de document.

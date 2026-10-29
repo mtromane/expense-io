@@ -4,10 +4,12 @@ Dossier de l'audit d'Expense.io (ce dépôt, rangé dans `docs/audit/`). Objecti
 global : auditer l'app, proposer des améliorations **sans changement visible
 côté utilisateur**, puis les implémenter, étape par étape.
 
-Deux étapes sont faites. **Étape 1 — cartographie (`01`-`07`)** : comprendre
+Trois étapes sont faites. **Étape 1 — cartographie (`01`-`07`)** : comprendre
 l'existant, constats seuls. **Étape 2 — audit (`10`-`14` + `poc/`)** : coter
-les constats, les vérifier par exécution, et **proposer** des correctifs (sans
-les implémenter — c'est la suite, en équipe).
+les constats, les vérifier par exécution, et **proposer** des correctifs.
+**Étape 3 — remédiation (`20`-`22`)** : refonte en monolithe modulaire et
+décisions D1 à D20 ; statut de chaque constat dans `12`, bilan avant / après
+dans `10` (relevé du 2026-10-29).
 
 - Relevé les 9 au 13 octobre 2026.
 - Périmètre : tout le code source (`src/`, `migrations/`, `scripts/`, config,
@@ -61,21 +63,26 @@ les implémenter — c'est la suite, en équipe).
 
 ## À savoir avant de lire le code
 
-1. `src/domain`, `src/ports`, `src/adapters`, `src/utils` ne sont **importés
-   nulle part**. La logique réelle est dans `src/app/api/**/route.ts`, en SQL
-   écrit à la main et largement copié-collé. → V-01, V-02
-2. La RLS PostgreSQL est présentée comme garante de l'isolation, mais l'app se
-   connecte très probablement avec un rôle superuser qui l'ignore. Seules les
-   clauses `WHERE` de chaque route protègent réellement les données. → V-05
-3. Plusieurs commentaires justifient avec assurance des choix contestables :
-   lire le code plutôt que le commentaire. → V-00
+Les étapes 1 et 2 décrivent l'application **d'origine** (tag `baseline`). Le
+code actuel a été refondu : pour le comprendre, lire `AGENTS.md` et
+`docs/architecture/HLD.md`. Les constats d'origine, aujourd'hui clos (statut
+dans `12`), étaient :
+
+1. `src/domain`, `src/ports`, `src/adapters`, `src/utils` n'étaient **importés
+   nulle part** ; la logique vivait dans les routes, en SQL copié-collé
+   (V-01, V-02). Aujourd'hui : modules `src/modules/*`, couche ranimée (ADR-004).
+2. La RLS PostgreSQL était contournée par un rôle superuser (V-05).
+   Aujourd'hui : RLS effective par `APP_DB_ROLE` (ADR-006).
+3. Plusieurs commentaires justifiaient avec assurance des choix contestables
+   (V-00), supprimés par la refonte.
 
 ## Note pour les agents
 
 - Avant de modifier une route ou une règle d'accès, lire
   [06-autorisation.md](06-autorisation.md) et les constats `V-xx` concernés.
-- Ne pas se fier aux commentaires du code qui parlent de sécurité (V-00).
-- Ne pas supposer que `src/domain/` est la source de vérité des règles
-  métier : elle n'est jamais appelée (V-01).
-- Contrainte du projet : toute amélioration doit rester **invisible pour
-  l'utilisateur** (mêmes écrans, mêmes parcours, mêmes réponses attendues).
+- Les règles du dépôt sont dans `AGENTS.md` ; l'architecture actuelle dans
+  `docs/architecture/HLD.md`. Les `chemin:ligne` des étapes 1 et 2 visent le
+  code d'origine.
+- Contrainte du projet : toute amélioration reste **invisible pour
+  l'utilisateur** (mêmes écrans, mêmes parcours, mêmes réponses attendues),
+  sauf les comportements à corriger de `22` (règle 5 d'`AGENTS.md`).

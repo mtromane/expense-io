@@ -4,6 +4,7 @@
 * Nouvelle donne (2026-10-13) : le professeur a des tests qui **échouent aujourd'hui** et qu'il attend **verts après la refacto**. Ils portent probablement sur les comportements étranges de l'application. Consigne d'équipe : **le métier doit être totalement fonctionnel**.
 * Conséquence : la règle « invisible pour l'utilisateur » et la liste des « incohérences conservées » (`docs/tests/criteres-fin-de-migration.md` §2.1, §2.3, `AGENTS.md` règle 5) ne tiennent plus pour ces points. Elles doivent être révisées avec la team Tests **avant** d'implémenter (voir §5).
 * Identifiants repris de l'audit (`V-xx`, `M-xx`) et des tests (`MET-xx`). `B-xx` = bizarrerie non fichée ailleurs.
+* **État au 2026-10-29** : corrigés par les décisions D12 à D20, avec leur défaut rouge puis vert : `M-02`, `M-01.2`, `M-01.1`, `M-08`, `V-04.2`, `V-04.1`, `V-09`, `M-06`, `M-04`, `M-09`, `ROB-03a` à `f`, `BUG-01`, `B-01`, `B-02`, `B-04`, `SEC-05`, `V-12.3`, `V-12.2`, `V-12.1`, `M-03`. Conservés : `MET-07`, `B-03`, `B-05` (409, D18), `B-06` (D15 : API en anglais, écran inchangé), `M-07` (texte existant). Restent ouverts : `M-05.1`, `MET-06` (longueur de description, décimales), `V-13.3`, `V-14.1`, `V-14.3`, `V-17` (hors périmètre), `V-20`, `V-22`, `V-23`. Statut détaillé de chaque constat : colonne « Statut » de [12-constats.md](12-constats.md).
 
 ## 1. L'hypothèse la plus forte sur les tests du professeur
 

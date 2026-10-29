@@ -15,18 +15,18 @@
 
 ## 1. Attendus du cours face à l'existant
 
-| Attendu ARLA | État dans le dépôt | Déjà couvert par | Écart à combler |
-|---|---|---|---|
-| Audit chiffré et hiérarchisé | 63 fiches cotées, 8 PoC, synthèse | `10`, `12`, `13`, `poc/` | Ajouter l'angle architecture (ce document) |
-| Monolithe modulaire, domaines découplés (DDD) | Aucun module : `src/app/api/**` mélange tout | `V-31` (coté Moyenne, effort L, « à décider ») | **Décider** et faire `V-31` : c'est le cœur de la note ARLA, pas une option |
-| Clean / Hexagonale, inversion des dépendances | `src/domain`, `src/ports`, `src/adapters` morts | `V-01` propose de **supprimer** | Inverser la recommandation : **ranimer et brancher** la couche (A-02) |
-| Testabilité du métier avec infra mockée | Aucun test unitaire sur `main` ; 115 unitaires sur la branche `tests/p2-unitaires` (non fusionnée) qui figent l'existant | Branche `tests/p2-unitaires` | Fusionner, puis tester les **use cases** avec des fakes de ports |
-| Contrôle de rôle centralisé | 12 fichiers (10 routes, 2 pages) + `layout.tsx` testent `role` à la main | `V-02.4`, `V-03` | Garde unique + politique d'accès unique (A-03, A-04) |
-| Isolation multitenant structurelle | Filtres `WHERE company_id = ...` écrits à la main ; RLS contournée (superuser) | `V-03`, `V-05.1`, `V-06`, `SEC-02`, `SEC-03`, `SEC-09` | Repository scopé par acteur + RLS effective (A-04) |
-| Asynchrone justifié (DLQ, idempotence, contrat, corrélation) | Aucun asynchrone. OCR synchrone dans la requête | `V-13.1`, `PERF-01` (sous l'angle perf) | ADR « pas de bus pour l'OCR » + outbox pour la notification si on la livre (A-08, A-10) |
-| Twelve Factor | Secret en dur, config lue à l'import, pas de validation | `V-08`, `SEC-04`, `V-36` | Module de config validé au démarrage (A-11) |
-| ADR, HLD, LLD, DAT | Aucun | La spec de tests prévoit `docs/tests/adr/` (pas encore écrit) | Produire `docs/architecture/` (§7) |
-| Live coding conforme aux guidelines | Gabarit E2E prévu, pas de gabarit d'architecture | `tests/e2e/_template.spec.ts` (prévu) | Gabarit de module + guide « ajouter une fonctionnalité » (§8) |
+| Attendu ARLA | État dans le dépôt | Déjà couvert par | Écart à combler | État au 2026-10-29 |
+|---|---|---|---|---|
+| Audit chiffré et hiérarchisé | 63 fiches cotées, 8 PoC, synthèse | `10`, `12`, `13`, `poc/` | Ajouter l'angle architecture (ce document) | fait : statut des 63 constats (`12`), bilan avant / après (`10`) |
+| Monolithe modulaire, domaines découplés (DDD) | Aucun module : `src/app/api/**` mélange tout | `V-31` (coté Moyenne, effort L, « à décider ») | **Décider** et faire `V-31` : c'est le cœur de la note ARLA, pas une option | fait : 6 modules dans `src/modules/` (ADR-002, ADR-003) |
+| Clean / Hexagonale, inversion des dépendances | `src/domain`, `src/ports`, `src/adapters` morts | `V-01` propose de **supprimer** | Inverser la recommandation : **ranimer et brancher** la couche (A-02) | fait : couche ranimée et branchée (ADR-004), règles ESLint bloquantes (ADR-005) |
+| Testabilité du métier avec infra mockée | Aucun test unitaire sur `main` ; 115 unitaires sur la branche `tests/p2-unitaires` (non fusionnée) qui figent l'existant | Branche `tests/p2-unitaires` | Fusionner, puis tester les **use cases** avec des fakes de ports | fait : 246 tests unitaires, ports en mémoire |
+| Contrôle de rôle centralisé | 12 fichiers (10 routes, 2 pages) + `layout.tsx` testent `role` à la main | `V-02.4`, `V-03` | Garde unique + politique d'accès unique (A-03, A-04) | fait : garde `route({ role })`, plus aucun test de rôle dans les routes (10 avant) |
+| Isolation multitenant structurelle | Filtres `WHERE company_id = ...` écrits à la main ; RLS contournée (superuser) | `V-03`, `V-05.1`, `V-06`, `SEC-02`, `SEC-03`, `SEC-09` | Repository scopé par acteur + RLS effective (A-04) | fait : ports bornés à l'acteur et RLS effective (SEC-02, SEC-03, SEC-09) |
+| Asynchrone justifié (DLQ, idempotence, contrat, corrélation) | Aucun asynchrone. OCR synchrone dans la requête | `V-13.1`, `PERF-01` (sous l'angle perf) | ADR « pas de bus pour l'OCR » + outbox pour la notification si on la livre (A-08, A-10) | décidé : aucun asynchrone sans usage (ADR-008), recette outbox dans `AGENTS.md` |
+| Twelve Factor | Secret en dur, config lue à l'import, pas de validation | `V-08`, `SEC-04`, `V-36` | Module de config validé au démarrage (A-11) | fait : `src/config.ts`, démarrage refusé si la configuration manque (SEC-04) |
+| ADR, HLD, LLD, DAT | Aucun | La spec de tests prévoit `docs/tests/adr/` (pas encore écrit) | Produire `docs/architecture/` (§7) | fait : ADR-001 à ADR-020, `HLD.md`, `DAT.md` ; LLD = `README.md` de chaque module |
+| Live coding conforme aux guidelines | Gabarit E2E prévu, pas de gabarit d'architecture | `tests/e2e/_template.spec.ts` (prévu) | Gabarit de module + guide « ajouter une fonctionnalité » (§8) | prêt : `AGENTS.md`, `ajouter-une-fonctionnalite.md`, recette asynchrone |
 
 ## 2. Constats d'architecture
 

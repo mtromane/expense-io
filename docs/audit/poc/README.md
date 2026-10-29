@@ -60,16 +60,26 @@ helpers psql/S3, création de comptes de test).
 
 ## Table ID → statut
 
-| Script | Constat(s) | Statut |
-|---|---|---|
-| `V-05-role-postgres-bypass-rls.sh` | V-05.1 | CONFIRMÉ |
-| `V-06-manager-receipt-cross-tenant.sh` | V-06 | CONFIRMÉ |
-| `V-07-sort-sql-injection.sh` | V-07 | CONFIRMÉ |
-| `V-08-forged-session-token.sh` | V-08 | CONFIRMÉ |
-| `V-09-concurrent-decisions.sh` | V-09 | CONFIRMÉ |
-| `V-11-exception-leak.sh` | V-11 | CONFIRMÉ |
-| `V-13-ocr-worker-and-unbounded-body.sh` | V-13.1, V-13.2 | CONFIRMÉ |
-| `V-34-localstack-unsigned-and-sequential-keys.sh` | V-34, V-10.2 | CONFIRMÉ |
+Statut sur l'application d'origine (phase 2, 2026-10-13), puis sur la version
+corrigée (rejoués le 2026-10-29 contre le build de production de la branche
+`fix/p0-metier-et-docs`, base de dev seedée).
+
+| Script | Constat(s) | Origine | 2026-10-29 | Correctif |
+|---|---|---|---|---|
+| `V-05-role-postgres-bypass-rls.sh` | V-05.1 | CONFIRMÉ | **RÉFUTÉ** | SEC-09 : le rôle effectif `expense_app` voit 0 note sous un acteur sans note |
+| `V-06-manager-receipt-cross-tenant.sh` | V-06 | CONFIRMÉ | **RÉFUTÉ** | SEC-02 : `receipt-url` hors périmètre → 404 |
+| `V-07-sort-sql-injection.sh` | V-07 | CONFIRMÉ | **RÉFUTÉ** | SEC-01 : tri hors liste blanche → 400, aucun délai `pg_sleep` |
+| `V-08-forged-session-token.sh` | V-08 | CONFIRMÉ | **RÉFUTÉ** | SEC-04 : jeton forgé avec l'ancien secret refusé |
+| `V-09-concurrent-decisions.sh` | V-09 | CONFIRMÉ | **RÉFUTÉ** | ROB-02 : une seule décision gagne à chaque round (10 / 10) |
+| `V-11-exception-leak.sh` | V-11 | CONFIRMÉ | **RÉFUTÉ** | SEC-05, ROB-03 : les entrées invalides du PoC renvoient 404 ou 400, sans stack ni texte technique |
+| `V-13-ocr-worker-and-unbounded-body.sh` | V-13.1, V-13.2 | CONFIRMÉ | **RÉFUTÉ** | SEC-08 : corps de 40 Mo refusé sur les deux routes ; PERF-01 : pool borné |
+| `V-34-localstack-unsigned-and-sequential-keys.sh` | V-34, V-10.2 | CONFIRMÉ | CONFIRMÉ (V-34) | V-10.2 réfuté (SEC-06, clé UUID) ; LocalStack sert toujours un objet sans signature : infrastructure locale, constat V-34 ouvert |
+
+Scripts mis à jour le 2026-10-29 (en-tête de chacun) : le verdict `RÉFUTÉ`
+correspond au critère d'acceptation de la fiche ; `V-05` juge le rôle
+**effectif** de l'application (`APP_DB_ROLE`), le rôle de connexion restant
+superuser par conception (migrations, seed-perf). La mémoire de `V-13` n'est
+mesurée que sous Linux.
 
 ## Notes de méthode
 
