@@ -49,12 +49,15 @@ export class PgApprovalRepository implements ApprovalRepository {
   /**
    * File du valideur avec le nom des auteurs (MET-08), en une requête : les
    * auteurs du périmètre sont lus une fois (CTE), les notes toujours par
-   * l'index (user_id, created_at), puis jointes à cette petite liste.
+   * l'index (user_id, created_at), puis jointes à cette petite liste. Seules
+   * les colonnes de la réponse sont lues : la liste d'un manager compte
+   * plusieurs milliers de notes, et chaque nom ajouté alourdit déjà la réponse.
    */
   async listPendingWithAuthors(scope: ApprovalScope): Promise<PendingNote[]> {
     const result = await this.client.query<ExpenseNoteRecord & { author_name: string }>(
       `WITH authors AS MATERIALIZED (${scopeAuthors(scope, '$1', 'id, name')})
-       SELECT en.*, authors.name AS author_name
+       SELECT en.id, en.user_id, en.amount, en.expense_date, en.description, en.receipt_key, en.status,
+              en.created_at, authors.name AS author_name
        FROM expense_notes en JOIN authors ON authors.id = en.user_id
        WHERE en.user_id = ANY (ARRAY(SELECT id FROM authors)) AND en.status = 'pending'
        ORDER BY en.created_at ASC`,
