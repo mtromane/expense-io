@@ -71,7 +71,7 @@ npx playwright test tests/defects/<slug>.spec.ts tests/api/contract.spec.ts --no
 ```
 
 1. Le test affiche `Expected to fail, but passed` : passe `fixed: true` sur `FEAT-<nn>`, puis relance jusqu'au vert.
-2. Lance la suite complète `npx playwright test` en arrière-plan (2 à 3 minutes) et rédige le récapitulatif pendant qu'elle tourne. Lis le résultat avant de déclarer la tâche terminée.
+2. Lance la suite complète `npx playwright test` (environ 25 s en local). Lis le résultat avant de déclarer la tâche terminée.
 3. Un `✘` compté dans `failed` sur un `@parity` est une régression : corrige le code, jamais le test.
 4. Si la fonctionnalité touche au SQL, à une liste ou à l'OCR, ne lance pas `make test-perf` (environ 15 minutes, hors budget). Dis-le dans le récapitulatif : index ajouté, nombre de requêtes par appel, mesure à faire ensuite.
 
@@ -96,6 +96,7 @@ Termine par le message de commit proposé.
 | Un test `@parity` de l'API tombe après l'ajout d'un champ à une note | les tests comparent les réponses entre elles (`Object.keys` dans `tests/api/manager.spec.ts`, `toEqual({ ...created, status })` dans `tests/api/integrity.spec.ts`) | champ présent de la même façon dans **toutes** les réponses qui renvoient une note (toujours présent, `null` permis), ou nouvelle route dédiée |
 | `typecheck` rouge dans un test unitaire existant | méthode ajoutée à un port qu'un test implémente (`InMemoryApprovals implements ApprovalRepository`, idem pour `OrganizationRepository` et `UserRepository`) | nouveau port (nouveau fichier) injecté dans le nouveau cas d'usage ; le port existant ne change pas |
 | E2E : `strict mode violation`, sélecteur qui trouve 2 éléments | `getByRole(…, { name })` cherche une **sous-chaîne** : un bouton « Rejeter avec motif » attrape aussi `name: 'Rejeter'` | nouveau texte qui ne contient aucun texte existant (`grep` dans `tests/e2e`) |
+| SEC-09 rouge en local (`Expected: 0`, `Received: <n>`) | `.env` créé avant l'ajout d'`APP_DB_ROLE` | ajouter `APP_DB_ROLE=expense_app` à `.env` (voir `.env.example`) |
 | `baseline-proof` rouge en CI | nouveau test tagué `@parity` | `@defect` + `expectDefect` |
 | `permission denied for table …` | nouvelle table sans `GRANT … TO expense_app` | §5, « Changer le schéma » |
 | `seed`, `seed:e2e` ou `seed-perf` cassés | colonne `NOT NULL` sans `DEFAULT` | colonne nullable ou avec `DEFAULT` |

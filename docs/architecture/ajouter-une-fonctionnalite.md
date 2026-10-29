@@ -160,7 +160,13 @@ make test-perf                            # si la fonctionnalité touche SQL, OC
 
 ### Boucle courte (live coding)
 
-Lint, typecheck et unitaires prennent quelques secondes, et la suite Playwright complète 2 à 3 minutes. On boucle sur le plus court et on ne lance la suite complète qu'une fois, à la fin :
+Durées mesurées en local, avec le cache de Turbopack :
+- lint, typecheck et unitaires : quelques secondes ;
+- `npm run build` après une modification : 2 à 3 s ;
+- une spec Playwright ciblée : environ 3 s ;
+- la suite complète (329 tests) : environ 25 s.
+
+Le cycle rouge puis vert ne coûte donc que quelques secondes d'exécution. On boucle sur le plus court et on lance la suite complète à la fin :
 
 ```bash
 npm run lint && npm run typecheck && npx vitest run tests/unit/modules/<module>-<fonctionnalité>.test.ts
