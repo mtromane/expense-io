@@ -31,3 +31,9 @@ Décisions métier D12 à D19, **validées en équipe le 2026-10-28** (D13 et D1
 | [ADR-017](ADR-017-total-par-statut.md) | D17 · total « Mes notes » | total par statut ajouté |
 | [ADR-018](ADR-018-invalid-manager-409.md) | D18 · `Invalid manager` | 409, aussi pour les cycles |
 | [ADR-019](ADR-019-acces-reserve-403.md) | D19 · « Accès réservé » | 403 |
+
+Décision D20, **proposée le 2026-10-29** (revue de l'audit avant la soutenance), à valider en revue de la PR : les comportements « sans arbitrage » de `docs/audit/22-comportements-a-corriger.md` qui n'étaient ni au registre ni corrigés.
+
+| ADR | Décision | Choix |
+|---|---|---|
+| [ADR-020](ADR-020-comportements-sans-arbitrage.md) | D20 · nom de l'auteur, email, date future | `authorName` dans la liste manager, casse de l'email ignorée, date refusée après demain (UTC) |

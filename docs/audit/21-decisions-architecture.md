@@ -2,6 +2,7 @@
 
 * Pour qui : l'équipe, en séance de décision. Une décision par section, à trancher puis à reporter dans l'ADR correspondante.
 * **D1 à D19 validées en équipe le 2026-10-28** (réunion d'équipe ; ADR-001 à ADR-019 acceptées). D13 et D14 avec un ajout : une RH peut en nommer une autre (voir leur section). D15 et D17 s'écartent de la recommandation initiale (D13 la suit désormais en entier) ; D15 change des messages du contrat (exception de la règle 5 d'`AGENTS.md`).
+* **D20 proposée le 2026-10-29** (revue de l'audit avant la soutenance : comportements « sans arbitrage » restés ouverts), à valider en revue de la PR ; ADR-020.
 * Source : §9 de [20-audit-architecture-arla.md](20-audit-architecture-arla.md), complété des décisions implicites que le jury risque de poser en question.
 * Grille utilisée (cours ARLA) : délai, coût, maturité de l'équipe, sécurité, performance (0 au barème si plus lent), contrat figé par les tests, valeur pour la soutenance.
 * Les points métier (`MET-01` à `MET-09`, lot 8) sont désormais dans le périmètre : le métier doit être totalement fonctionnel. Inventaire complet dans [22-comportements-a-corriger.md](22-comportements-a-corriger.md) ; seuls ceux qui demandent un choix figurent ici (D12 à D19).
@@ -29,6 +30,7 @@
 | D17 | Total « Mes notes » (`M-04`) | hors rejetées / par statut | **Choix : total par statut** (écart avec la recommandation) (ajouté, texte existant conservé) | [ADR-017](../architecture/adr/ADR-017-total-par-statut.md) |
 | D18 | Code de `Invalid manager` | 409 / 422 | **Choix : garder 409**, aussi pour les cycles | [ADR-018](../architecture/adr/ADR-018-invalid-manager-409.md) |
 | D19 | Statut de la page « Accès réservé » | 200 / 403 | **Choix : 403** | [ADR-019](../architecture/adr/ADR-019-acces-reserve-403.md) |
+| D20 | Comportements « sans arbitrage » restés ouverts (`M-06`, `V-12.3`, `M-09`) | corriger / laisser | **Choix : corriger** (proposé le 2026-10-29, à valider en revue de PR) | [ADR-020](../architecture/adr/ADR-020-comportements-sans-arbitrage.md) |
 
 ---
 
@@ -253,6 +255,20 @@ Recommandation : **garder `409`** et l'utiliser aussi pour les cycles (`V-04.2`)
 Recommandation : **`403` si Next.js le permet sans changer le rendu**, sinon garder `200` et l'assumer. Faible priorité.
 
 **Choix (2026-10-26, validé en équipe le 2026-10-28) :** même page et même texte, statut `403` (`forbidden()` de Next.js). Défaut `AUTHZ-03`.
+
+## D20 · Comportements « sans arbitrage » restés ouverts (`M-06`, `V-12.3`, `M-09`)
+
+Contexte : [22-comportements-a-corriger.md](22-comportements-a-corriger.md) classe ces comportements « arbitrage : non », la cible faisant consensus. Mais la règle 5 d'`AGENTS.md` n'autorise que les options tranchées ici : la revue de l'audit du 2026-10-29 les a trouvés ni au registre ni corrigés. `M-06` est coté Haute et se trouve sur le parcours le plus probable des tests du professeur (22 §1).
+
+| Comportement | Cible retenue | Alternative écartée |
+|---|---|---|
+| `M-06` : le manager voit l'id tronqué de l'auteur | champ `authorName` **ajouté** à `GET /api/manager/expense-notes`, nom affiché dans la colonne « Employé » ; une seule requête SQL | route d'annuaire pour le manager : une requête de plus à l'écran, une route de plus au contrat |
+| `V-12.3` : emails sensibles à la casse | casse ignorée à l'inscription et à la connexion, unicité sur `lower(email)` (index unique), email stocké tel que saisi | minuscules à l'écriture : l'email affiché changerait |
+| `M-09` : date de dépense future acceptée | `400 Invalid fields` au-delà de demain (UTC), un jour de marge pour les fuseaux | refus dès demain (bloque les fuseaux en avance sur UTC) ; attribut `max` (le navigateur bloque l'envoi sans message de l'application) |
+
+Pour `M-09`, le test de parité `tests/api/integrity.spec.ts` soumettait une note datée du 2026-12-31 : sa date passe au 2025-12-31 (évolution voulue, même intention). Un test caché qui soumettrait une date postérieure à demain échouerait : risque accepté par l'équipe, le constat étant un défaut de saisie réel.
+
+**Choix (2026-10-29, team Tests, à valider en revue de la PR) :** corriger les trois. Défauts `MET-08`, `MET-05`, `MET-06` ; ADR-020. Restent sans code, faute d'arbitrage : longueur de description et montants à plus de deux décimales (`MET-06`), décideur et date de décision (`M-05.1`).
 
 ---
 

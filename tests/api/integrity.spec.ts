@@ -41,7 +41,8 @@ test.describe('DATA — valeurs restituées à l’identique', { tag: '@parity' 
     })
   }
 
-  for (const expenseDate of ['2024-02-29', '2000-01-01', '2026-12-31', '1970-01-01']) {
+  // Dates passées : une date postérieure à demain est refusée depuis D20 (MET-06).
+  for (const expenseDate of ['2024-02-29', '2000-01-01', '2025-12-31', '1970-01-01']) {
     test(`date ${expenseDate} : identique à la création et dans la liste (aucun décalage de fuseau)`, async () => {
       const note = await createNote(emp, { expenseDate })
       expect(note.expenseDate).toBe(expenseDate)
