@@ -18,9 +18,9 @@ Si elle couvre deux modules, chacun garde ses données. Un module appelle l'autr
 
 ## 1. Écrire le test du cas d'usage (rouge)
 
-Fichier `tests/unit/modules/<module>.test.ts`, avec les ports simulés en mémoire, sans base ni Next.js. Exemple : `tests/unit/modules/organization.test.ts` simule `OrganizationRepository` (`InMemoryOrganization`), puis vérifie le cas nominal, le refus d'un manager d'une autre entreprise et le refus d'un corps invalide sans écriture.
+Dans un **nouveau** fichier `tests/unit/modules/<module>-<fonctionnalité>.test.ts` (par exemple `organization-conges.test.ts`), avec les ports simulés en mémoire, sans base ni Next.js. Ne pas écrire dans le fichier existant du module (`tests/unit/modules/<module>.test.ts`) : `tests/` appartient à la team Tests, un nouveau fichier se relit dans la PR, un fichier existant ne se modifie pas.
 
-`tests/` appartient à la team Tests : un **nouveau** fichier se relit dans la PR, un fichier existant ne se modifie pas.
+Modèle à recopier : `tests/unit/modules/organization.test.ts` simule `OrganizationRepository` (`InMemoryOrganization`) et sa transaction (`inTransaction`), puis vérifie le cas nominal, le refus d'un manager d'une autre entreprise et le refus d'un corps invalide sans écriture.
 
 ## 2. Domaine (`modules/<module>/domain/`)
 
@@ -48,18 +48,21 @@ Exemple : `organization/application/assignManager.ts`.
 C'est l'implémentation du port :
 
 - **Notes de frais** : passer par `withUserScope(actorId, …)` (`@/modules/shared/infrastructure/db`), pour que la RLS s'applique.
-- **Autres tables** : utiliser `getPool()`, avec un filtre explicite sur l'entreprise de l'acteur.
+- **Écritures dans l'organigramme** (rôle, rattachement, tout ce qui modifie `users`) : passer par `OrganizationTransaction` (`pgOrganizationTransaction`), la transaction verrouillée par entreprise. Le cas d'usage reçoit `{ transaction }` et travaille dans `transaction.run(actor.id, async (organization) => …)`. Une écriture faite hors de cette transaction échappe au verrou : deux requêtes simultanées pourraient alors aboutir toutes les deux (ADR-014).
+- **Autres lectures** : utiliser `getPool()`, avec un filtre explicite sur l'entreprise de l'acteur.
 - **Requêtes** : toujours paramétrées, sans aller-retour SQL inutile (règle 7, performance).
 
 Exemple : `PgOrganizationRepository.ts`.
 
 ## 6. Assemblage et API publique (`modules/<module>/index.ts`)
 
-Il instancie l'adapter et l'injecte dans le cas d'usage :
+Il instancie l'adapter et l'injecte dans le cas d'usage. Extrait réel de `organization/index.ts` : les lectures reçoivent le dépôt, les écritures reçoivent la transaction verrouillée.
 
 ```ts
 const organization = new PgOrganizationRepository()
-export const assignManager = makeAssignManager({ organization })
+
+export const listDirectory = makeListDirectory({ organization })                      // lecture
+export const assignManager = makeAssignManager({ transaction: pgOrganizationTransaction }) // écriture
 ```
 
 ## 7. Route (`src/app/api/**/route.ts`)
@@ -78,7 +81,14 @@ Pour l'interface, on passe par `src/utils/api.ts` (client typé, qui traduit en 
 
 ## 8. Contrat
 
-Une nouvelle route ou un nouveau champ s'ajoute à `docs/api/openapi.yaml` **par la team Tests**, dans la même PR et avec ses tests de parité. On préfère une nouvelle route à un champ ajouté dans une réponse existante, car les schémas sont stricts. Un code ou un message existant ne change jamais.
+On préfère une nouvelle route à un champ ajouté dans une réponse existante, car les schémas sont stricts. Un code ou un message existant ne change jamais.
+
+**Ajouter une route = deux fichiers à mettre à jour dans la même PR**, sinon la suite échoue :
+
+1. `docs/api/openapi.yaml` : le chemin, le verbe, le corps attendu, chaque code de réponse possible (y compris `401`, `403` de `route()` et `500`) et le schéma de la réponse. Toute réponse d'un test qui sort de ce contrat fait échouer le test (« Réponse hors contrat »).
+2. `tests/api/contract.spec.ts` : ajouter `'<VERBE> <chemin>'` (même écriture que dans `openapi.yaml`, par exemple `'GET /api/hr/admins'`) à la liste `EXPECTED_OPERATIONS`, et mettre à jour le nombre d'endpoints dans le titre du test (« les N endpoints sont décrits »). Ce test vérifie que le contrat liste exactement les routes attendues : il échoue tant que cette liste n'est pas à jour.
+
+C'est la seule modification d'un test existant qu'implique une nouvelle route : c'est une évolution de contrat voulue, pas un test modifié pour masquer une régression (`AGENTS.md`, règles 2 et 5). Elle se fait dans la même PR que la route, et la team Tests la relit (CODEOWNERS). Un champ ajouté à une réponse existante suit la même règle pour `openapi.yaml`. Exemple complet : la PR #7 (`GET /api/hr/admins`).
 
 ## 9. Vérifier
 
@@ -101,6 +111,9 @@ Contraintes :
 * aucun import d'infrastructure dans modules/*/domain ni modules/*/application ;
 * données uniquement par un port borné à l'acteur courant ;
 * garde de rôle via route(), jamais dans le handler ;
-* asynchrone uniquement si le traitement est lent ou dépend d'un service externe.
+* asynchrone uniquement si le traitement est lent ou dépend d'un service externe ;
+* test unitaire dans un nouveau fichier tests/unit/modules/<module>-<fonctionnalité>.test.ts ;
+* écriture dans l'organigramme : par la transaction verrouillée (OrganizationTransaction) ;
+* nouvelle route : docs/api/openapi.yaml et EXPECTED_OPERATIONS de tests/api/contract.spec.ts dans la même PR.
 Vérification : npm run lint && npm run typecheck && npm run test:unit && make test.
 ```
