@@ -111,7 +111,7 @@ Contraintes :
 * aucun import d'infrastructure dans modules/*/domain ni modules/*/application ;
 * données uniquement par un port borné à l'acteur courant ;
 * garde de rôle via route(), jamais dans le handler ;
-* asynchrone uniquement si le traitement est lent ou dépend d'un service externe ;
+* asynchrone uniquement si le traitement est lent ou dépend d'un service externe, alors en suivant la recette outbox de la section « Si la fonctionnalité demande de l'asynchrone » d'AGENTS.md ;
 * test unitaire dans un nouveau fichier tests/unit/modules/<module>-<fonctionnalité>.test.ts ;
 * écriture dans l'organigramme : par la transaction verrouillée (OrganizationTransaction) ;
 * nouvelle route : docs/api/openapi.yaml et EXPECTED_OPERATIONS de tests/api/contract.spec.ts dans la même PR.

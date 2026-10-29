@@ -41,7 +41,7 @@ Toute la configuration vient de l'environnement (`.env.example`) et passe par `s
 
 | Sujet | Mesure |
 |---|---|
-| Authentification | Auth.js, mots de passe bcrypt (coût 12), même réponse pour un email inconnu et un mot de passe faux ; inscription refusée sur les domaines de messagerie publics (D16) |
+| Authentification | Auth.js, mots de passe bcrypt (coût 12), même réponse pour un email inconnu et un mot de passe faux ; inscription refusée sur les domaines de messagerie publics (D16) ; casse de l'email ignorée, un seul compte par adresse (D20) |
 | Autorisation | garde unique `route()` : `401` sans session, `403` sans le rôle (D12), identifiant d'URL validé. Le rôle est relu en base à chaque requête : un changement de rôle s'applique sans reconnexion. Les pages `/manager` et `/hr` affichent « Accès réservé » en `403` si le rôle ne convient pas (D19) |
 | Isolation entre entreprises | repositories bornés à l'acteur, plus une RLS PostgreSQL effective (`SET LOCAL ROLE` vers `APP_DB_ROLE`), avec `company_id` recopié par trigger |
 | Ressource hors périmètre | `404`, identique à une ressource inexistante (son existence n'est pas révélée) |
@@ -58,20 +58,23 @@ Toute la configuration vient de l'environnement (`.env.example`) et passe par `s
 
 ## 6. Données
 
-Deux migrations :
+Cinq migrations, la première jamais modifiée :
 
 - `1700000000001_init-schema.sql` : schéma d'origine (`companies`, `users`, `expense_notes`, policies RLS initiales) ;
-- `1761350400000_isolation-rls-et-index.sql` : `company_id` sur les notes par trigger, index des listes, policies réécrites et indexables, rôle `expense_app`.
+- `1761350400000_isolation-rls-et-index.sql` : `company_id` sur les notes par trigger, index des listes, policies réécrites et indexables, rôle `expense_app` ;
+- `1761609600000_met02-rh-employes-sans-manager.sql` : les policies RH couvrent les employés sans manager (MET-02) ;
+- `1761696000000_met10-rh-validee-par-autre-rh.sql` : une RH sans manager est validée par une autre RH (MET-10) ;
+- `1761782400000_met05-email-insensible-a-la-casse.sql` : index unique sur `lower(email)` (MET-05).
 
-Les tables `users` et `companies` n'ont pas changé : `scripts/seed.mjs` et `scripts/seed-e2e.mjs` restent valides.
+Les colonnes de `users` et `companies` n'ont pas changé (seul un index s'ajoute) : `scripts/seed.mjs` et `scripts/seed-e2e.mjs` restent valides.
 
 ## 7. Tests
 
 | Suite | Commande | Ce qu'elle garantit |
 |---|---|---|
 | Unitaires | `npm run test:unit` | domaine et cas d'usage de chaque module, avec des ports en mémoire |
-| Parité | `npx playwright test --grep @parity` | aucun comportement perdu ; chaque réponse est validée contre `docs/api/openapi.yaml` |
-| Défauts | `make test-defects` | les 17 défauts techniques corrigés (`tests/defects/registry.ts`) |
+| Parité | `npx playwright test --grep @parity` | 231 tests : aucun comportement perdu ; chaque réponse est validée contre `docs/api/openapi.yaml` (version 2.0.0) |
+| Défauts | `make test-defects` | les 38 défauts du registre corrigés : 18 techniques, 20 métier (`tests/defects/registry.ts`) |
 | Qualité | `npm run lint && npm run typecheck` | règles d'architecture bloquantes, typage |
 | Tout | `make test` | depuis zéro (Docker, migrations, seed, build) |
 
@@ -79,9 +82,13 @@ Les tables `users` et `companies` n'ont pas changé : `scripts/seed.mjs` et `scr
 
 `make test-perf` compare la version courante à la baseline `265924b`, sur la même machine et dans le même run. Il alterne les passages et compare les médianes de p95 (`docs/perf/README.md`). Le jeu de données compte 20 entreprises, 2 002 utilisateurs et 193 300 notes.
 
-| Objectif | Moyen |
-|---|---|
-| PERF-01 : OCR p95 ≤ 50 % de la baseline | pool de workers Tesseract réutilisés au lieu d'un worker créé par requête |
-| PERF-02 : listes p95 ≤ 50 % de la baseline | index des listes et policies RLS indexables (`user_id = ANY (ARRAY(...))`) |
+| Objectif | Moyen | Statut au 2026-10-29 |
+|---|---|---|
+| PERF-01 : OCR p95 ≤ 50 % de la baseline | pool de workers Tesseract réutilisés au lieu d'un worker créé par requête | **atteint** (ratio 0,03) |
+| PERF-02 : listes p95 ≤ 50 % de la baseline | index des listes et policies RLS indexables (`user_id = ANY (ARRAY(...))`) | **non atteint** : ratios 0,80 (employé), 0,96 (manager), 0,22 (RH) ; aucune liste plus lente que la baseline |
 
-Résultats et bascules : `tests/perf/targets.json` et `perf-results/latest.md`.
+Relevé local du 2026-10-29 (3 passages alternés, verdict « aucun problème détecté ») : OCR −97 %, liste RH −78 %, création de note −21 %, liste employé −20 %, connexion −6 %, liste manager −4 %, charge mixte −3 %. Après la charge mixte, la mémoire passe de 580 à 705 Mo : le pool OCR reste chargé, c'est le prix de la latence de l'OCR.
+
+La liste manager du jeu de perf renvoie 1 884 notes, soit 531 Ko : la requête SQL prend 1,5 ms sur environ 25 ms, le reste est la sérialisation et le transfert. Le levier suivant pour PERF-02 est donc la pagination, une évolution de contrat. Le nom de l'auteur (D20) ajoute 13 % à la réponse ; la requête ne lit plus que les colonnes utiles, et la liste reste aussi rapide qu'avant D20 (mesure A/B sur la même machine).
+
+Résultats et bascules : `tests/perf/targets.json` et `perf-results/latest.md` (non versionné, produit par `make test-perf`).

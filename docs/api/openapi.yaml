@@ -44,6 +44,9 @@ info:
       `GET /api/manager/expense-notes` (D20).
       Règles : date de dépense postérieure à demain (UTC) refusée en 400, casse
       de l'email ignorée à l'inscription et à la connexion (D20).
+      oasdiff 1.0.0 → 2.0.0 : aucun changement cassant de structure (15
+      changements, 1 avertissement). Les ruptures sont de comportement (D12,
+      D15) : seuls les tests de parité les voient.
     - 1.0.0 (2026-10-12) : contrat relevé sur l'application d'origine.
 servers:
   - url: http://localhost:3000
